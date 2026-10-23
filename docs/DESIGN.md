@@ -36,6 +36,7 @@ As a loop:
 ```
 forever:
   repos = every non-fork, non-archived repository of each owner      (gh)
+  sort repos by owner/name                                           (2.11)
   move first any repository with an interrupted run on disk          (2.10)
   for repo in repos:
     if no sentinel4rust.toml naming a crate on its default branch:   (gh, no clone)
@@ -210,6 +211,23 @@ work_dir/<owner>/<name>/ledger/<hash>/
 The ledger lives on the machine and the state does not: losing a ledger costs the hours it saved and nothing
 else (2.1).
 
+### 2.11 Repositories take turns, in a fixed order
+
+Decided on 2026-10-23: round-robin. Each round lists the repositories afresh, sorts them by `owner/name`, moves
+any with a ledger to the front (2.10), and visits each onboarded repository once, in that order.
+
+- **No starvation.** A repository gets at most one run per round, so however busy the others are, a commit waits
+  at most one round -- the sum of that round's runs and pauses -- before it is tested.
+- **The newest commit wins.** `head` is read when the repository's turn comes, not when the round starts, so
+  several pushes during someone else's three-hour run cost one run, of the latest.
+- **Predictable.** The order depends on names only, not on GitHub's sorting or on push times, so the journal of
+  one round reads like the next, and tests can pin it.
+- **New repositories join at the next round**, in their alphabetical place; one that stops opting in drops out
+  the same way.
+- **The cost**: the pause after every visit, as the workflow says, means a quiet round of N onboarded
+  repositories takes N x `pause_seconds`. Longest-waiting-first and most-recently-pushed-first were considered
+  and set aside for this simplicity; either could replace the sort later without touching the rest.
+
 ## 3. Configuration
 
 ```toml
@@ -282,6 +300,9 @@ round that visited none; `run_forever` and `run_once` drive the rounds.
   publishes once; the crates come from the file at `head`, not from the probe; the first run creates the branch;
   an invalid file or unknown crate publishes `config-invalid`; a baseline failure publishes `baseline-failed`; a
   tool failure publishes nothing; a rejected push retries once; a round with no onboarded repository pauses once.
+- **Scheduling, with fakes:** repositories are visited sorted by `owner/name` whatever order the listing returns;
+  each onboarded repository is visited once per round; a repository that moves twice during another's run is run
+  once, at its latest head.
 - **Resuming, with fakes:** a repository with a ledger is visited first; a matching ledger seeds the run; a ledger
   for another hash, other crates or other versions is deleted and the run starts afresh; a publish deletes the
   ledger, a tool failure keeps it; the published caught count is the union, the missed list the last attempt's.
@@ -334,7 +355,7 @@ Test-first, one commit per slice, both stages green before each.
 | S8 | `Sentinel`: discovery, the visit, resuming and the loop, with fakes |
 | S9 | command line, `main`, the config file |
 | S10 | the end-to-end gate on a fixture workspace, fresh and resumed |
-| S11 | `deploy/` (systemd unit, machine set-up), README, ARCHITECTURE, ADRs for 2.1, 2.2, 2.5, 2.9, 2.10 |
+| S11 | `deploy/` (systemd unit, machine set-up), README, ARCHITECTURE, ADRs for 2.1, 2.2, 2.5, 2.9, 2.10, 2.11 |
 
 ## 8. Decisions for the owner
 
@@ -345,6 +366,7 @@ Decided on 2026-10-23:
 - `.cargo/mutants.toml` keeps the run settings (2.5).
 - Discovery goes through the `gh` CLI (2.9).
 - An interrupted run resumes from a ledger on the machine, which stays a cache (2.10).
+- Repositories take turns round-robin, sorted by `owner/name`, interrupted runs first (2.11).
 
 Open:
 
