@@ -222,8 +222,14 @@ any with a ledger to the front (2.10), and visits each onboarded repository once
   several pushes during someone else's three-hour run cost one run, of the latest.
 - **Predictable.** The order depends on names only, not on GitHub's sorting or on push times, so the journal of
   one round reads like the next, and tests can pin it.
-- **New repositories join at the next round**, in their alphabetical place; one that stops opting in drops out
-  the same way.
+- **New repositories join at the next round.** The listing is taken once, when a round starts; the probe for
+  `sentinel4rust.toml` happens at each repository's turn. So a repository created during a round is first seen
+  at the next one, in its alphabetical place; an existing repository that gains the file is picked up this round
+  if its turn is still to come, otherwise at the next. The wait is at most the rest of the current round, and no
+  run is interrupted for a newcomer. Re-listing before every visit, or letting never-scanned repositories jump
+  the queue, were considered on 2026-10-23 and set aside: onboarding is rare, and the next round is soon enough.
+- **Leaving is just as quiet.** A repository deleted or archived mid-round probes as absent at its turn and is
+  skipped; one that removes the file or empties `crates` is skipped and its ledger deleted (2.10).
 - **The cost**: the pause after every visit, as the workflow says, means a quiet round of N onboarded
   repositories takes N x `pause_seconds`. Longest-waiting-first and most-recently-pushed-first were considered
   and set aside for this simplicity; either could replace the sort later without touching the rest.
