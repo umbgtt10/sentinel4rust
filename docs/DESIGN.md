@@ -36,6 +36,7 @@ As a loop:
 ```
 forever:
   repos = every non-fork, non-archived repository of each owner      (gh)
+  move first any repository with an interrupted run on disk          (2.10)
   for repo in repos:
     if no sentinel4rust.toml naming a crate on its default branch:   (gh, no clone)
       continue                                                       no pause
@@ -45,7 +46,8 @@ forever:
     if head == recorded:
       pause 5 min ; continue
     read sentinel4rust.toml at head
-    run cargo-mutants on its crates, on a clean checkout of head
+    run cargo-mutants on its crates, on a clean checkout of head,
+      resuming an interrupted run at head if there is one             (2.10)
     publish results for head on mutants (orphan branch, created on first use)
     pause 5 min
   if the round visited no onboarded repository:
@@ -61,9 +63,12 @@ pause still follows every visit to an onboarded repository, unchanged or not, as
 
 "Has `main` changed since the last pull?" is answered by comparing `origin/main` with the hash recorded in
 `origin/mutants:summary.toml`. The machine keeps no database: a reboot, a crash or a new disk loses nothing, and
-a second machine could take over by cloning. A run that dies half way writes nothing, so the next round simply
-runs it again. Which repositories are onboarded is not state either: it is read from GitHub and from the
-repositories themselves every round.
+a second machine could take over by cloning. A run that dies half way publishes nothing, so the next round runs
+it again -- resuming from what it had already caught (2.10). Which repositories are onboarded is not state
+either: it is read from GitHub and from the repositories themselves every round.
+
+Everything under `work_dir` -- clones, worktrees, cargo-mutants output, run ledgers -- is a cache: deleting it
+costs time, never correctness.
 
 ### 2.2 `mutants` is an orphan branch
 
@@ -90,7 +95,8 @@ same commit, the hash also says which crates were tested.
 
 ### 2.4 It only ever pushes `refs/heads/mutants`
 
-Publishing happens from a second worktree on `mutants`; the push names the ref explicitly. If the push is
+Publishing happens from a second worktree on `mutants`, reset to `origin/mutants` before anything is written, so
+a commit left unpushed by a crash is dropped rather than built on; the push names the ref explicitly. If the push is
 rejected (someone else moved `mutants`), the tool refetches, reapplies its files once and retries; failing that,
 it logs and moves on -- the next round reruns. Protecting `main` on the remote makes the guarantee hold even
 against a bug.
@@ -161,12 +167,55 @@ default branch is taken from GitHub rather than assumed to be `main`. The probe 
 means not onboarded. Credentials stay with the system's `gh`, as git's stay with git: the crate holds no token and
 needs no HTTP client. A listing that comes back with exactly the limit is logged as possibly truncated.
 
+### 2.10 An interrupted run resumes
+
+A full run can take hours, so a crash, a reboot or a restart of the service should not throw away what it had
+already caught. cargo-mutants offers the means: it writes `caught.txt` and its sibling lists one line per mutant
+as each finishes -- they survive a `SIGKILL` -- and `--iterate` skips every mutant listed in the previous
+`mutants.out/caught.txt` and `unviable.txt`. Tried on 2026-10-23 with cargo-mutants 27.1.0: a 28-mutant crate
+killed after 17 caught, resumed with `--iterate`, tested only the other 11, and the totals matched a fresh full
+run; a seed directory holding nothing but a hand-written `caught.txt` was honoured as well.
+
+Two things the experiment also showed, and which the sentinel must make up for:
+
+- cargo-mutants keeps one previous run only (`mutants.out.old`), and a resumed run's `caught.txt` lists only
+  what *it* caught. A second crash would lose the first attempt's progress.
+- `--iterate` does not check what it skips against: it would skip mutants caught at another commit as readily.
+
+So the sentinel keeps its own ledger, one per interrupted run:
+
+```
+work_dir/<owner>/<name>/ledger/<hash>/
+  run.toml          commit, crates, cargo-mutants and rustc versions, attempts so far
+  caught.txt        union of every attempt's caught mutants, sorted
+  unviable.txt      union of every attempt's unviable mutants, sorted
+  attempt-<n>/      the -o directory of attempt n
+```
+
+- **Before an attempt**, whatever the previous attempt's lists hold -- complete or cut short -- is merged into the
+  ledger's unions; then `attempt-<n>/mutants.out/` is seeded with the unions alone and cargo-mutants runs with
+  `-o attempt-<n> --iterate`.
+- **The ledger is used only if it matches**: `run.toml`'s commit equals `head`, its crates equal the file's at
+  `head`, and the installed cargo-mutants and rustc versions are the ones recorded. `.cargo/mutants.toml` and
+  `rust-toolchain.toml` are covered by the hash. Any mismatch -- `main` moved, a toolchain upgraded -- deletes the
+  ledger and starts afresh: the sentinel tests the newest `main`, never an old one to finish it.
+- **Missed and timed-out mutants are tested again** in every attempt, so the published `missed.txt` and
+  `timeout.txt` are the last attempt's; the caught and unviable counts are the unions'. Each attempt also reruns
+  the baseline -- one clean build and test, the price of resuming.
+- **Interrupted runs come first**: a round moves any repository with a ledger to the front, so a restart finishes
+  the cut-short run instead of walking the whole list, and its pauses, to get back to it.
+- **The ledger is deleted** once its outcome is published (`completed`, `baseline-failed`), and when its
+  repository is no longer onboarded. A `ToolFailed` attempt keeps it, so the retry resumes too.
+
+The ledger lives on the machine and the state does not: losing a ledger costs the hours it saved and nothing
+else (2.1).
+
 ## 3. Configuration
 
 ```toml
 # ~/.config/sentinel4rust/config.toml
 owners = ["umbgtt10"]                        # GitHub users or organisations whose repositories are listed
-work_dir = "/home/sentinel/sentinel4rust"   # clones, worktrees, cargo-mutants output
+work_dir = "/home/sentinel/sentinel4rust"   # clones, worktrees, cargo-mutants output, ledgers: a cache
 pause_seconds = 300
 jobs = 6                                     # cargo-mutants -j
 ```
@@ -191,7 +240,8 @@ constructor.
 | `Pause` | waits for a duration |
 | `RepoDirectory` | lists an owner's repositories; reads one file from a repository's default branch without cloning |
 | `RepoSource` | fetches a repository; reads the default branch's hash, the hash recorded on `mutants`, and a file at a hash |
-| `MutationRunner` | runs cargo-mutants on given crates of a checkout at a hash; returns a `RunOutcome` |
+| `MutationRunner` | runs cargo-mutants on given crates of a checkout at a hash, seeded with mutants already caught; returns a `RunOutcome` |
+| `LedgerStore` | finds, creates, merges into and deletes the ledger of an interrupted run (2.10) |
 | `ResultStore` | publishes a `RunRecord` on `mutants`, creating the orphan branch on first use |
 
 **Data model**
@@ -205,6 +255,7 @@ constructor.
 | `MutantCounts` | caught, missed, timeout, unviable |
 | `RunOutcome` | `Completed { counts, missed, timed_out }`, `BaselineFailed { log_tail }`, `ConfigInvalid { reason }`, `ToolFailed { reason }` |
 | `RunRecord` | the hash, the crates, the times, the versions and the outcome -- what `summary.toml` holds |
+| `Ledger` | an interrupted run: hash, crates, versions, attempts, and the caught and unviable unions -- what `run.toml` and its lists hold |
 | `RoundStep` | what one look at a repository did: `NotOnboarded`, `Unchanged`, `Published(hash)`, `Skipped(reason)` |
 
 **Implementations**
@@ -215,10 +266,12 @@ constructor.
 | `SystemClock`, `ThreadPause` | `Clock`, `Pause` |
 | `GhCli` | `RepoDirectory`, shelling out to `gh` (2.9) |
 | `GitCli` | `RepoSource` and `ResultStore`, shelling out to `git` (credentials stay with the system's git) |
-| `CargoMutantsCli` | `MutationRunner`, shelling out to `cargo mutants --package ...`, parsing `mutants.out`; checks the crate names with `cargo metadata` |
+| `CargoMutantsCli` | `MutationRunner`, shelling out to `cargo mutants --package ... --iterate`, seeding and parsing `mutants.out`; checks the crate names with `cargo metadata` |
+| `FsLedgerStore` | `LedgerStore`, under `work_dir` |
 | `TomlSettings` | reads `config.toml` |
 
-**Orchestration:** `Sentinel` lists the repositories once per round, then looks at one per step
+**Orchestration:** `Sentinel` lists the repositories once per round, moves those with a ledger to the front,
+then looks at one per step
 (`visit(&DiscoveredRepo) -> RoundStep`), pausing after each visit to an onboarded repository and once after a
 round that visited none; `run_forever` and `run_once` drive the rounds.
 
@@ -229,6 +282,11 @@ round that visited none; `run_forever` and `run_once` drive the rounds.
   publishes once; the crates come from the file at `head`, not from the probe; the first run creates the branch;
   an invalid file or unknown crate publishes `config-invalid`; a baseline failure publishes `baseline-failed`; a
   tool failure publishes nothing; a rejected push retries once; a round with no onboarded repository pauses once.
+- **Resuming, with fakes:** a repository with a ledger is visited first; a matching ledger seeds the run; a ledger
+  for another hash, other crates or other versions is deleted and the run starts afresh; a publish deletes the
+  ledger, a tool failure keeps it; the published caught count is the union, the missed list the last attempt's.
+- **`FsLedgerStore`, in temporary directories:** merging a cut-short attempt's lists, including a last line
+  without its newline; two interrupted attempts in a row lose nothing; `run.toml` round-trips.
 - **`SentinelFile`:** the strict parse -- unknown keys, duplicates, missing `crates`, malformed TOML -- each
   rejected with a message naming the problem.
 - **`GhCli`:** the argument lists against a fake runner; the parser against `gh repo list` JSON captured from a
@@ -240,7 +298,9 @@ round that visited none; `run_forever` and `run_once` drive the rounds.
   `mutants.out` fixtures captured from real runs (a completed run with survivors, a baseline failure, a timeout).
 - **End to end, in stage 2:** the real cargo-mutants on a two-crate fixture workspace in a local bare repository,
   with `sentinel4rust.toml` naming one crate and a fake `RepoDirectory`, `--once`, asserting that only that crate's
-  survivors are published. It needs cargo-mutants installed, so it is a stage 2 gate, not a stage 1 test.
+  survivors are published. A second run starts from a ledger seeded with half of the caught mutants and asserts
+  that only the rest are tested and that the published result equals the first. It needs cargo-mutants
+  installed, so it is a stage 2 gate, not a stage 1 test.
 - The family's gates from the first commit: stern4rust (all 35 rules), dry4rust, crap4rust, twin4rust,
   iceberg4rust, cargo-shear.
 
@@ -251,8 +311,10 @@ round that visited none; `run_forever` and `run_once` drive the rounds.
 - `gh`, logged in (`gh auth login`) with a credential that can list and read every repository of the owners,
   private ones included.
 - Write access for pushing `mutants` (decision 3 below), and `main` protected on the remote.
-- A systemd unit (`deploy/sentinel4rust.service`, `Restart=always`), logging to the journal: one line per visit,
-  and one per round with the number of repositories listed and onboarded.
+- A systemd unit (`deploy/sentinel4rust.service`), enabled at boot, `Restart=always`, logging to the journal: one
+  line per visit, and one per round with the number of repositories listed and onboarded. Its default
+  `KillMode=control-group` takes cargo-mutants and its test processes down with the sentinel, so a restart never
+  finds an orphaned run still holding the tree; the ledger (2.10) picks up where it stopped.
 - Disk over RAM: each cargo-mutants job builds in its own copy of the tree.
 
 ## 7. Implementation slices
@@ -267,11 +329,12 @@ Test-first, one commit per slice, both stages green before each.
 | S3 | `GhCli`: the listing and the file probe, against captured output |
 | S4 | `GitCli` read side: fetch, the default branch's hash, the recorded hash, a file at a hash -- against bare repositories |
 | S5 | `GitCli` publish side: orphan branch, overwrite, commit, push only `mutants`, one retry |
-| S6 | `CargoMutantsCli`: arguments, the crate check, the `mutants.out` parser, the exit code table |
-| S7 | `Sentinel`: discovery, the visit and the loop, with fakes |
-| S8 | command line, `main`, the config file |
-| S9 | the end-to-end gate on a fixture workspace |
-| S10 | `deploy/` (systemd unit, machine set-up), README, ARCHITECTURE, ADRs for 2.1, 2.2, 2.5, 2.9 |
+| S6 | `CargoMutantsCli`: arguments, the crate check, seeding, the `mutants.out` parser, the exit code table |
+| S7 | `Ledger` and `FsLedgerStore`: create, match, merge, delete |
+| S8 | `Sentinel`: discovery, the visit, resuming and the loop, with fakes |
+| S9 | command line, `main`, the config file |
+| S10 | the end-to-end gate on a fixture workspace, fresh and resumed |
+| S11 | `deploy/` (systemd unit, machine set-up), README, ARCHITECTURE, ADRs for 2.1, 2.2, 2.5, 2.9, 2.10 |
 
 ## 8. Decisions for the owner
 
@@ -281,6 +344,7 @@ Decided on 2026-10-23:
 - The file names the crates to mutate; absent or empty means skipped (2.5).
 - `.cargo/mutants.toml` keeps the run settings (2.5).
 - Discovery goes through the `gh` CLI (2.9).
+- An interrupted run resumes from a ledger on the machine, which stays a cache (2.10).
 
 Open:
 
