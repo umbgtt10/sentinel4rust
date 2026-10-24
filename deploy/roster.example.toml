@@ -1,0 +1,23 @@
+# ~sentinel/.config/sentinel4rust/roster.toml -- see docs/DESIGN.md section 3.
+# Edit, then: sudo systemctl restart sentinel4rust
+
+work_dir = "/home/sentinel/sentinel4rust"   # clones, worktrees, cargo-mutants output
+pause_seconds = 300                          # polling interval per repository
+jobs = 6                                     # cargo-mutants --jobs (default for every repo)
+run_timeout_hours = 12                       # cap on one cargo-mutants run
+config_version = 1                           # bump to rerun every repository (e.g. after upgrading cargo-mutants)
+
+[[repo]]
+name = "twin4rust"                           # unique; names the local clone
+url = "git@github-twin4rust:umbgtt10/twin4rust.git"   # SSH host alias, one deploy key per repo
+# access verified: YYYY-MM-DD (deploy/verify-access.sh)
+
+[[repo]]
+name = "etheram-raft"
+url = "git@github-etheram-raft:umbgtt10/etheram-raft.git"
+branch = "main"                              # default
+jobs = 2                                     # per-repo override, e.g. tests not safe in parallel
+
+[[repo]]
+name = "sentinel4rust"
+url = "git@github-sentinel4rust:umbgtt10/sentinel4rust.git"

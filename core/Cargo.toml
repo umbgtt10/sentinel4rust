@@ -1,0 +1,18 @@
+[package]
+name = "sentinel4rust"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+description = "Runs mutation testing around the clock on a dedicated machine and publishes each repository's surviving mutants on its own branch"
+readme = "../README.md"
+documentation = "https://docs.rs/sentinel4rust"
+keywords = ["mutation-testing", "testing", "cargo-mutants", "ci", "cli"]
+categories = ["development-tools::testing", "command-line-utilities"]
+
+[dependencies]
+
+[lints]
+workspace = true

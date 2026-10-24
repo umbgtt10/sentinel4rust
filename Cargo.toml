@@ -1,16 +1,22 @@
-[package]
-name = "sentinel4rust"
-version = "0.0.1"
-edition = "2024"
-rust-version = "1.85"
-authors = ["Umberto Gotti <umberto.gotti@umbertogotti.dev>"]
-license = "MIT"
-repository = "https://github.com/umbgtt10/sentinel4rust"
-description = "Runs mutation testing around the clock on a dedicated machine and publishes each repository's surviving mutants on its own branch"
-readme = "README.md"
-documentation = "https://docs.rs/sentinel4rust"
-keywords = ["mutation-testing", "testing", "cargo-mutants", "ci", "cli"]
-categories = ["development-tools::testing", "command-line-utilities"]
-include = ["src/**", "Cargo.toml", "README.md", "LICENSE"]
+[workspace]
+members = ["core", "xtask"]
+resolver = "3"
 
-[dependencies]
+[workspace.package]
+edition = "2024"
+rust-version = "1.89"
+license = "MIT"
+authors = ["Umberto Gotti <umberto.gotti@umbertogotti.dev>"]
+repository = "https://github.com/umbgtt10/sentinel4rust"
+
+[workspace.lints.rust]
+unsafe_code = "forbid"
+missing_docs = "warn"
+
+[workspace.lints.clippy]
+all = { level = "deny", priority = -1 }
+pedantic = { level = "warn", priority = -1 }
+module_name_repetitions = "allow"
+missing_errors_doc = "allow"
+missing_panics_doc = "allow"
+must_use_candidate = "allow"

@@ -1,0 +1,29 @@
+[Unit]
+Description=sentinel4rust: mutation testing around the clock
+Documentation=https://github.com/umbgtt10/sentinel4rust
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=sentinel
+Group=sentinel
+ExecStart=/home/sentinel/.cargo/bin/sentinel4rust --roster /home/sentinel/.config/sentinel4rust/roster.toml
+Restart=always
+RestartSec=30
+# cargo, rustup and cargo-mutants live in the user's cargo home.
+Environment=PATH=/home/sentinel/.cargo/bin:/usr/local/bin:/usr/bin:/bin
+
+# A runaway test must not freeze the box (design 5). Adjust to the machine.
+MemoryMax=80%
+TasksMax=8192
+Nice=5
+
+# Light hardening; the work dir and caches stay writable.
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ReadWritePaths=/home/sentinel
+
+[Install]
+WantedBy=multi-user.target

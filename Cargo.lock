@@ -4,4 +4,8 @@ version = 4
 
 [[package]]
 name = "sentinel4rust"
-version = "0.0.1"
+version = "0.1.0"
+
+[[package]]
+name = "xtask"
+version = "0.0.0"
