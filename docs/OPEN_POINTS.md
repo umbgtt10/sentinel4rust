@@ -1,0 +1,218 @@
+# Open Points
+
+Known gaps, deliberately recorded rather than silently assumed correct. Each entry says what was actually observed
+-- in the code at `48c8fb1`, in cargo-mutants 27.1.0's source, or on the development laptop -- or, where it could not
+be observed yet, that it is to be verified on the machine. Recorded 2026-10-24.
+
+| # | point | weight |
+|---|---|---|
+| 1 | cargo-mutants builds in a private `/tmp`, which is usually RAM | before the machine runs |
+| 2 | `cargo install sentinel4rust` installs the placeholder that does nothing | before the machine runs |
+| 3 | a large repository can hold the machine for 36 hours per commit and publish nothing | before onboarding a large repository |
+| 4 | an unreadable `summary.toml` silently reruns the same commit forever | before the machine runs |
+| 5 | every repository's code runs where every repository's key is | accepted in design 5.1; decide again |
+| 6 | `cargo xtask` does not exist | small fix |
+| 7 | the family's gates and coding standards do not apply here yet | before the next feature |
+| 8 | the design and the code disagree in four places | small fix |
+| 9 | only the `completed` outcome has been seen against the real cargo-mutants | to verify on the machine |
+| 10 | repositories the tool cannot test yet | before onboarding each repository |
+| 11 | flaky tests and machine-dependent timeouts make the lists noisy | to watch |
+| 12 | a dead machine looks like a quiet repository | to decide |
+| 13 | `config_version` has to be bumped by hand after a cargo-mutants upgrade | small |
+| 14 | `verify-access.sh --include-main` force-pushes `main` | small |
+| 15 | what public repositories publish | accepted in design 5.1; decide per repository |
+| 16 | smaller things | low |
+
+---
+
+## 1. cargo-mutants builds in a private `/tmp`, which is usually RAM
+
+`deploy/sentinel4rust.service` sets `PrivateTmp=yes` and no `TMPDIR`. cargo-mutants copies the tree to build each
+mutant through the `tempfile` crate (`build_dir.rs`), so the copies land in the service's private `/tmp` -- one per
+`--jobs`, each with its own `target/`. On the development laptop `/tmp` is a `tmpfs`; if the machine's is too, the
+build copies live in RAM and count against `MemoryMax=80%`. A workspace the size of etheram-ibft, times six jobs,
+would not fit.
+
+The run cap kills cargo-mutants with `SIGKILL` (`system.rs`, `kill_group`), so it cannot remove its copies; `prune`
+empties `runs/` and `stage/` only. Copies leaked by a killed run stay until the service restarts.
+
+**To close:** set `TMPDIR` to a directory under `work_dir` for the cargo-mutants process (or in the unit), empty it in
+`prune`, and check `findmnt /tmp` on the machine. Observed: the unit file, cargo-mutants' source, this laptop's
+`/tmp`. To verify: the machine's `/tmp`.
+
+## 2. `cargo install sentinel4rust` installs the placeholder
+
+`deploy/SETUP.md` offers `cargo install sentinel4rust` as the alternative to `--path`. crates.io has only `0.0.1`, the
+placeholder that prints "under construction" and exits `0`. Under systemd with `Restart=always` it would restart
+every 30 seconds, quietly doing nothing.
+
+**To close:** use `--path` until `0.1.0` is published, or publish it. Observed.
+
+## 3. A large repository can hold the machine for 36 hours per commit
+
+`run_timeout_hours` defaults to 12 (`roster.rs`), and `MAX_TOOL_FAILURES` is 3 per commit (`schedule.rs`): a run that
+needs more than 12 hours is killed three times -- up to 36 hours, during which nothing else is visited, since one
+repository runs at a time -- and then publishes `tool-failed`. When `main` moves, the count starts again.
+etheram-ibft's core packages alone have 2,357 mutants (counted with `--list` on 2026-10-23); their run time is not
+known.
+
+Design section 7 asks for cargo-mutants to be run by hand on the two or three largest repositories before S0, to set
+`jobs` and the run cap. No measurement is recorded in the repository. The only measured run is twin4rust's: 215
+mutants, 3 min 20 s, `-j 1`, on the development laptop.
+
+**To close:** measure the largest repositories on the machine before onboarding them; size `run_timeout_hours` and
+`jobs` from that, or shard them (design 8, incremental runs). Observed: the code paths. Not measured: the run times.
+
+## 4. An unreadable `summary.toml` silently reruns the same commit
+
+`GitCli::sync` reads the record with `RunRecord::parse(&text).ok()` (`git.rs`): a `summary.toml` that does not parse
+reads as "no record", the commit is not current, and the full run starts again -- on every visit, for as long as the
+file stays unreadable -- with nothing in the journal saying why. The writer and the parser are tested to round-trip,
+so the likely trigger is a schema change, a hand edit, or a value the TOML subset does not cover.
+
+**To close:** treat an unparseable record as its own state: log it once, and either back off or rerun once and
+compare. Observed.
+
+## 5. Every repository's code runs where every repository's key is
+
+All deploy keys live in `~sentinel/.ssh`, and cargo-mutants runs each onboarded repository's build scripts, tests
+and dependencies as the same user. One compromised dependency in one repository can read every key: it can then read
+every onboarded repository, private ones included, and write every `mutants` branch. On private repositories without
+a paid plan there is no ruleset (design 5.1), so a stolen write key can also push to `main` there.
+
+Design 5.1 accepts this. It is recorded here because the blast radius covers the private repositories, and because it
+can be narrowed: run git as one user, which holds the keys, and cargo-mutants as another, which cannot read them; or
+give the run a mount namespace without `~/.ssh` (systemd `InaccessiblePaths=` on a separate unit).
+
+**To decide.** Observed: the layout in design 5.2 and the unit file.
+
+## 6. `cargo xtask` does not exist
+
+The README and CLAUDE.md say `cargo xtask stage1`; the repository has no `.cargo/config.toml` defining the alias, so
+it fails with "no such command". The gates run with `cargo run -p xtask -- stage1`.
+
+**To close:** add `.cargo/config.toml` with `[alias] xtask = "run --quiet -p xtask --"`. Observed.
+
+## 7. The family's gates and coding standards do not apply yet
+
+Section 9 records that stern4rust, dry4rust, crap4rust, twin4rust, iceberg4rust and cargo-shear were not available
+where the code was written; `xtask/src/main.rs` runs `fmt`, `clippy` and `test` only, has no tests of its own, and is
+not built from `Gate` implementations against a `CommandRunner` like the sibling tools' xtasks. Measured against the
+house rules the other repositories follow:
+
+- none of the 23 `.rs` files carries the four-line copyright header;
+- 11 source files declare `#[cfg(test)]` modules -- `sentinel.rs`'s in a separate `core/src/sentinel/tests.rs` --
+  instead of mirrored files under `tests/`; the tests have no Arrange/Act/Assert sections and do not follow `<method>_<description>_<outcome>`;
+- 56 `pub` struct fields (stern4rust's private-fields);
+- behaviour in free functions (`interpret`, `read_lists`, `log_tail`, `publication_for`, `journal_line`) rather than
+  named structs with methods;
+- fully qualified paths in bodies (`crate::model::SkipReason::NoBranch` in `sentinel.rs`, `std::process::Command` in
+  `system.rs`);
+- no CI workflow, no CHANGELOG, no ARCHITECTURE, ADRs or ROADMAP.
+
+Turning the gates on will be a sweep of its own; doing it before the code grows keeps it small.
+
+**To close:** add the gates to the xtask, then bring the code under them. Observed.
+
+## 8. The design and the code disagree in four places
+
+- **2.4** says publishing uses a second worktree and `git push origin HEAD:refs/heads/mutants`; section 9 and
+  `git.rs` publish with plumbing and push `<commit>:refs/heads/mutants`, with no worktree.
+- **2.6** says the exit codes were "checked against 27.1.0 in S5"; section 9 says `outcomes.json` could not be
+  checked against 27.1.0. The exit-code table does match 27.1.0's `exit_code.rs` (read on 2026-10-23); the
+  `outcomes.json` format was never needed, since the lists are read from the `.txt` files.
+- **6** says the parser is tested "against `mutants.out` fixtures captured from real runs"; the tests in
+  `mutants.rs` write synthetic lists through a fake runner, and no captured `mutants.out` is in the repository.
+- **9** says stage 2 "has not been run yet". It ran and passed on the development laptop on 2026-10-24, against
+  cargo-mutants 27.1.0.
+
+Section 7 plans one commit per slice, test-first. The implementation arrived uncommitted and went in as one
+commit, `48c8fb1`, so no slice can be reverted alone, and the history cannot show that the tests came first.
+
+**To close:** update sections 2.4, 2.6, 6 and 9. Observed.
+
+## 9. Only `completed` has been seen against the real cargo-mutants
+
+Stage 2 (`real_cargo_mutants_on_a_fixture_crate`) runs the real cargo-mutants on a three-function crate and sees a
+`completed` run. Baseline failure (exit `4`), timeouts (exit `3`), the run cap and a cargo-mutants usage error are
+tested only through fakes and a stub. The mapping matches the 27.1.0 source, but the `.txt` lists' format under
+`timeout.txt`, and the log tail on a real baseline failure, have not been seen.
+
+**To verify on the machine:** a fixture whose tests fail (exit `4`), and one with a mutant that loops (exit `3`).
+
+## 10. Repositories the tool cannot test yet
+
+Each of these makes the run fail as `baseline-failed` or `tool-failed`, and each is to be verified before the
+repository is onboarded:
+
+- **Submodules:** `git worktree add` checks out no submodules.
+- **Path dependencies outside the repository** (`path = "../sibling"`): the run's checkout has no sibling.
+- **Private git dependencies:** the keys are reachable only through the per-repository host aliases
+  (`github-<repo>`), and a dependency's URL names `github.com`. cargo's built-in git does not read `~/.ssh/config`
+  at all (it authenticates through an SSH agent), and with `net.git-fetch-with-cli` the system git still finds no
+  key for `github.com`.
+- **Embedded targets:** a `.cargo/config.toml` with `build.target = "thumbv…"` (etheram-embassy and its consumers)
+  cannot run tests on the host; such crates must be excluded in `.cargo/mutants.toml`, or the repository left out.
+- **Pinned toolchains:** each repository's `rust-toolchain.toml` (etheram-core pins 1.99.1) has to be installable by
+  rustup on the machine; whether the machine's rustup installs it on first use, or needs `rustup toolchain install`,
+  is to be checked (rustup 1.29.1 on the development laptop).
+
+## 11. Flaky tests and machine-dependent timeouts make the lists noisy
+
+A flaky test that fails by chance marks a mutant `caught` that was not, hiding a survivor; one that fails in the
+baseline triggers the retry (design 2.6) and, twice in a row, `baseline-failed`. etheram-ibft's base has a known
+restart-test flake. Timeouts scale with the machine's speed, so the same commit can produce different `timeout.txt`
+lists on different machines.
+
+**To watch:** the first weeks of `git log -p mutants` on each repository. Design 8 lists re-checking new survivors
+once before publishing, if it gets noisy.
+
+## 12. A dead machine looks like a quiet repository
+
+Nothing reports that the machine is alive. If it stops, every `mutants` branch simply stops moving, which looks the
+same as "nothing changed on `main`". `summary.toml` carries `finished`, so staleness can be read, but only by someone
+who looks.
+
+**To decide:** a heartbeat (design 8), or a check that compares each repository's `main` with its `mutants` record
+and says which are behind and by how long.
+
+## 13. `config_version` has to be bumped by hand
+
+A record is current when its commit and `config_version` match (design 2.1). Upgrading cargo-mutants without bumping
+`config_version` leaves every repository's last record current, so lists from two cargo-mutants versions sit side by
+side, and nothing reruns until `main` moves.
+
+**To decide:** count the cargo-mutants version, already in `summary.toml`, as part of being current. Observed.
+
+## 14. `verify-access.sh --include-main` force-pushes `main`
+
+Without a ruleset, the `--include-main` probes succeed, and the script restores `main` with
+`git push --force origin <original>:refs/heads/main`. A commit pushed to `main` by anyone in those seconds is
+discarded, and if the restore itself fails, `main` is left moved or deleted. The default mode only creates and deletes
+a probe branch, which is harmless.
+
+**To decide:** drop `--include-main`, or have it push with `--force-with-lease=main:<original>`. Observed.
+
+## 15. What public repositories publish
+
+On a public repository, `mutants` is public: the survivor lists -- a map of the code no test pins -- and, on
+failures, up to 200 lines of log tail with paths such as `/home/sentinel/...`. Design 5.1 accepts this. For
+etheram-ibft, whose untested paths sit close to what is kept private, onboarding is a decision of its own. Commits on
+`mutants` are unsigned, from `sentinel4rust@localhost`; a repository that requires signed commits on every branch
+rejects them (design 5.2 asks for that rule on `main` only).
+
+**To decide per repository.**
+
+## 16. Smaller things
+
+- **Ordinals can shift.** Duplicate keys in a file are numbered in source order (2.3); removing the first of two
+  renumbers the second, which then reads as one gone and one new.
+- **Unbounded capture.** `SystemCommandRunner` keeps a run's whole stdout and stderr in memory until it ends, then takes
+  the tail. cargo-mutants writes little to stdout, so this is unlikely to matter, but a 12-hour run is not bounded.
+- **Unreachable is matched in English.** `UNREACHABLE_MARKERS` (`git.rs`) are substrings of git's and GitHub's
+  messages, with `LC_ALL=C`; if GitHub rewords them, an unreachable repository is treated as a transient failure and
+  backs off by doubling instead of going straight to 6 hours. A changed host key is transient too.
+- **`kill` is an external program.** `kill_group` shells out to `kill -KILL -- -<pgid>`; it is on every Linux, but the
+  tool is Linux-only for it, as for `process_group`.
+- **The default `jobs` is 1** in `roster.rs`; design section 3 and `deploy/roster.example.toml` show 6. Not wrong,
+  but a roster without `jobs` runs serially.
