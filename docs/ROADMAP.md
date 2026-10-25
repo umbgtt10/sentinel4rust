@@ -90,4 +90,4 @@ The ideas of the design's section 8 that no open point takes up, each only if re
 - **A notification** when survivors rise, if the commit messages on `mutants` turn out not to be enough.
 
 Two of its ideas became open points: re-checking new survivors once before publishing (11, done), and, instead of a
-heartbeat, a check that compares each repository's `main` with its `mutants` record (12).
+heartbeat, a check that compares each repository's `main` with its `mutants` record (12, done: `--status`).

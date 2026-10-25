@@ -8,7 +8,10 @@ How a `sentinel4rust` process flows through the code, module by module. The deci
 ```text
 main.rs
   └─ EntryPoint::run(args)                     invocation/entry_point.rs
-      ├─ CommandLine::parse                    --roster <file> [--once], --help, --version; else UsageError, exit 2
+      ├─ CommandLine::parse                    --roster <file> [--once | --status], --help, --version; else
+      │                                        UsageError, exit 2
+      ├─ status                                --status: StatusReport over its own clones in <work_dir>/status,
+      │                                        one StatusLine per repository; exit 1 if one needs attention
       └─ start                                 any StartupError: exit 1
           1. TomlRoster::parse                 the roster file -> Roster
           2. WorkDirLock::acquire              <work_dir>/sentinel4rust.lock, held for the life of the process
@@ -52,7 +55,7 @@ lines, 16 KiB) are its constants.
 ## `traits/` -- the contracts
 
 One trait per file, no default bodies: `CommandRunner` (run a `Command` to completion or its deadline), `Clock`,
-`Pause`, `Journal`, `RepoSource` (`sync`, `checkout`, `remove_checkout`), `MutationRunner` (`run`) and `ResultStore`
+`Pause`, `Journal`, `RepoSource` (`sync`, `checkout`, `remove_checkout`, `committed_at`), `MutationRunner` (`run`) and `ResultStore`
 (`publish`). Every external effect goes through one of them, so the loop is tested with fakes and no clock
 ([ADR-InjectedTime](ADRs/ADR-InjectedTime.md)).
 
@@ -87,7 +90,9 @@ commit, unreachable, unreadable -- and answers `Next`
 [ADR-ResultsFailuresAndBackOff](ADRs/ADR-ResultsFailuresAndBackOff.md)). `PublicationBuilder` turns a `MutationRun` into
 a `Publication`: keys, sorted located lists, new and gone against the previous record. `JournalLine` formats the
 start-up line and one `repo=… step=… …` line per visit. `Dependencies` is the record of the six injected parts;
-`MAX_BACKOFF` (6 hours) is shared from `patrol_constants.rs`.
+`MAX_BACKOFF` (6 hours) is shared from `patrol_constants.rs`. `StatusReport` is the `--status` pass: it syncs
+each repository, runs and publishes nothing, and turns what it finds -- and, through `RepoSource::committed_at`, how
+long `main`'s head has waited -- into a `StatusLine` that says whether it needs attention.
 
 ## `system/` -- the real implementations
 
@@ -118,6 +123,7 @@ The roster is TOML, read once on start ([`deploy/roster.example.toml`](../deploy
 | `jobs` | 1 | cargo-mutants `--jobs`, for every repository without its own |
 | `run_timeout_hours` | 12 | the cap on one cargo-mutants run |
 | `config_version` | 1 | bump to rerun every repository |
+| `stale_after_hours` | 24 | how long `main` may wait for a record before `--status` exits 1 |
 | `[[repo]]` `name`, `url` | required | a unique name (letters, digits, `-`, `_`, `.`) and what git fetches from |
 | `[[repo]]` `branch` | `main` | the branch tested; never `mutants` |
 | `[[repo]]` `jobs` | the global `jobs` | this repository's `--jobs` |

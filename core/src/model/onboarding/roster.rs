@@ -22,6 +22,8 @@ pub struct Roster {
     pub run_timeout: Duration,
     /// Bump to rerun every repository.
     pub config_version: i64,
+    /// How long `main`'s head may wait for a record before `--status` calls the repository stale.
+    pub stale_after: Duration,
     /// The repositories, in roster order.
     pub repos: Vec<OnboardedRepo>,
 }

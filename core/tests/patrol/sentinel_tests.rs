@@ -101,6 +101,7 @@ fn sentinel_for(repos: Vec<OnboardedRepo>, installed: Option<&str>) -> (Sentinel
         jobs: 1,
         run_timeout: Duration::from_secs(3600),
         config_version: 1,
+        stale_after: Duration::from_secs(24 * 3600),
         repos,
     };
     let deps = Dependencies {

@@ -30,6 +30,7 @@ fn startup_names_the_version_repositories_pause_and_config_version() {
         jobs: 1,
         run_timeout: Duration::from_secs(3600),
         config_version: 2,
+        stale_after: Duration::from_secs(24 * 3600),
         repos: vec![repo("a"), repo("b")],
     };
 

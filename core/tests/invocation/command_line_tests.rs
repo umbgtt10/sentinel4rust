@@ -36,6 +36,27 @@ fn parse_bad_command_lines_names_each_problem() {
 }
 
 #[test]
+fn parse_status_reads_the_roster_and_wins_over_once() {
+    // Arrange & Act & Assert
+    assert_eq!(
+        CommandLine::parse(&args(&["--roster", "r.toml", "--status"])),
+        Ok(CommandLine::Status {
+            roster: PathBuf::from("r.toml")
+        })
+    );
+    assert_eq!(
+        CommandLine::parse(&args(&["--status", "--once", "--roster=r.toml"])),
+        Ok(CommandLine::Status {
+            roster: PathBuf::from("r.toml")
+        })
+    );
+    assert_eq!(
+        CommandLine::parse(&args(&["--status"])),
+        Err(UsageError::MissingRoster)
+    );
+}
+
+#[test]
 fn parse_valid_forms_reads_each_invocation() {
     // Arrange & Act & Assert
     assert_eq!(

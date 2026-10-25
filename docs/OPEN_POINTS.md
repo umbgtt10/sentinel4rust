@@ -18,7 +18,7 @@ be observed yet, that it is to be verified on the machine. Recorded 2026-10-24. 
 | 9 | only the `completed` outcome has been seen against the real cargo-mutants | closed: stage-2 fixtures |
 | 10 | repositories the tool cannot test yet | before onboarding each repository |
 | 11 | flaky tests and machine-dependent timeouts make the lists noisy | re-check done; to watch |
-| 12 | a dead machine looks like a quiet repository | to decide |
+| 12 | a dead machine looks like a quiet repository | closed: `--status` |
 | 13 | `config_version` has to be bumped by hand after a cargo-mutants upgrade | closed: the version counts |
 | 14 | `verify-access.sh --include-main` force-pushes `main` | closed: `deploy/verify-access.sh` |
 | 15 | what public repositories publish | accepted in design 5.1; decide per repository |
@@ -154,8 +154,10 @@ Nothing reports that the machine is alive. If it stops, every `mutants` branch s
 same as "nothing changed on `main`". `summary.toml` carries `finished`, so staleness can be read, but only by someone
 who looks.
 
-**To decide:** a heartbeat (design 8), or a check that compares each repository's `main` with its `mutants` record
-and says which are behind and by how long.
+**Closed.** `sentinel4rust --roster <file> --status` compares each repository's `main` with its `mutants` record in one
+read-only pass and says, per repository, whether the record is current and, when not, how long `main`'s head has
+waited; it exits 1 when one has waited longer than `stale_after_hours` (24 by default) or could not be judged. Run
+from another machine with read access, a dead sentinel shows; `deploy/SETUP.md` section 5 says how.
 
 ## 13. `config_version` has to be bumped by hand
 

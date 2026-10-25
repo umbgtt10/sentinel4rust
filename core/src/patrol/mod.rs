@@ -18,4 +18,6 @@ pub mod publication_builder;
 pub mod repo_state;
 pub mod schedule;
 pub mod sentinel;
+pub mod status_line;
+pub mod status_report;
 pub mod survivor_recheck;

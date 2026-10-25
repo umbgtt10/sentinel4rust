@@ -13,6 +13,10 @@ files and commit messages on `mutants`. The library's paths all changed; it has 
 this repository uses it.
 
 ### Added
+- `--status`: a read-only pass saying how far each repository's record is behind `main` and how long `main`'s head
+  has waited, exiting 1 when one has waited longer than the roster's new `stale_after_hours` (24 by default) or
+  could not be judged, so a dead sentinel shows from another machine (open point 12). `RepoSource` gains
+  `committed_at`; `Roster` gains `stale_after`; `CommandLine` gains `Status`.
 - New survivors -- whose keys the previous record did not list -- are re-checked once in the same checkout with
   `cargo mutants --re` on exactly their names before publishing; one caught on the re-check counts as caught (open
   point 11). `MutationRunner` gains `recheck`; `MutantKey::of_each` keys each line in place.

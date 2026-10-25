@@ -123,3 +123,18 @@ fn parse_repo_run_timeout_overrides_the_global_cap() {
         .0;
     assert!(zero.contains("positive"), "{zero}");
 }
+
+#[test]
+fn parse_stale_after_hours_defaults_to_a_day() {
+    // Arrange
+    let minimal = "work_dir = \"/w\"\n[[repo]]\nname = \"a\"\nurl = \"u\"";
+    let set = "work_dir = \"/w\"\nstale_after_hours = 6\n[[repo]]\nname = \"a\"\nurl = \"u\"";
+
+    // Act
+    let default = TomlRoster.parse(minimal).unwrap();
+    let chosen = TomlRoster.parse(set).unwrap();
+
+    // Assert
+    assert_eq!(default.stale_after, Duration::from_secs(24 * 3600));
+    assert_eq!(chosen.stale_after, Duration::from_secs(6 * 3600));
+}

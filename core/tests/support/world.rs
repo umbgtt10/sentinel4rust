@@ -41,6 +41,7 @@ pub struct World {
     pub syncs: RefCell<VecDeque<Result<Snapshot, SyncError>>>,
     pub checkout_error: RefCell<Option<CheckoutError>>,
     pub checkouts: Cell<usize>,
+    pub committed: Cell<Option<i64>>,
     pub removals: Cell<usize>,
     pub runs: RefCell<VecDeque<RunOutcome>>,
     pub run_calls: RefCell<Vec<(PathBuf, u32, Duration)>>,
@@ -85,6 +86,10 @@ impl RepoSource for World {
 
     fn remove_checkout(&self, _: &OnboardedRepo) {
         self.removals.set(self.removals.get() + 1);
+    }
+
+    fn committed_at(&self, _: &OnboardedRepo, _: &CommitHash) -> Option<Timestamp> {
+        self.committed.get().map(Timestamp::from_unix)
     }
 }
 

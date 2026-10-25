@@ -23,6 +23,7 @@ fn unreachable_roster(dir: &TempDir) -> Roster {
         jobs: 1,
         run_timeout: Duration::from_secs(60),
         config_version: 1,
+        stale_after: Duration::from_secs(24 * 3600),
         repos: vec![OnboardedRepo {
             name: String::from("x"),
             url: format!("file://{}/nowhere.git", dir.path().display()),
@@ -88,6 +89,29 @@ fn run_once_with_an_unreachable_repository_exits_one() {
 
     // Assert
     assert_eq!(code, ExitCode::from(1));
+}
+
+#[test]
+fn run_status_of_an_unreachable_repository_exits_one() {
+    // Arrange
+    let dir = TempDir::new("status");
+    let roster = dir.path().join("r.toml");
+    fs::write(
+        &roster,
+        format!(
+            "work_dir = \"{}/work\"\n[[repo]]\nname = \"x\"\nurl = \"file://{}/nowhere.git\"\n",
+            dir.path().display(),
+            dir.path().display()
+        ),
+    )
+    .unwrap();
+
+    // Act
+    let code = EntryPoint.run(&args(&["--roster", &roster.to_string_lossy(), "--status"]));
+
+    // Assert
+    assert_eq!(code, ExitCode::from(1));
+    assert!(dir.path().join("work/status/sentinel4rust.lock").is_file());
 }
 
 #[test]

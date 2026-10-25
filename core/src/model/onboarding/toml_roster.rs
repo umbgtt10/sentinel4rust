@@ -20,6 +20,7 @@ const ROOT_KEYS: &[&str] = &[
     "jobs",
     "run_timeout_hours",
     "config_version",
+    "stale_after_hours",
 ];
 const REPO_KEYS: &[&str] = &["name", "url", "branch", "jobs", "run_timeout_hours"];
 
@@ -59,6 +60,11 @@ impl TomlRoster {
             jobs: default_jobs,
             run_timeout: Self::hours(default_hours),
             config_version: root.integer("config_version")?.unwrap_or(1),
+            stale_after: Self::hours(Self::positive(
+                root.integer("stale_after_hours")?,
+                24,
+                "stale_after_hours",
+            )?),
             repos,
         })
     }

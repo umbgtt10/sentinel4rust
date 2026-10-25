@@ -16,6 +16,7 @@ use crate::model::onboarding::onboarded_repo::OnboardedRepo;
 use crate::model::publish_error::PublishError;
 use crate::model::snapshot::Snapshot;
 use crate::model::sync_error::SyncError;
+use crate::model::timestamp::Timestamp;
 use crate::model::work_dir::WorkDir;
 use crate::system::git::bare_clone::BareClone;
 use crate::system::git::crate_readiness::CrateReadiness;
@@ -163,6 +164,15 @@ impl RepoSource for GitCli {
     fn remove_checkout(&self, repo: &OnboardedRepo) {
         self.worktree.remove(repo);
         self.clone.prune_worktrees(repo);
+    }
+
+    fn committed_at(&self, repo: &OnboardedRepo, commit: &CommitHash) -> Option<Timestamp> {
+        let dir = self.work_dir.bare_clone(repo);
+        let seconds = self
+            .git
+            .local(&dir, &["show", "-s", "--format=%ct", commit.as_str()])
+            .ok()?;
+        seconds.trim().parse().ok().map(Timestamp::from_unix)
     }
 }
 

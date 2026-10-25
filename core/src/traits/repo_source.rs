@@ -11,6 +11,7 @@ use crate::model::commit_hash::CommitHash;
 use crate::model::onboarding::onboarded_repo::OnboardedRepo;
 use crate::model::snapshot::Snapshot;
 use crate::model::sync_error::SyncError;
+use crate::model::timestamp::Timestamp;
 
 /// Reads repositories.
 pub trait RepoSource {
@@ -20,4 +21,6 @@ pub trait RepoSource {
     fn checkout(&self, repo: &OnboardedRepo, head: &CommitHash) -> Result<PathBuf, CheckoutError>;
     /// Removes the checkout, whatever state it is in.
     fn remove_checkout(&self, repo: &OnboardedRepo);
+    /// When `commit` was committed, as git recorded it; `None` when it cannot be read.
+    fn committed_at(&self, repo: &OnboardedRepo, commit: &CommitHash) -> Option<Timestamp>;
 }

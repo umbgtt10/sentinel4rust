@@ -18,6 +18,11 @@ pub enum CommandLine {
         /// One pass and exit.
         once: bool,
     },
+    /// One read-only pass reporting how far each repository's record is behind.
+    Status {
+        /// The roster file.
+        roster: PathBuf,
+    },
     /// Print usage.
     Help,
     /// Print the version.
@@ -29,12 +34,14 @@ impl CommandLine {
     pub fn parse(args: &[String]) -> Result<Self, UsageError> {
         let mut roster = None;
         let mut once = false;
+        let mut status = false;
         let mut iter = args.iter();
         while let Some(arg) = iter.next() {
             match arg.as_str() {
                 "--help" | "-h" => return Ok(Self::Help),
                 "--version" | "-V" => return Ok(Self::Version),
                 "--once" => once = true,
+                "--status" => status = true,
                 "--roster" => {
                     let value = iter.next().ok_or(UsageError::MissingRosterFile)?;
                     roster = Some(PathBuf::from(value));
@@ -49,6 +56,10 @@ impl CommandLine {
             }
         }
         let roster = roster.ok_or(UsageError::MissingRoster)?;
-        Ok(Self::Run { roster, once })
+        if status {
+            Ok(Self::Status { roster })
+        } else {
+            Ok(Self::Run { roster, once })
+        }
     }
 }

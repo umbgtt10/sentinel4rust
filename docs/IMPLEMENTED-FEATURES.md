@@ -62,6 +62,9 @@ for what changed, [CHANGELOG.md](../CHANGELOG.md); for what is known to be missi
 ### Start-up and the command line
 
 - `sentinel4rust --roster <file> [--once]`, `--help`, `--version`; a bad command line exits 2 with the usage
+- `--status`: one read-only pass, one line per repository -- current, behind, no-record, unreadable, skipped or
+  unknown, both commits, how long `main`'s head has waited -- exiting 1 when one has waited longer than
+  `stale_after_hours` or could not be judged; its own clones and lock under `<work_dir>/status`
 - The roster is validated on start, failing with the line or the key at fault; a second instance on the same work
   directory fails on its lock
 - Leftovers of a crash are removed on start: checkouts, staging areas, stale worktree entries, temporary files

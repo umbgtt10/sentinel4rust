@@ -29,6 +29,7 @@ A repository is tested only once it has a `.cargo/mutants.toml` on `main`; crate
 ```sh
 sentinel4rust --roster ~/.config/sentinel4rust/roster.toml          # forever
 sentinel4rust --roster ~/.config/sentinel4rust/roster.toml --once   # one pass; exit 1 if a visit failed
+sentinel4rust --roster ~/.config/sentinel4rust/roster.toml --status # fetch only: how far each record is behind main
 ```
 
 One journal line per visit:

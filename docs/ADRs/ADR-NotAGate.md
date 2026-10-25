@@ -33,7 +33,7 @@ twin4rust's, 215 mutants in 3 min 20 s at `-j 1`; etheram-ibft's core packages a
 ## Consequences
 
 Survivors are known minutes or hours after a commit lands, not before. The tool's silence is ambiguous: a machine
-that stopped looks like a repository that did not move (`docs/OPEN_POINTS.md`, point 12). It exits non-zero only for
+that stopped looks like a repository that did not move, which `--status`, run from another machine, tells apart. It exits non-zero only for
 `--once` passes and start-up failures; a repository's survivors never fail anything.
 
 ## Enforcement

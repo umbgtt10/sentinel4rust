@@ -155,6 +155,26 @@ fn checkout_of_a_commit_with_a_submodule_initialises_it() {
 }
 
 #[test]
+fn committed_at_reads_the_commit_time_git_recorded() {
+    // Arrange
+    let origin = Origin::new();
+    let head = origin.commit_crate();
+    let work = TempDir::new("work");
+    let git_cli = cli(&work);
+    let repo = origin.repo("x");
+    git_cli.sync(&repo).unwrap();
+    let seconds: i64 = git(&origin.bare(), &["log", "-1", "--format=%ct", "main"])
+        .parse()
+        .unwrap();
+
+    // Act
+    let committed = git_cli.committed_at(&repo, &head);
+
+    // Assert
+    assert_eq!(committed, Some(Timestamp::from_unix(seconds)));
+}
+
+#[test]
 fn prune_removes_leftover_checkouts_staging_areas_and_worktree_entries() {
     // Arrange
     let origin = Origin::new();

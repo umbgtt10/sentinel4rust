@@ -140,6 +140,13 @@ impl Bench {
         }
     }
 
+    fn status(&self) -> Output {
+        Command::new(env!("CARGO_BIN_EXE_sentinel4rust"))
+            .args(["--roster", &self.roster.to_string_lossy(), "--status"])
+            .output()
+            .unwrap()
+    }
+
     fn mutants(&self, path: &str) -> String {
         git(&self.origin.bare(), &["show", &format!("mutants:{path}")])
     }
@@ -422,4 +429,44 @@ fn once_tool_failure_backs_off_and_exits_one() {
     assert_eq!(output.status.code(), Some(1));
     assert!(stdout(&output).contains("step=backed-off reason=\"cargo-mutants exited with 70\""));
     assert_eq!(bench.origin.remote_ref("refs/heads/mutants"), "");
+}
+
+#[test]
+fn status_after_a_publish_is_current_then_behind_and_never_pushes() {
+    // Arrange
+    let bench = Bench::new();
+    let head = bench.origin.commit_crate();
+    assert_success(&bench.once("2", true));
+    let mutants_before = bench.origin.remote_ref("refs/heads/mutants");
+
+    // Act
+    let current = bench.status();
+    let moved = bench.origin.commit(&[("later.txt", "after the publish")]);
+    let behind = bench.status();
+
+    // Assert
+    assert_success(&current);
+    assert!(
+        stdout(&current).contains(&format!(
+            "repo=fixture state=current main={} record={}",
+            head.short(),
+            head.short()
+        )),
+        "{}",
+        stdout(&current)
+    );
+    assert_success(&behind);
+    assert!(
+        stdout(&behind).contains(&format!(
+            "repo=fixture state=behind main={} record={} waited_s=",
+            moved.short(),
+            head.short()
+        )),
+        "{}",
+        stdout(&behind)
+    );
+    assert_eq!(
+        bench.origin.remote_ref("refs/heads/mutants"),
+        mutants_before
+    );
 }

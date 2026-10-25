@@ -73,3 +73,18 @@ cargo mutants --list | wc -l                                          # mutants,
   the roster's. A run that hits the cap is a tool failure and the third on one commit publishes `tool-failed`, so a
   cap too short costs three full runs per commit, during which nothing else is visited.
 - Note the mutant count, wall time and peak memory beside the repository's roster entry.
+
+## 5. Watching it from elsewhere
+
+A stopped sentinel looks like repositories that did not move. `--status` makes one read-only pass -- it fetches,
+runs nothing and pushes nothing -- and prints one line per repository: `state=current`, `behind`, `no-record`,
+`unreadable` or `skipped`, `main`'s and the record's commits, and, when the record does not answer for `main`, how
+long `main`'s head has waited for one. It exits 1 when one has waited longer than the roster's `stale_after_hours`
+(24 by default) or could not be judged, so a timer or cron job on another machine with read access can mail on
+failure:
+
+```sh
+sentinel4rust --roster roster.toml --status
+```
+
+It keeps its own clones and lock under `<work_dir>/status`, so it can also run beside the service.
