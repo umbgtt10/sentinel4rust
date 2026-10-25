@@ -33,6 +33,7 @@ use std::path::PathBuf;
 use std::rc::Rc;
 use std::time::Duration;
 
+const INSTALLED: &str = "cargo-mutants 27.1.0";
 const PAUSE: Duration = Duration::from_secs(300);
 
 fn baseline_failed() -> RunOutcome {
@@ -69,7 +70,7 @@ fn record_for(commit: &CommitHash, config_version: i64) -> RunRecord {
         counts: MutantCounts::default(),
         new: 0,
         gone: 0,
-        cargo_mutants_version: String::new(),
+        cargo_mutants_version: INSTALLED.to_string(),
         rustc_version: String::new(),
         arguments: String::new(),
         reason: None,
@@ -87,6 +88,10 @@ fn repo(name: &str) -> OnboardedRepo {
 }
 
 fn sentinel(names: &[&str]) -> (Sentinel, Rc<World>) {
+    sentinel_with(names, Some(INSTALLED))
+}
+
+fn sentinel_with(names: &[&str], installed: Option<&str>) -> (Sentinel, Rc<World>) {
     let world = Rc::new(World::default());
     world.now.set(1_792_800_000);
     let roster = Roster {
@@ -105,7 +110,10 @@ fn sentinel(names: &[&str]) -> (Sentinel, Rc<World>) {
         pause: world.clone(),
         journal: world.clone(),
     };
-    (Sentinel::new(roster, deps), world)
+    (
+        Sentinel::new(roster, deps, installed.map(ToString::to_string)),
+        world,
+    )
 }
 
 fn snapshot(head: &CommitHash, record: Option<RunRecord>, previous: &[&str]) -> Snapshot {
@@ -258,6 +266,22 @@ fn run_once_moved_main_publishes_keys_new_and_gone() {
     assert!(w.lines.borrow()[0].starts_with(
         "repo=a step=published hash=bbbbbbb outcome=completed missed=2 caught=7 timeout=0 unviable=1 new=1 gone=1"
     ));
+}
+
+#[test]
+fn run_once_new_cargo_mutants_reruns_the_same_commit() {
+    // Arrange
+    let (mut s, w) = sentinel_with(&["a"], Some("cargo-mutants 27.2.0"));
+    let head = hash('a');
+    w.queue_sync(Ok(snapshot(&head, Some(record_for(&head, 1)), &[])));
+    w.queue_run(completed(&[]));
+
+    // Act
+    let steps = s.run_once();
+
+    // Assert
+    assert!(matches!(steps[0], RoundStep::Published { .. }));
+    assert_eq!(w.run_calls.borrow().len(), 1);
 }
 
 #[test]
@@ -430,6 +454,24 @@ fn run_once_unchanged_main_publishes_nothing() {
         w.lines.borrow().as_slice(),
         ["repo=a step=unchanged hash=aaaaaaa duration_s=0"]
     );
+}
+
+// An installed version that could not be read is no reason to rerun.
+#[test]
+fn run_once_unchanged_main_with_cargo_mutants_unknown_publishes_nothing() {
+    // Arrange
+    let (mut s, w) = sentinel_with(&["a"], None);
+    let head = hash('a');
+    let mut record = record_for(&head, 1);
+    record.cargo_mutants_version = "cargo-mutants 26.0.0".to_string();
+    w.queue_sync(Ok(snapshot(&head, Some(record), &[])));
+
+    // Act
+    let steps = s.run_once();
+
+    // Assert
+    assert_eq!(steps, [RoundStep::Unchanged { head }]);
+    assert!(w.run_calls.borrow().is_empty());
 }
 
 #[test]

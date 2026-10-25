@@ -35,18 +35,22 @@ pub struct Sentinel {
     deps: Dependencies,
     schedule: Schedule,
     retry: BaselineRetry,
+    currency: RecordCurrency,
 }
 
 impl Sentinel {
-    /// The sentinel for `roster`.
-    pub fn new(roster: Roster, deps: Dependencies) -> Self {
+    /// The sentinel for `roster`, where a record made by another cargo-mutants than `cargo_mutants_version` is not
+    /// current (`None`: the installed version could not be read, and decides nothing).
+    pub fn new(roster: Roster, deps: Dependencies, cargo_mutants_version: Option<String>) -> Self {
         let schedule = Schedule::new(roster.pause);
         let retry = BaselineRetry::new(deps.source.clone(), deps.runner.clone());
+        let currency = RecordCurrency::new(roster.config_version, cargo_mutants_version);
         Self {
             roster,
             deps,
             schedule,
             retry,
+            currency,
         }
     }
 
@@ -190,9 +194,7 @@ impl Sentinel {
                     reason: error.to_string(),
                 };
             }
-            RecordState::Present(record) => {
-                RecordCurrency::new(self.roster.config_version).is_current(&record, &head)
-            }
+            RecordState::Present(record) => self.currency.is_current(&record, &head),
             RecordState::Absent => false,
         };
         if current {

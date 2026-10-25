@@ -65,6 +65,7 @@ impl EntryPoint {
             OutcomeInterpreter::new(LogTail::new(LOG_TAIL_LINES, LOG_TAIL_BYTES)),
         );
         mutants.prune();
+        let cargo_mutants_version = mutants.installed_version();
         Sentinel::new(
             roster,
             Dependencies {
@@ -75,6 +76,7 @@ impl EntryPoint {
                 pause: Rc::new(ThreadPause),
                 journal: Rc::new(StdoutJournal::new(Box::new(io::stdout()))),
             },
+            cargo_mutants_version,
         )
     }
 

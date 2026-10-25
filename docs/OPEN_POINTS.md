@@ -19,7 +19,7 @@ be observed yet, that it is to be verified on the machine. Recorded 2026-10-24. 
 | 10 | repositories the tool cannot test yet | before onboarding each repository |
 | 11 | flaky tests and machine-dependent timeouts make the lists noisy | to watch |
 | 12 | a dead machine looks like a quiet repository | to decide |
-| 13 | `config_version` has to be bumped by hand after a cargo-mutants upgrade | small |
+| 13 | `config_version` has to be bumped by hand after a cargo-mutants upgrade | closed: the version counts |
 | 14 | `verify-access.sh --include-main` force-pushes `main` | closed: `deploy/verify-access.sh` |
 | 15 | what public repositories publish | accepted in design 5.1; decide per repository |
 | 16 | smaller things | low |
@@ -153,11 +153,10 @@ and says which are behind and by how long.
 
 ## 13. `config_version` has to be bumped by hand
 
-A record is current when its commit and `config_version` match (design 2.1). Upgrading cargo-mutants without bumping
-`config_version` leaves every repository's last record current, so lists from two cargo-mutants versions sit side by
-side, and nothing reruns until `main` moves.
-
-**To decide:** count the cargo-mutants version, already in `summary.toml`, as part of being current. Observed.
+**Closed.** A record is current when its commit and `config_version` match and, when the installed version is known,
+it was made by the installed cargo-mutants: `EntryPoint` reads `cargo mutants --version` once on start, and a record
+whose `cargo_mutants_version` differs is run again, once per repository. When the installed version cannot be read,
+it decides nothing, so a broken install does not rerun every repository on every visit.
 
 ## 14. `verify-access.sh --include-main` force-pushes `main`
 

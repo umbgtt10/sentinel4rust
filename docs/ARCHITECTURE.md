@@ -13,7 +13,8 @@ main.rs
           1. TomlRoster::parse                 the roster file -> Roster
           2. WorkDirLock::acquire              <work_dir>/sentinel4rust.lock, held for the life of the process
           3. JournalLine::startup              the first line on stdout
-          4. EntryPoint::compose(roster)       builds every real part, prunes a crash's leftovers -> Sentinel
+          4. EntryPoint::compose(roster)       builds every real part, prunes a crash's leftovers, reads
+                                               `cargo mutants --version` once -> Sentinel
           5. Sentinel::run_once                --once: each repository once; exit 1 if a visit failed
              Sentinel::run_forever             otherwise: step, forever
 
@@ -27,7 +28,7 @@ Sentinel::visit(repo) -> RoundStep
   1. RepoSource::sync          -> Snapshot { head, record, previous_missed, readiness }
                                   Unreachable: back off to the cap; Transient: back off; NoBranch: skip
   2. RecordState               unreadable -> Unreadable, backed off to the cap, never run over
-     RecordCurrency            present, naming head and config_version -> Unchanged
+     RecordCurrency            present, naming head, config_version and the installed cargo-mutants -> Unchanged
   3. readiness                 not-a-crate / no-filters -> Skipped
   4. BaselineRetry             RepoSource::checkout, MutationRunner::run (again once on a baseline failure),
                                RepoSource::remove_checkout

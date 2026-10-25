@@ -13,12 +13,14 @@ and need migrating.
 ## Decision
 
 The record on the repository's `mutants` branch is the only state: a record is **current** when its `summary.toml`
-names `head` and the roster's `config_version`; the machine keeps nothing else but the in-memory schedule.
+names `head` and the roster's `config_version` and, when the installed version is known, was made by the installed
+cargo-mutants; the machine keeps nothing else but the in-memory schedule.
 
 ## Forcing constraints / Evidence
 
 Everything a rerun needs is already published, so a second store adds nothing it can know. Bumping `config_version`
-(after upgrading cargo-mutants, say) reruns every repository once without touching any branch.
+reruns every repository once without touching any branch; so does upgrading cargo-mutants, whose version
+`summary.toml` records and `EntryPoint` reads once on start.
 
 ## Rejected alternatives
 
@@ -30,8 +32,8 @@ Everything a rerun needs is already published, so a second store adds nothing it
 
 A reboot loses only the schedule and back-off (`patrol/`), which costs at most an early visit. A run that dies half
 way publishes nothing and is simply rerun. Deleting `mutants` on the remote drops the record: the next visit reruns.
-Upgrading cargo-mutants without bumping `config_version` leaves old records current (`docs/OPEN_POINTS.md`, point
-13). A `summary.toml` that does not parse is its own state, `unreadable`: the record may be one a hand edit or a newer
+An installed version that cannot be read decides nothing, so a broken install does not rerun every repository. A
+`summary.toml` that does not parse is its own state, `unreadable`: the record may be one a hand edit or a newer
 tool broke, so it is never run over; the repository backs off to the cap, is logged once, and recovers when the record
 reads again. One in a schema this version does not know reads as no record, and the commit is run again.
 

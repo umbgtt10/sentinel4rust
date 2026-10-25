@@ -221,7 +221,7 @@ fn publish_first_creates_an_orphan_branch_and_leaves_main_alone() {
 
     // Assert
     let record = present(snapshot.record);
-    assert!(RecordCurrency::new(1).is_current(&record, &head));
+    assert!(RecordCurrency::new(1, None).is_current(&record, &head));
     assert_eq!(
         snapshot.previous_missed,
         [MutantKey::new("src/lib.rs: replace f -> bool with false")]
@@ -248,7 +248,7 @@ fn publish_second_appends_to_mutants() {
 
     // Assert
     assert_eq!(snapshot.head, second);
-    assert!(!RecordCurrency::new(1).is_current(&present(snapshot.record), &second));
+    assert!(!RecordCurrency::new(1, None).is_current(&present(snapshot.record), &second));
 
     // Act
     git_cli

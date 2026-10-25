@@ -54,6 +54,11 @@ impl CargoMutantsCli {
         ]
     }
 
+    /// `cargo mutants --version` as installed, read in the work directory; `None` when it cannot be read.
+    pub fn installed_version(&self) -> Option<String> {
+        self.version(&self.cargo, &["mutants", "--version"], self.work_dir.root())
+    }
+
     /// Removes the temporary files a killed run left behind.
     pub fn prune(&self) {
         let _ = fs::remove_dir_all(self.work_dir.tmp_root());
@@ -67,11 +72,11 @@ impl CargoMutantsCli {
         Ok(())
     }
 
-    fn version(&self, program: &str, args: &[&str], dir: &Path) -> String {
+    fn version(&self, program: &str, args: &[&str], dir: &Path) -> Option<String> {
         self.runner
             .run(&Command::new(program, args, dir, VERSION_TIMEOUT))
             .success()
-            .map_or_else(|| "unknown".to_string(), |s| s.trim().to_string())
+            .map(|s| s.trim().to_string())
     }
 }
 
@@ -87,8 +92,13 @@ impl MutationRunner for CargoMutantsCli {
         let tmp = self.work_dir.tmp(repo);
         let _ = fs::remove_dir_all(&out);
         let _ = fs::remove_dir_all(&tmp);
-        let cargo_mutants_version = self.version(&self.cargo, &["mutants", "--version"], checkout);
-        let rustc_version = self.version("rustc", &["--version"], checkout);
+        let unknown = || "unknown".to_string();
+        let cargo_mutants_version = self
+            .version(&self.cargo, &["mutants", "--version"], checkout)
+            .unwrap_or_else(unknown);
+        let rustc_version = self
+            .version("rustc", &["--version"], checkout)
+            .unwrap_or_else(unknown);
         let arguments = Self::arguments(jobs);
         let outcome = if let Err(reason) = Self::create_all([&out, &tmp]) {
             RunOutcome::ToolFailed {

@@ -98,6 +98,45 @@ fn arguments_of_a_job_count_ask_mutants_for_that_many_jobs() {
 }
 
 #[test]
+fn installed_version_failing_is_unknown() {
+    // Arrange
+    let work = TempDir::new("mutants-no-version");
+    let runner = Rc::new(FakeRunner {
+        calls: RefCell::new(Vec::new()),
+        tmp_existed: RefCell::new(Vec::new()),
+        script: Box::new(|_: &Command| exited(101, "")),
+    });
+    let cli = CargoMutantsCli::new(
+        runner,
+        WorkDir::new(work.path().to_path_buf()),
+        "cargo".to_string(),
+        OutcomeInterpreter::new(LogTail::new(200, 16 * 1024)),
+    );
+
+    // Act
+    let version = cli.installed_version();
+
+    // Assert
+    assert_eq!(version, None);
+}
+
+#[test]
+fn installed_version_reads_cargo_mutants_version_in_the_work_dir() {
+    // Arrange
+    let work = TempDir::new("mutants-version");
+    let (cli, runner) = cli_with(&work, 0, &[]);
+
+    // Act
+    let version = cli.installed_version();
+
+    // Assert
+    assert_eq!(version, Some(String::from("cargo 9.9")));
+    let calls = runner.calls.borrow();
+    assert_eq!(calls[0].args(), ["mutants", "--version"]);
+    assert_eq!(calls[0].dir(), work.path());
+}
+
+#[test]
 fn prune_removes_leftover_temporary_files() {
     // Arrange
     let work = TempDir::new("mutants-prune");

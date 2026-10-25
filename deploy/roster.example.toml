@@ -5,7 +5,7 @@ work_dir = "/home/sentinel/sentinel4rust"   # clones, worktrees, cargo-mutants o
 pause_seconds = 300                          # polling interval per repository
 jobs = 6                                     # cargo-mutants --jobs (default for every repo)
 run_timeout_hours = 12                       # cap on one cargo-mutants run
-config_version = 1                           # bump to rerun every repository (e.g. after upgrading cargo-mutants)
+config_version = 1                           # bump to rerun every repository (upgrading cargo-mutants reruns them too)
 
 [[repo]]
 name = "twin4rust"                           # unique; names the local clone

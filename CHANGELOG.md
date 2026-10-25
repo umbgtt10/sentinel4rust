@@ -25,6 +25,8 @@ this repository uses it.
   `.github/rulesets/main.json`, the copy of record for `main`'s ruleset.
 
 ### Changed
+- `Sentinel::new` takes the installed cargo-mutants version, and `RecordCurrency::new` the same beside the
+  `config_version`; `CargoMutantsCli::installed_version` reads it.
 - The journal has a sixth step, `unreadable`, and `RoundStep` a sixth variant, `Unreadable { reason }`; the
   snapshot's record is a `RecordState` (absent, present, unreadable) instead of an `Option`.
 - The library is laid out as the family's: `invocation/` (the command line and `EntryPoint`, the composition root),
@@ -47,6 +49,9 @@ this repository uses it.
 - `docs/DESIGN.md` moved, unchanged, to `docs/history/[SUPERSEDED] DESIGN.md`.
 
 ### Fixed
+- Upgrading cargo-mutants no longer needs a `config_version` bump: a record made by another cargo-mutants than the
+  installed one is not current, and the commit runs again. The installed version is read once on start; when it
+  cannot be read it decides nothing (open point 13).
 - A `summary.toml` that does not parse no longer reruns the commit on every visit, silently: the visit logs
   `step=unreadable` with the reason once, backs off to the 6-hour cap and never runs over the record; it recovers
   when the record reads again. `--once` counts it as a failure (open point 4).

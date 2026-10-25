@@ -12,7 +12,8 @@ for what changed, [CHANGELOG.md](../CHANGELOG.md); for what is known to be missi
 - `--once` visits every repository once, in roster order, and exits 1 if any visit backed off or found a repository
   unreachable
 - A visit fetches, compares `main` with the record on `mutants`, and runs only when the record is not current: a
-  different commit, or a different `config_version`
+  different commit, a different `config_version`, or another cargo-mutants than the installed one (read once on
+  start; when it cannot be read, it decides nothing)
 
 ### Repositories
 
