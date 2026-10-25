@@ -78,6 +78,14 @@ three commits: submodules, path dependencies outside the repository, the toolcha
 once), 12 (a staleness check), 5 (cargo-mutants in a separate systemd unit without `~/.ssh`), 15 (what each public
 repository publishes), 16 (the smaller things). Each closes in `docs/OPEN_POINTS.md` as it lands.
 
+## Under way: setting up the machine by agent
+
+`deploy/PROVISION.md` is the set-up written for Claude Code on the machine, in the owner's checkout: it checks the
+preconditions, then runs `deploy/provision.sh`, `deploy/onboard.sh` -- changing GitHub only after the owner's go in
+the chat -- and `deploy/go-live.sh`, and ends logged out of GitHub. `deploy/status-check.sh` watches the result from
+another machine. Proven on the development laptop as far as no root allows; the rest is proven the first time it runs
+on the machine (open point 17), and points 18 to 21 wait for the owner.
+
 ## Under consideration
 
 The ideas of the design's section 8 that no open point takes up, each only if real use asks for it:

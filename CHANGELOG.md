@@ -13,6 +13,14 @@ files and commit messages on `mutants`. The library's paths all changed; it has 
 this repository uses it.
 
 ### Added
+- `deploy/PROVISION.md`: the machine's set-up written for an agent, Claude Code on the machine in the owner's
+  checkout. Preconditions first; then numbered steps, each with its command, the check that proves it and when to
+  stop and ask; GitHub changed only after the owner's go in the chat, on a plan that lists what changes per
+  repository; `gh auth logout` at the end. It covers failures, re-runs, onboarding one more repository, restarting,
+  reading the service's state, and a `status-check.sh` roster, cron line and user timer for another machine.
+  `deploy/SETUP.md` and the README point to it; `SETUP.md` stays the reference of what each step does by hand, and
+  its host aliases gain `StrictHostKeyChecking yes`. Open points 17 to 21 record what only the machine can prove, a
+  private repository on the free plan, a restart during a run, tags, and the deploy keys' tie to `gh`.
 - `deploy/go-live.sh`, run with sudo: with the service stopped, the first `sentinel4rust --once` pass as
   `sentinel`, in a transient unit with the service's user and limits, so that it outlives the script; its journal
   lines; then, only if no visit failed, `systemctl enable --now sentinel4rust` and a check that it stays active.

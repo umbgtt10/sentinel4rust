@@ -2,6 +2,10 @@
 
 In order. Why it is set up this way: `docs/ADRs/ADR-DeployKeyAndRuleset.md`.
 
+The automated path is [`PROVISION.md`](PROVISION.md): an agent on the machine runs `deploy/provision.sh`,
+`deploy/onboard.sh` and `deploy/go-live.sh`, each idempotent and with `--dry-run`, and asks the owner before anything
+changes on GitHub. This file stays the reference of what each step does, by hand.
+
 ## 1. User and tools
 
 ```sh
@@ -13,6 +17,12 @@ cargo install --path /path/to/sentinel4rust/core --locked      # from the reposi
 mkdir -p ~/.config/sentinel4rust && cp deploy/roster.example.toml ~/.config/sentinel4rust/roster.toml
 ssh-keyscan github.com >> ~/.ssh/known_hosts                     # check against GitHub's published fingerprints
 ```
+
+`deploy/provision.sh` does this section, and also: the packages; unattended security upgrades, rebooting at 04:30
+when one needs it; the time sync check; Rust 1.99.1 as the default toolchain, with rustfmt, clippy and llvm-tools;
+sentinel4rust built from a `git archive` of the checkout's HEAD into `~sentinel/src/sentinel4rust`; a roster
+skeleton instead of the example, never overwritten; and GitHub's host keys refused unless each fingerprint is one
+GitHub publishes.
 
 ## 2. Per repository
 
@@ -27,6 +37,7 @@ Host github-<repo>
     User git
     IdentityFile ~/.ssh/sentinel_<repo>
     IdentitiesOnly yes
+    StrictHostKeyChecking yes
 EOF
 ```
 
@@ -35,7 +46,8 @@ On GitHub:
 - Settings → Deploy keys → Add: `~/.ssh/sentinel_<repo>.pub`, **Allow write access**.
 - Settings → Rules → Rulesets → New branch ruleset `sentinel: only mutants`: enforcement **Active**; target
   **all branches**, **exclude** `mutants`; **Restrict creations**, **Restrict updates**, **Restrict deletions**,
-  **Block force pushes**; bypass list: yourself only, **no deploy keys**.
+  **Block force pushes**; bypass list: the **Repository admin** role only -- on a personal repository, you --,
+  **no deploy keys**. The same ruleset as the API's body: `deploy/rulesets/sentinel-only-mutants.json`.
 - The repository needs a `.cargo/mutants.toml` on `main` (it is skipped without one).
 
 Verify, then add it to the roster:
@@ -43,6 +55,10 @@ Verify, then add it to the roster:
 ```sh
 deploy/verify-access.sh git@github-<repo>:umbgtt10/<repo>.git
 ```
+
+`deploy/onboard.sh <repo>...` does this section, the ruleset before the deploy key, and appends the roster entry
+once the access proof passes. It changes GitHub only with `--apply-github`, and refuses a private repository on the
+free plan, on which GitHub offers no ruleset.
 
 ## 3. The service
 
@@ -54,7 +70,9 @@ sudo systemctl enable --now sentinel4rust
 journalctl -u sentinel4rust -f
 ```
 
-The `--once` pass and the service share a lock: stop the service before a manual pass.
+The `--once` pass and the service share a lock: stop the service before a manual pass. `deploy/go-live.sh` makes
+the pass -- in a transient unit with the service's user and limits, so that it outlives the shell that started it --
+and enables the service only if no visit failed.
 
 ## 4. Sizing a repository's run
 
@@ -78,16 +96,18 @@ cargo mutants --list | wc -l                                          # mutants,
 
 A stopped sentinel looks like repositories that did not move. `--status` makes one read-only pass -- it fetches,
 runs nothing and pushes nothing -- and prints one line per repository: `state=current`, `behind`, `no-record`,
-`unreadable` or `skipped`, `main`'s and the record's commits, and, when the record does not answer for `main`, how
-long `main`'s head has waited for one. It exits 1 when one has waited longer than the roster's `stale_after_hours`
-(24 by default) or could not be judged, so a timer or cron job on another machine with read access can mail on
-failure:
+`unreadable`, `skipped` or `unknown` (it could not fetch), `main`'s and the record's commits, and, when the record
+does not answer for `main`, how long `main`'s head has waited for one. It exits 1 when one has waited longer than the
+roster's `stale_after_hours` (24 by default) or could not be judged, so a timer or cron job on another machine with
+read access can mail on failure:
 
 ```sh
 sentinel4rust --roster roster.toml --status
 ```
 
 It keeps its own clones and lock under `<work_dir>/status`, so it can also run beside the service.
+`deploy/status-check.sh` wraps it for cron or a systemd user timer: quiet while nothing needs attention, otherwise
+the lines printed and, with `--mail`, mailed. `PROVISION.md` has a roster, a cron line and the timer.
 
 ## 6. Running cargo-mutants without the keys
 
@@ -107,7 +127,9 @@ Then add `run_unit = "sentinel4rust-mutants"` to the roster and restart the serv
 written to `<work_dir>/jobs/run/job.toml`, the unit runs it with `sentinel4rust --run-job` and writes the result and
 output beside it, and the service reads them back. The unit's paths assume `work_dir = /home/sentinel/sentinel4rust`;
 change `ExecStart=` if yours differs. This has not yet been proven on the machine: `verify-isolation.sh` is that
-proof.
+proof. `deploy/provision.sh` installs the unit and the rule, with drop-ins when the work directory differs, runs
+the proof, and adds `run_unit` to the roster only if it passes.
+
 ## 7. Deciding what a public repository publishes
 
 On a public repository, `mutants` is public too: the survivor lists -- a map of the code no test pins -- and, on

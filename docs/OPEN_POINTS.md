@@ -23,6 +23,11 @@ be observed yet, that it is to be verified on the machine. Recorded 2026-10-24. 
 | 14 | `verify-access.sh --include-main` force-pushes `main` | closed: `deploy/verify-access.sh` |
 | 15 | what public repositories publish | closed: decided per repository |
 | 16 | smaller things | closed: each fixed or recorded |
+| 17 | the automated set-up is proven only as far as the laptop allows | to prove on the machine |
+| 18 | a private repository on GitHub's free plan cannot be onboarded | open: the owner decides |
+| 19 | restarting the service leaves a run in the run unit running | open: a fix proposed |
+| 20 | the ruleset covers branches, not tags | open: the owner decides |
+| 21 | the deploy keys depend on the GitHub CLI's authorization | recorded |
 
 ---
 
@@ -83,7 +88,8 @@ cargo-mutants command runs in `sentinel4rust-mutants@run.service`, a fixed syste
 to start that unit's instances and nothing else; git, which needs the keys, stays in the service. The command goes
 in as a job file and the result and output come back beside it (`core/src/system/unit/`). Tested here through a
 stand-in for systemd; the unit and the rule have not been installed on the machine, and `deploy/verify-isolation.sh`
--- `~/.ssh` readable in the service, refused in the unit -- is the proof still to run there.
+-- `~/.ssh` readable in the service, refused in the unit -- is the proof still to run there. `deploy/provision.sh`
+runs it after installing the unit and the rule, and sets `run_unit` only when it passes (point 17).
 
 ## 6. `cargo xtask` does not exist
 
@@ -207,3 +213,70 @@ only.
   (`ADR-NoDependencies`).
 - **The default `jobs` is 1** -- fixed in the docs: `deploy/roster.example.toml` sets 6 and says so, and
   `docs/ARCHITECTURE.md` gives 1 as the default.
+
+## 17. The automated set-up is proven only as far as the laptop allows
+
+`deploy/PROVISION.md` and its four scripts (2026-10-25) were run on the development laptop, without root and without
+changing GitHub. Proven there:
+
+- `onboard.sh --local` against `file://` bare copies of iceberg4rust and twin4rust: keys, host aliases and roster
+  entries made once, every step `ok` on a re-run. A `--once` pass over that roster then published iceberg4rust's 48
+  survivors to its copy in 230 s and skipped twin4rust with `no-filters`.
+- a read-only `onboard.sh --dry-run` against GitHub, for this repository: `BLOCKED` (point 18).
+- the dry runs of `provision.sh` and `go-live.sh`, and their refusals, among them a GitHub host key whose fingerprint
+  GitHub does not publish; the `git archive` build `provision.sh` makes; `run_unit` inserted before a roster's first
+  `[[repo]]`.
+- `systemd-run --wait --collect`, as `go-live.sh` uses it, passing a pass's exit code on, 0 and 1, in a user unit.
+- `status-check.sh`: quiet while current, the lines with `--verbose`, exit 1 for a repository it cannot fetch and for
+  a `main` three days without a record.
+
+**To prove on the machine**, the first time each runs. Everything that needs root: the packages, the
+unattended-upgrade settings and the reboot they schedule, the `sentinel` user, rustup and the toolchain installed
+for it, the units, the polkit rule and with them `verify-isolation.sh` (point 5), the first pass in its transient
+unit as `sentinel`, the service enabled. Everything that changes GitHub: the ruleset's body accepted as it is by
+`POST /repos/{owner}/{repo}/rulesets`, the deploy key added, `verify-access.sh` rejected by a real ruleset. And
+whether `sudo -n` sees the cache the owner's `sudo -v` left, which depends on sudo's `timestamp_type` and on how
+Claude Code runs commands: `PROVISION.md` stops and asks when it does not.
+
+## 18. A private repository on GitHub's free plan cannot be onboarded
+
+GitHub offers rulesets on private repositories only on paid plans; without one it refuses even to list them -- HTTP
+403, "Upgrade to GitHub Pro or make this repository public to enable this feature", seen on 2026-10-25 for this
+repository, which is private. `ADR-DeployKeyAndRuleset` accepts such a repository relying on the tool alone to push
+only `mutants`, but `verify-access.sh` -- creating a branch must be rejected -- cannot pass there, so `onboard.sh`
+marks it `BLOCKED` and changes nothing on GitHub for it.
+
+**Open, for the owner:** make the repository public, move to a paid plan, leave it off the roster, or accept it
+without a ruleset. The last needs an `onboard.sh` option that skips the ruleset and the probe and says so in the
+roster entry.
+
+## 19. Restarting the service leaves a run in the run unit running
+
+With `run_unit` set, cargo-mutants runs in `sentinel4rust-mutants@run.service`, which nothing ties to the service:
+stopping or restarting `sentinel4rust` leaves it running. The new service prunes `runs/` and `tmp/` from under it on
+start, and its first run rewrites `jobs/run/` and calls `systemctl start --wait` on the instance still active, which
+waits for the old run and then reads the result the old run wrote as its own. Read in the code
+(`UnitCommandRunner::run`, `GitCli::prune`), not seen on the machine. A reboot stops every unit, so it is not
+affected.
+
+**Until it is fixed:** restart only while `systemctl is-active sentinel4rust-mutants@run.service` says `inactive`
+(`deploy/PROVISION.md`, "Restarting the service"). **Proposed:** `PartOf=sentinel4rust.service` in the run unit, so
+that stopping or restarting the service stops the run first; to be decided, and proven on the machine.
+
+## 20. The ruleset covers branches, not tags
+
+`sentinel: only mutants` is a branch ruleset. A deploy key with write access can write every ref, so a leaked key can
+create, move or delete tags, which no rule restricts; `verify-access.sh` probes branches only.
+
+**Open, for the owner:** a second ruleset beside the first in `deploy/rulesets/`, target `tag`, every tag, creation,
+update and deletion restricted to repository admins, created by `onboard.sh` and probed by `verify-access.sh`.
+
+## 21. The deploy keys depend on the GitHub CLI's authorization
+
+`onboard.sh` adds each deploy key through `gh`, and `gh repo deploy-key add --help` says such a key is tied to its
+authentication token: de-authorizing the GitHub CLI app in GitHub's settings deletes the keys. `gh auth logout`, at
+the end of `PROVISION.md`, only forgets the token on the machine.
+
+**Recorded:** `PROVISION.md` tells the owner at the go. A key deleted this way fails every fetch (`unreachable` in
+the service's journal), and from another machine shows only once `main` moves and its record falls behind;
+`onboard.sh` puts it back. A key added by hand in GitHub's settings is tied to no token.

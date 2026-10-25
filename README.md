@@ -40,7 +40,10 @@ repo=etheram-raft step=unchanged hash=9f8e7d6 duration_s=1
 ```
 
 - Roster format: [`deploy/roster.example.toml`](deploy/roster.example.toml)
-- Machine set-up, keys and rulesets: [`deploy/SETUP.md`](deploy/SETUP.md)
+- Machine set-up, automated: [`deploy/PROVISION.md`](deploy/PROVISION.md), which an agent on the machine executes:
+  `deploy/provision.sh`, `deploy/onboard.sh`, `deploy/go-live.sh`, and `deploy/status-check.sh` to watch it from
+  elsewhere
+- What each step does by hand, keys and rulesets: [`deploy/SETUP.md`](deploy/SETUP.md)
 
 ## Documentation
 
