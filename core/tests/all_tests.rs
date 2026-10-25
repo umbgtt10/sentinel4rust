@@ -2,7 +2,6 @@
 // Licensed under the MIT License
 // SPDX-License-Identifier: MIT
 
-mod git_tests;
 mod main_tests;
 mod model;
 mod support;

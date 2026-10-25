@@ -10,7 +10,6 @@
 #![warn(missing_docs)]
 
 pub mod cli;
-pub mod git;
 pub mod model;
 pub mod mutants;
 pub mod schedule;

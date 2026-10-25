@@ -8,13 +8,13 @@ use std::fs::{self, File};
 use std::path::PathBuf;
 use std::rc::Rc;
 
-use crate::git::GitCli;
 use crate::model::onboarding::roster::Roster;
 use crate::model::onboarding::toml_roster::TomlRoster;
 use crate::model::round_step::RoundStep;
 use crate::model::work_dir::WorkDir;
 use crate::mutants::CargoMutantsCli;
 use crate::sentinel::{Dependencies, Sentinel, startup_line};
+use crate::system::git::git_cli::GitCli;
 use crate::system::process::stdout_journal::StdoutJournal;
 use crate::system::process::system_clock::SystemClock;
 use crate::system::process::system_command_runner::SystemCommandRunner;

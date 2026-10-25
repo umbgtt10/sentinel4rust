@@ -8,7 +8,6 @@
 use crate::support::git_shell::git;
 use crate::support::origin::Origin;
 use crate::support::temp_dir::TempDir;
-use sentinel4rust::git::GitCli;
 use sentinel4rust::model::branch::branch_constants::KIND_FULL;
 use sentinel4rust::model::branch::publication::Publication;
 use sentinel4rust::model::branch::record_currency::RecordCurrency;
@@ -21,12 +20,14 @@ use sentinel4rust::model::skip_reason::SkipReason;
 use sentinel4rust::model::sync_error::SyncError;
 use sentinel4rust::model::timestamp::Timestamp;
 use sentinel4rust::model::work_dir::WorkDir;
+use sentinel4rust::system::git::git_cli::GitCli;
 use sentinel4rust::system::process::system_command_runner::SystemCommandRunner;
 use sentinel4rust::traits::repo_source::RepoSource;
 use sentinel4rust::traits::result_store::ResultStore;
 use std::fs;
 use std::process::Command;
 use std::rc::Rc;
+use std::slice;
 
 fn cli(work: &TempDir) -> GitCli {
     GitCli::new(Rc::new(SystemCommandRunner), work_dir(work))
@@ -97,6 +98,32 @@ fn checkout_is_detached_at_head_and_removed_completely() {
 
     // Assert
     assert!(!checkout.exists());
+    assert_eq!(
+        git(&work_dir(&work).bare_clone(&repo), &["worktree", "list"])
+            .lines()
+            .count(),
+        1
+    );
+}
+
+#[test]
+fn prune_removes_leftover_checkouts_staging_areas_and_worktree_entries() {
+    // Arrange
+    let origin = Origin::new();
+    let head = origin.commit_crate();
+    let work = TempDir::new("work");
+    let git_cli = cli(&work);
+    let repo = origin.repo("x");
+    git_cli.sync(&repo).unwrap();
+    git_cli.checkout(&repo, &head).unwrap();
+    fs::create_dir_all(work_dir(&work).stage(&repo)).unwrap();
+
+    // Act
+    git_cli.prune(slice::from_ref(&repo));
+
+    // Assert
+    assert!(!work_dir(&work).runs().exists());
+    assert!(!work_dir(&work).stages().exists());
     assert_eq!(
         git(&work_dir(&work).bare_clone(&repo), &["worktree", "list"])
             .lines()

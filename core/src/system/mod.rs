@@ -4,4 +4,5 @@
 
 //! The real implementations of the contracts.
 
+pub mod git;
 pub mod process;
