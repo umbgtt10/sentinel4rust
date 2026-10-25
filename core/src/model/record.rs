@@ -9,7 +9,7 @@ use std::fmt;
 use crate::model::commit_hash::CommitHash;
 use crate::model::counts::MutantCounts;
 use crate::model::mutant_key::MutantKey;
-use crate::model::outcome::OutcomeKind;
+use crate::model::outcome_kind::OutcomeKind;
 use crate::model::timestamp::Timestamp;
 use crate::model::toml::toml_error::TomlError;
 use crate::model::toml::toml_parser::TomlParser;

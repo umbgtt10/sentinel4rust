@@ -9,8 +9,8 @@ use std::path::PathBuf;
 use std::rc::Rc;
 
 use crate::git::GitCli;
-use crate::model::outcome::RoundStep;
 use crate::model::roster::Roster;
+use crate::model::round_step::RoundStep;
 use crate::mutants::CargoMutantsCli;
 use crate::sentinel::{Dependencies, Sentinel, startup_line};
 use crate::system::{StdoutJournal, SystemClock, SystemCommandRunner, ThreadPause};

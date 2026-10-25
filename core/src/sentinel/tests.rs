@@ -12,7 +12,7 @@ use std::time::Duration;
 
 use super::*;
 use crate::model::commit_hash::CommitHash;
-use crate::model::outcome::SkipReason;
+use crate::model::skip_reason::SkipReason;
 use crate::schedule::MAX_BACKOFF;
 use crate::traits::Snapshot;
 
