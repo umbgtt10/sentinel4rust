@@ -12,6 +12,12 @@ documentation = "https://docs.rs/sentinel4rust"
 keywords = ["mutation-testing", "testing", "cargo-mutants", "ci", "cli"]
 categories = ["development-tools::testing", "command-line-utilities"]
 
+autotests = false
+
+[[test]]
+name = "all_tests"
+path = "tests/all_tests.rs"
+
 [dependencies]
 
 [lints]

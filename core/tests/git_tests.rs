@@ -2,26 +2,28 @@
 // Licensed under the MIT License
 // SPDX-License-Identifier: MIT
 
-//! `GitCli` against real git: bare repositories in temporary directories, `file://` remotes, no network.
+// `GitCli` against real git: bare repositories in temporary directories,
+// `file://` remotes, no network.
 
-mod support;
-
-use std::fs;
-use std::rc::Rc;
-
+use crate::support::git_shell::git;
+use crate::support::origin::Origin;
+use crate::support::temp_dir::TempDir;
 use sentinel4rust::git::GitCli;
 use sentinel4rust::model::{
-    KIND_FULL, MutantCounts, MutantKey, OutcomeKind, Publication, RunRecord, SkipReason, Timestamp,
+    CommitHash, KIND_FULL, MutantCounts, MutantKey, OutcomeKind, Publication, RunRecord,
+    SkipReason, Timestamp,
 };
 use sentinel4rust::system::SystemCommandRunner;
 use sentinel4rust::traits::{RepoSource, ResultStore, SyncError};
-use support::{Origin, TempDir, git};
+use std::fs;
+use std::process::Command;
+use std::rc::Rc;
 
 fn cli(work: &TempDir) -> GitCli {
     GitCli::new(Rc::new(SystemCommandRunner), work.path().to_path_buf())
 }
 
-fn publication(commit: &sentinel4rust::model::CommitHash, missed: &[&str]) -> Publication {
+fn publication(commit: &CommitHash, missed: &[&str]) -> Publication {
     let located: Vec<String> = missed
         .iter()
         .enumerate()
@@ -58,50 +60,65 @@ fn publication(commit: &sentinel4rust::model::CommitHash, missed: &[&str]) -> Pu
 }
 
 #[test]
-fn fetching_without_a_mutants_branch_reports_no_record() {
+fn checkout_is_detached_at_head_and_removed_completely() {
+    // Arrange
     let origin = Origin::new();
     let head = origin.commit_crate();
-    let work = TempDir::new("work");
-    let snapshot = cli(&work).sync(&origin.repo("x")).unwrap();
-    assert_eq!(snapshot.head, head);
-    assert_eq!(snapshot.record, None);
-    assert_eq!(snapshot.previous_missed, Vec::<MutantKey>::new());
-    assert_eq!(snapshot.readiness, Ok(()));
-}
-
-#[test]
-fn readiness_needs_cargo_toml_and_mutants_config() {
-    let origin = Origin::new();
+    origin.commit(&[("later.txt", "after head")]);
     let work = TempDir::new("work");
     let git_cli = cli(&work);
-    origin.commit(&[("README.md", "hi")]);
+    let repo = origin.repo("x");
+    git_cli.sync(&repo).unwrap();
+
+    // Act
+    let checkout = git_cli.checkout(&repo, &head).unwrap();
+
+    // Assert
+    assert!(checkout.join("src/lib.rs").exists());
+    assert!(!checkout.join("later.txt").exists());
+    assert_eq!(git(&checkout, &["rev-parse", "HEAD"]), head.as_str());
+
+    // Act
+    fs::write(checkout.join("dirty.txt"), "x").unwrap();
+    git_cli.remove_checkout(&repo);
+
+    // Assert
+    assert!(!checkout.exists());
     assert_eq!(
-        git_cli.sync(&origin.repo("x")).unwrap().readiness,
-        Err(SkipReason::NotACrate)
-    );
-    origin.commit(&[("Cargo.toml", "[package]\nname = \"x\"\n")]);
-    assert_eq!(
-        git_cli.sync(&origin.repo("x")).unwrap().readiness,
-        Err(SkipReason::NoFilters)
+        git(&git_cli.repo_dir(&repo), &["worktree", "list"])
+            .lines()
+            .count(),
+        1
     );
 }
 
 #[test]
-fn a_missing_branch_and_a_missing_repository_are_told_apart() {
+fn publish_after_mutants_moved_is_rejected() {
+    // Arrange
     let origin = Origin::new();
-    let work = TempDir::new("work");
-    let git_cli = cli(&work);
-    assert_eq!(git_cli.sync(&origin.repo("x")), Err(SyncError::NoBranch));
-    let mut gone = origin.repo("gone");
-    gone.url = format!("file://{}/nope.git", origin.root.path().display());
-    assert!(matches!(
-        git_cli.sync(&gone),
-        Err(SyncError::Unreachable(_))
-    ));
+    let head = origin.commit_crate();
+    let work_a = TempDir::new("work-a");
+    let work_b = TempDir::new("work-b");
+    let (a, b) = (cli(&work_a), cli(&work_b));
+    let repo = origin.repo("x");
+    a.sync(&repo).unwrap();
+    b.sync(&repo).unwrap();
+    a.publish(&repo, &publication(&head, &["a"])).unwrap();
+
+    // Act
+    let error = b.publish(&repo, &publication(&head, &["b"])).unwrap_err();
+
+    // Assert
+    assert!(error.contains("git push"), "{error}");
+    assert_eq!(
+        git(&origin.bare(), &["show", "mutants:missed.txt"]),
+        "src/lib.rs: a"
+    );
 }
 
 #[test]
-fn publishing_creates_an_orphan_branch_and_leaves_main_alone() {
+fn publish_first_creates_an_orphan_branch_and_leaves_main_alone() {
+    // Arrange
     let origin = Origin::new();
     let head = origin.commit_crate();
     let work = TempDir::new("work");
@@ -110,6 +127,7 @@ fn publishing_creates_an_orphan_branch_and_leaves_main_alone() {
     git_cli.sync(&repo).unwrap();
     let main_before = origin.remote_ref("refs/heads/main");
 
+    // Act
     git_cli
         .publish(
             &repo,
@@ -117,6 +135,7 @@ fn publishing_creates_an_orphan_branch_and_leaves_main_alone() {
         )
         .unwrap();
 
+    // Assert
     assert_eq!(origin.remote_ref("refs/heads/main"), main_before);
     let bare = origin.bare();
     let files = git(&bare, &["ls-tree", "-r", "--name-only", "mutants"]);
@@ -129,10 +148,9 @@ fn publishing_creates_an_orphan_branch_and_leaves_main_alone() {
             "summary.toml"
         ]
     );
-    // Orphan: no parent, no common history with main.
     assert_eq!(git(&bare, &["rev-list", "--count", "mutants"]), "1");
     assert_eq!(
-        std::process::Command::new("git")
+        Command::new("git")
             .args(["merge-base", "main", "mutants"])
             .current_dir(&bare)
             .output()
@@ -149,8 +167,10 @@ fn publishing_creates_an_orphan_branch_and_leaves_main_alone() {
         "src/lib.rs: replace f -> bool with false"
     );
 
-    // The record and the previous list read back.
+    // Act
     let snapshot = git_cli.sync(&repo).unwrap();
+
+    // Assert
     let record = snapshot.record.unwrap();
     assert!(record.is_current(&head, 1));
     assert_eq!(
@@ -160,7 +180,8 @@ fn publishing_creates_an_orphan_branch_and_leaves_main_alone() {
 }
 
 #[test]
-fn a_second_publish_appends_to_mutants() {
+fn publish_second_appends_to_mutants() {
+    // Arrange
     let origin = Origin::new();
     let first = origin.commit_crate();
     let work = TempDir::new("work");
@@ -172,12 +193,20 @@ fn a_second_publish_appends_to_mutants() {
         .unwrap();
     let second = origin.commit(&[("src/lib.rs", "pub fn f() -> bool { false }\n")]);
     let main_before = origin.remote_ref("refs/heads/main");
+
+    // Act
     let snapshot = git_cli.sync(&repo).unwrap();
+
+    // Assert
     assert_eq!(snapshot.head, second);
     assert!(!snapshot.record.unwrap().is_current(&second, 1));
+
+    // Act
     git_cli
         .publish(&repo, &publication(&second, &["b"]))
         .unwrap();
+
+    // Assert
     assert_eq!(origin.remote_ref("refs/heads/main"), main_before);
     assert_eq!(
         git(&origin.bare(), &["rev-list", "--count", "mutants"]),
@@ -194,64 +223,90 @@ fn a_second_publish_appends_to_mutants() {
 }
 
 #[test]
-fn a_push_rejected_because_mutants_moved_is_an_error() {
-    let origin = Origin::new();
-    let head = origin.commit_crate();
-    let work_a = TempDir::new("work-a");
-    let work_b = TempDir::new("work-b");
-    let (a, b) = (cli(&work_a), cli(&work_b));
-    let repo = origin.repo("x");
-    a.sync(&repo).unwrap();
-    b.sync(&repo).unwrap();
-    a.publish(&repo, &publication(&head, &["a"])).unwrap();
-    let error = b.publish(&repo, &publication(&head, &["b"])).unwrap_err();
-    assert!(error.contains("git push"), "{error}");
-    assert_eq!(
-        git(&origin.bare(), &["show", "mutants:missed.txt"]),
-        "src/lib.rs: a"
-    );
-}
-
-#[test]
-fn checkouts_are_detached_at_head_and_removed_completely() {
-    let origin = Origin::new();
-    let head = origin.commit_crate();
-    origin.commit(&[("later.txt", "after head")]);
-    let work = TempDir::new("work");
-    let git_cli = cli(&work);
-    let repo = origin.repo("x");
-    git_cli.sync(&repo).unwrap();
-    let checkout = git_cli.checkout(&repo, &head).unwrap();
-    assert!(checkout.join("src/lib.rs").exists());
-    assert!(!checkout.join("later.txt").exists());
-    assert_eq!(git(&checkout, &["rev-parse", "HEAD"]), head.as_str());
-    fs::write(checkout.join("dirty.txt"), "x").unwrap();
-    git_cli.remove_checkout(&repo);
-    assert!(!checkout.exists());
-    assert_eq!(
-        git(&git_cli.repo_dir(&repo), &["worktree", "list"])
-            .lines()
-            .count(),
-        1
-    );
-}
-
-#[test]
-fn a_changed_url_resets_origin_and_a_deleted_mutants_branch_drops_the_record() {
+fn sync_changed_url_resets_origin_and_deleted_mutants_drops_the_record() {
+    // Arrange
     let origin = Origin::new();
     let head = origin.commit_crate();
     let work = TempDir::new("work");
     let git_cli = cli(&work);
     let mut repo = origin.repo("x");
     repo.url = format!("file://{}/nope.git", origin.root.path().display());
+
+    // Act & Assert
     assert!(git_cli.sync(&repo).is_err());
+
+    // Act
     repo.url = origin.url();
     git_cli.sync(&repo).unwrap();
     git_cli.publish(&repo, &publication(&head, &["a"])).unwrap();
+
+    // Assert
     assert_eq!(
         git(&git_cli.repo_dir(&repo), &["remote", "get-url", "origin"]),
         origin.url()
     );
+
+    // Act
     git(&origin.bare(), &["update-ref", "-d", "refs/heads/mutants"]);
+
+    // Assert
     assert_eq!(git_cli.sync(&repo).unwrap().record, None);
+}
+
+#[test]
+fn sync_missing_branch_and_missing_repository_are_told_apart() {
+    // Arrange
+    let origin = Origin::new();
+    let work = TempDir::new("work");
+    let git_cli = cli(&work);
+    let mut gone = origin.repo("gone");
+    gone.url = format!("file://{}/nope.git", origin.root.path().display());
+
+    // Act & Assert
+    assert_eq!(git_cli.sync(&origin.repo("x")), Err(SyncError::NoBranch));
+    assert!(matches!(
+        git_cli.sync(&gone),
+        Err(SyncError::Unreachable(_))
+    ));
+}
+
+#[test]
+fn sync_without_a_mutants_branch_reports_no_record() {
+    // Arrange
+    let origin = Origin::new();
+    let head = origin.commit_crate();
+    let work = TempDir::new("work");
+
+    // Act
+    let snapshot = cli(&work).sync(&origin.repo("x")).unwrap();
+
+    // Assert
+    assert_eq!(snapshot.head, head);
+    assert_eq!(snapshot.record, None);
+    assert_eq!(snapshot.previous_missed, Vec::<MutantKey>::new());
+    assert_eq!(snapshot.readiness, Ok(()));
+}
+
+#[test]
+fn sync_without_cargo_toml_or_mutants_config_is_not_ready() {
+    // Arrange
+    let origin = Origin::new();
+    let work = TempDir::new("work");
+    let git_cli = cli(&work);
+    origin.commit(&[("README.md", "hi")]);
+
+    // Act & Assert
+    assert_eq!(
+        git_cli.sync(&origin.repo("x")).unwrap().readiness,
+        Err(SkipReason::NotACrate)
+    );
+
+    // Act
+    origin.commit(&[("Cargo.toml", "[package]\nname = \"x\"\n")]);
+
+    // Assert
+    assert_eq!(
+        git_cli.sync(&origin.repo("x")).unwrap().readiness,
+        Err(SkipReason::NoFilters)
+    );
 }
