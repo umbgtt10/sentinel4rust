@@ -25,8 +25,8 @@ for what changed, [CHANGELOG.md](../CHANGELOG.md); for what is known to be missi
 
 ### Runs
 
-- cargo-mutants in a detached worktree at `head` (`<work_dir>/runs/<name>`), output at `<work_dir>/out/<name>`, both
-  removed after every run; `--jobs` per repository or from the roster
+- cargo-mutants in a detached worktree at `head` (`<work_dir>/runs/<name>`), output at `<work_dir>/out/<name>` and
+  `TMPDIR` at `<work_dir>/tmp/<name>`, all removed after every run; `--jobs` per repository or from the roster
 - `cargo mutants --version` and `rustc --version` recorded with every run
 - Exit 0, 2 and 3 publish `completed`, with counts and lists read from `mutants.out`; exit 4 reruns once at once and,
   a second time, publishes `baseline-failed`; anything else backs off, and the third tool failure on one commit
@@ -56,7 +56,7 @@ for what changed, [CHANGELOG.md](../CHANGELOG.md); for what is known to be missi
 - `sentinel4rust --roster <file> [--once]`, `--help`, `--version`; a bad command line exits 2 with the usage
 - The roster is validated on start, failing with the line or the key at fault; a second instance on the same work
   directory fails on its lock
-- Leftovers of a crash are removed on start: checkouts, staging areas, stale worktree entries
+- Leftovers of a crash are removed on start: checkouts, staging areas, stale worktree entries, temporary files
 - One journal line on start and one per visit on stdout, for systemd's journal
 
 ### Deployment

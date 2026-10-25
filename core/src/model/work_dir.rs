@@ -2,7 +2,7 @@
 // Licensed under the MIT License
 // SPDX-License-Identifier: MIT
 
-//! Where the clones, checkouts, staging areas and cargo-mutants output live (`ADR-ExactCommitOnlyMutantsPushed`).
+//! Where the clones, checkouts, staging areas, cargo-mutants output and temporary files live (`ADR-ExactCommitOnlyMutantsPushed`).
 
 use std::path::{Path, PathBuf};
 
@@ -53,5 +53,15 @@ impl WorkDir {
     /// Every staging area.
     pub fn stages(&self) -> PathBuf {
         self.root.join("stage")
+    }
+
+    /// Where a run of `repo` keeps its temporary files: cargo-mutants' copies of the tree, one per job.
+    pub fn tmp(&self, repo: &OnboardedRepo) -> PathBuf {
+        self.tmp_root().join(&repo.name)
+    }
+
+    /// Every run's temporary files.
+    pub fn tmp_root(&self) -> PathBuf {
+        self.root.join("tmp")
     }
 }

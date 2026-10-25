@@ -82,3 +82,21 @@ fn stages_holds_every_staging_area() {
     // Assert
     assert_eq!(path, Path::new("/srv/s/stage"));
 }
+
+#[test]
+fn tmp_of_a_repo_is_under_tmp() {
+    // Arrange & Act
+    let path = work_dir().tmp(&repo());
+
+    // Assert
+    assert_eq!(path, Path::new("/srv/s/tmp/twin4rust"));
+}
+
+#[test]
+fn tmp_root_holds_every_temporary_directory() {
+    // Arrange & Act
+    let path = work_dir().tmp_root();
+
+    // Assert
+    assert_eq!(path, Path::new("/srv/s/tmp"));
+}

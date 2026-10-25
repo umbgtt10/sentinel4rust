@@ -7,7 +7,7 @@ be observed yet, that it is to be verified on the machine. Recorded 2026-10-24. 
 
 | # | point | weight |
 |---|---|---|
-| 1 | cargo-mutants builds in a private `/tmp`, which is usually RAM | before the machine runs |
+| 1 | cargo-mutants builds in a private `/tmp`, which is usually RAM | closed: `TMPDIR` under `work_dir` |
 | 2 | `cargo install sentinel4rust` installs the placeholder that does nothing | closed: `deploy/SETUP.md` |
 | 3 | a large repository can hold the machine for 36 hours per commit and publish nothing | before onboarding a large repository |
 | 4 | an unreadable `summary.toml` silently reruns the same commit forever | before the machine runs |
@@ -28,18 +28,11 @@ be observed yet, that it is to be verified on the machine. Recorded 2026-10-24. 
 
 ## 1. cargo-mutants builds in a private `/tmp`, which is usually RAM
 
-`deploy/sentinel4rust.service` sets `PrivateTmp=yes` and no `TMPDIR`. cargo-mutants copies the tree to build each
-mutant through the `tempfile` crate (`build_dir.rs`), so the copies land in the service's private `/tmp` -- one per
-`--jobs`, each with its own `target/`. On the development laptop `/tmp` is a `tmpfs`; if the machine's is too, the
-build copies live in RAM and count against `MemoryMax=80%`. A workspace the size of etheram-ibft, times six jobs,
-would not fit.
-
-The run cap kills cargo-mutants with `SIGKILL` (`system.rs`, `kill_group`), so it cannot remove its copies; `prune`
-empties `runs/` and `stage/` only. Copies leaked by a killed run stay until the service restarts.
-
-**To close:** set `TMPDIR` to a directory under `work_dir` for the cargo-mutants process (or in the unit), empty it in
-`prune`, and check `findmnt /tmp` on the machine. Observed: the unit file, cargo-mutants' source, this laptop's
-`/tmp`. To verify: the machine's `/tmp`.
+**Closed.** cargo-mutants copies the tree once per `--jobs` through the `tempfile` crate, so the copies went to the
+service's private `/tmp`, a `tmpfs` on many machines, where they count against `MemoryMax=`. `CargoMutantsCli` now
+gives the run `TMPDIR=<work_dir>/tmp/<name>`, on the same disk as the clones, creates it before the run and removes
+it after; copies a killed run leaves behind are removed on start with the other leftovers. The machine's `/tmp` no
+longer matters.
 
 ## 2. `cargo install sentinel4rust` installs the placeholder
 

@@ -54,6 +54,19 @@ impl CargoMutantsCli {
         ]
     }
 
+    /// Removes the temporary files a killed run left behind.
+    pub fn prune(&self) {
+        let _ = fs::remove_dir_all(self.work_dir.tmp_root());
+    }
+
+    fn create_all(dirs: [&Path; 2]) -> Result<(), String> {
+        for dir in dirs {
+            fs::create_dir_all(dir)
+                .map_err(|error| format!("create {}: {error}", dir.display()))?;
+        }
+        Ok(())
+    }
+
     fn version(&self, program: &str, args: &[&str], dir: &Path) -> String {
         self.runner
             .run(&Command::new(program, args, dir, VERSION_TIMEOUT))
@@ -71,26 +84,31 @@ impl MutationRunner for CargoMutantsCli {
         timeout: Duration,
     ) -> MutationRun {
         let out = self.work_dir.mutants_out(repo);
+        let tmp = self.work_dir.tmp(repo);
         let _ = fs::remove_dir_all(&out);
+        let _ = fs::remove_dir_all(&tmp);
         let cargo_mutants_version = self.version(&self.cargo, &["mutants", "--version"], checkout);
         let rustc_version = self.version("rustc", &["--version"], checkout);
         let arguments = Self::arguments(jobs);
-        let outcome = if let Err(error) = fs::create_dir_all(&out) {
+        let outcome = if let Err(reason) = Self::create_all([&out, &tmp]) {
             RunOutcome::ToolFailed {
-                reason: format!("create {}: {error}", out.display()),
+                reason,
                 log_tail: String::new(),
             }
         } else {
             let out_text = out.to_string_lossy().into_owned();
+            let tmp_text = tmp.to_string_lossy().into_owned();
             let mut args: Vec<&str> = arguments.iter().map(String::as_str).collect();
             args.extend(["--output", &out_text]);
             let command = Command::new(&self.cargo, &args, checkout, timeout)
                 .with_env("CARGO_TERM_COLOR", "never")
-                .with_env("NO_COLOR", "1");
+                .with_env("NO_COLOR", "1")
+                .with_env("TMPDIR", &tmp_text);
             self.interpreter
                 .interpret(&self.runner.run(&command), &out.join("mutants.out"))
         };
         let _ = fs::remove_dir_all(&out);
+        let _ = fs::remove_dir_all(&tmp);
         MutationRun {
             outcome,
             cargo_mutants_version,

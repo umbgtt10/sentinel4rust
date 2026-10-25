@@ -51,7 +51,8 @@ pub struct EntryPoint;
 
 impl EntryPoint {
     /// The sentinel for `roster`, wired to git, cargo-mutants, the system clock, sleeping and stdout; the
-    /// leftovers of a crash are pruned first.
+    /// leftovers of a crash -- checkouts, staging areas, stale worktree entries, temporary files -- are pruned
+    /// first.
     pub fn compose(&self, roster: Roster) -> Sentinel {
         let runner: Rc<dyn CommandRunner> = Rc::new(SystemCommandRunner);
         let work_dir = WorkDir::new(roster.work_dir.clone());
@@ -63,6 +64,7 @@ impl EntryPoint {
             "cargo".to_string(),
             OutcomeInterpreter::new(LogTail::new(LOG_TAIL_LINES, LOG_TAIL_BYTES)),
         );
+        mutants.prune();
         Sentinel::new(
             roster,
             Dependencies {

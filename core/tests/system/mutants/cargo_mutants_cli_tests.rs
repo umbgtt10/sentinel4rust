@@ -16,6 +16,7 @@ use sentinel4rust::traits::command_runner::CommandRunner;
 use sentinel4rust::traits::mutation_runner::MutationRunner;
 use std::cell::RefCell;
 use std::fs;
+use std::path::Path;
 use std::path::PathBuf;
 use std::rc::Rc;
 use std::time::Duration;
@@ -28,6 +29,7 @@ fn cli_with(
 ) -> (CargoMutantsCli, Rc<FakeRunner>) {
     let runner = Rc::new(FakeRunner {
         calls: RefCell::new(Vec::new()),
+        tmp_existed: RefCell::new(Vec::new()),
         script: Box::new(move |c: &Command| {
             if c.args().iter().any(|a| a == "--version") {
                 return exited(0, &format!("{} 9.9\n", c.program()));
@@ -57,14 +59,22 @@ fn exited(code: i32, stdout: &str) -> CommandResult {
     }
 }
 
+// Records, for every command, whether the TMPDIR it was given existed while it ran.
 struct FakeRunner {
     calls: RefCell<Vec<Command>>,
+    tmp_existed: RefCell<Vec<bool>>,
     script: Box<dyn Fn(&Command) -> CommandResult>,
 }
 
 impl CommandRunner for FakeRunner {
     fn run(&self, command: &Command) -> CommandResult {
         self.calls.borrow_mut().push(command.clone());
+        self.tmp_existed.borrow_mut().push(
+            command
+                .env()
+                .get("TMPDIR")
+                .is_some_and(|dir| Path::new(dir).is_dir()),
+        );
         (self.script)(command)
     }
 }
@@ -85,6 +95,21 @@ fn arguments_of_a_job_count_ask_mutants_for_that_many_jobs() {
 
     // Assert
     assert_eq!(arguments, ["mutants", "--jobs", "3"]);
+}
+
+#[test]
+fn prune_removes_leftover_temporary_files() {
+    // Arrange
+    let work = TempDir::new("mutants-prune");
+    let leftover = work.path().join("tmp").join("r").join("build-copy");
+    fs::create_dir_all(&leftover).unwrap();
+    let (cli, _) = cli_with(&work, 0, &[]);
+
+    // Act
+    cli.prune();
+
+    // Assert
+    assert!(!work.path().join("tmp").exists());
 }
 
 #[test]
@@ -176,4 +201,27 @@ fn run_passes_jobs_output_and_deadline_then_cleans_up() {
         }
     );
     assert!(!out.exists(), "output left behind");
+}
+
+// cargo-mutants copies the tree once per job into TMPDIR; under the work
+// directory those copies are on disk, not in a RAM-backed /tmp.
+#[test]
+fn run_points_tmpdir_into_the_work_dir_and_removes_it_after() {
+    // Arrange
+    let work = TempDir::new("mutants-tmpdir");
+    let (cli, runner) = cli_with(&work, 2, &[("caught.txt", ""), ("missed.txt", "")]);
+    let checkout = work.path().join("checkout");
+
+    // Act
+    cli.run(&repo(), &checkout, 1, Duration::from_secs(9));
+
+    // Assert
+    let tmp = work.path().join("tmp").join("r");
+    let calls = runner.calls.borrow();
+    assert_eq!(
+        calls[2].env().get("TMPDIR"),
+        Some(&tmp.to_string_lossy().into_owned())
+    );
+    assert!(runner.tmp_existed.borrow()[2]);
+    assert!(!tmp.exists(), "temporary files left behind");
 }

@@ -32,7 +32,7 @@ Sentinel::visit(repo) -> RoundStep
   6. PublicationBuilder::build -> Publication; ResultStore::publish -> Published, or BackedOff if rejected
 ```
 
-`EntryPoint::compose` is the only place real parts are built. One `SystemCommandRunner` serves git and cargo; one
+`EntryPoint::compose` is the only place real parts are built, and where a crash's leftovers are pruned. One `SystemCommandRunner` serves git and cargo; one
 `GitCli` fills both `RepoSource` and `ResultStore` through `Rc` coercion; `CargoMutantsCli` is the `MutationRunner`;
 `SystemClock`, `ThreadPause` and a `StdoutJournal` over stdout complete `Dependencies`, which `Sentinel::new` takes
 whole.
@@ -60,7 +60,7 @@ One trait per file, no default bodies: `CommandRunner` (run a `Command` to compl
 - **Contract data:** `Command` and `CommandResult`; `Snapshot` and `SyncError` (what a fetch found, or why it did
   not); `CheckoutError`, `PublishError`; `MutationRun` and `RunOutcome` (what a run produced); `OutcomeKind`,
   `SkipReason` and `RoundStep` (what a visit did, with its journal name); `WorkDir`, which owns every path under the
-  roster's `work_dir`: `repos/<name>.git`, `runs/<name>`, `stage/<name>`, `out/<name>`.
+  roster's `work_dir`: `repos/<name>.git`, `runs/<name>`, `stage/<name>`, `out/<name>`, `tmp/<name>`.
 - **`branch/`** -- what `mutants` holds ([ADR-OrphanMutantsBranch](ADRs/ADR-OrphanMutantsBranch.md)): the
   `RunRecord` and `Publication` records, `SummaryToml` (render and parse, schema 1), `RecordCurrency`, `BranchLayout`
   (the files, as `BranchFile`s, and the commit message), `RecordError`, and `KIND_FULL`.
@@ -95,7 +95,8 @@ start-up line and one `repo=… step=… …` line per visit. `Dependencies` is 
   remote `mutants` ref are in `git_constants.rs`. Only `refs/heads/mutants` is ever pushed
   ([ADR-ExactCommitOnlyMutantsPushed](ADRs/ADR-ExactCommitOnlyMutantsPushed.md)).
 - **`mutants/`** -- `CargoMutantsCli` records `cargo mutants --version` and `rustc --version`, runs
-  `cargo mutants --jobs <n> --output <out>` in the checkout with the run cap, and hands the result to
+  `cargo mutants --jobs <n> --output <out>` in the checkout with the run cap and `TMPDIR` under the work directory
+  (its `prune` empties `tmp/` on start), and hands the result to
   `OutcomeInterpreter` (the exit-code table), which reads the lists with `MutantsOutLists` (`UnreadableList` when a
   required one is missing) and keeps a failing run's `LogTail`.
 

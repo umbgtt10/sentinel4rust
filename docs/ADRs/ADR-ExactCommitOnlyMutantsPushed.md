@@ -17,7 +17,8 @@ alone and pushes `<commit>:refs/heads/mutants` and nothing else.
 ## Forcing constraints / Evidence
 
 A detached worktree of a bare clone (`<work_dir>/runs/<name>`) is the commit, not someone's working copy.
-cargo-mutants' output goes to `<work_dir>/out/<name>`, outside it. Publishing checks nothing out: each file is written
+cargo-mutants' output goes to `<work_dir>/out/<name>`, outside it, and its copies of the tree to `TMPDIR`,
+`<work_dir>/tmp/<name>`. Publishing checks nothing out: each file is written
 under `<work_dir>/stage/<name>` and stored with `hash-object`, added to a temporary index with `update-index`, and
 `write-tree` and `commit-tree` (parent: the fetched `mutants`, if any; author and committer `sentinel4rust`) make the
 commit. With no worktree on `mutants`, there is no branch checked out that a push could be made from by mistake.
@@ -30,8 +31,8 @@ commit. With no worktree on `mutants`, there is no branch checked out that a pus
 
 ## Consequences
 
-The checkout, the output and the staging area are removed after every run, whatever the outcome; on start, `runs/`
-and `stage/` are emptied and `git worktree prune` runs in every clone. A push rejected because `mutants` moved is
+The checkout, the output, the temporary files and the staging area are removed after every run, whatever the
+outcome; on start, `runs/`, `stage/` and `tmp/` are emptied and `git worktree prune` runs in every clone. A push rejected because `mutants` moved is
 logged and backed off, and the next visit reruns. Rulesets make "only `mutants`" hold even against a bug
 (`ADR-DeployKeyAndRuleset.md`).
 

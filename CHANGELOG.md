@@ -45,6 +45,8 @@ this repository uses it.
 - `docs/DESIGN.md` moved, unchanged, to `docs/history/[SUPERSEDED] DESIGN.md`.
 
 ### Fixed
+- cargo-mutants' copies of the tree no longer go to the service's private `/tmp`, often RAM: each run gets
+  `TMPDIR=<work_dir>/tmp/<name>`, removed after the run and, when a killed run left it, on start (open point 1).
 - `deploy/SETUP.md` no longer offers `cargo install sentinel4rust`, which installs the 0.0.1 placeholder: it
   installs from the repository with `--path` until 0.1.0 is published (open point 2).
 - `deploy/verify-access.sh --include-main` no longer force-pushes `main`: putting it back, and the delete probe,
