@@ -7,6 +7,18 @@ use sentinel4rust::model::counts::MutantCounts;
 use sentinel4rust::model::run_outcome::RunOutcome;
 use sentinel4rust::system::mutants::mutants_out_lists::MutantsOutLists;
 use std::fs;
+use std::path::Path;
+use std::path::PathBuf;
+
+// The four lists cargo-mutants 27.1.0 wrote on 2026-10-25, unedited, for the
+// two fixture crates the stage-2 tests in main_tests.rs run: one whose test
+// fails without any mutation (exit 4), and `spin`, a loop behind `black_box`
+// whose `+ with *` mutant never ends (exit 3).
+fn captured(case: &str) -> PathBuf {
+    Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("tests/fixtures/mutants_out")
+        .join(case)
+}
 
 fn lists(files: &[(&str, &str)]) -> TempDir {
     let dir = TempDir::new("mutants-out");
@@ -14,6 +26,56 @@ fn lists(files: &[(&str, &str)]) -> TempDir {
         fs::write(dir.path().join(name), text).unwrap();
     }
     dir
+}
+
+// A failing baseline still writes every list, empty; exit 4 is read as
+// baseline-failed before the lists are, so they never count.
+#[test]
+fn read_of_a_real_baseline_failure_finds_every_list_empty() {
+    // Arrange
+    let dir = captured("baseline_failed");
+
+    // Act
+    let outcome = MutantsOutLists.read(&dir);
+
+    // Assert
+    assert_eq!(
+        outcome,
+        Ok(RunOutcome::Completed {
+            counts: MutantCounts {
+                caught: 0,
+                missed: 0,
+                timeout: 0,
+                unviable: 0,
+            },
+            missed: vec![],
+            timed_out: vec![],
+        })
+    );
+}
+
+#[test]
+fn read_of_a_real_run_with_a_timeout_keeps_its_line_and_counts_the_rest() {
+    // Arrange
+    let dir = captured("timeouts");
+
+    // Act
+    let outcome = MutantsOutLists.read(&dir);
+
+    // Assert
+    assert_eq!(
+        outcome,
+        Ok(RunOutcome::Completed {
+            counts: MutantCounts {
+                caught: 6,
+                missed: 0,
+                timeout: 1,
+                unviable: 0,
+            },
+            missed: vec![],
+            timed_out: vec!["src/lib.rs:6:25: replace + with * in spin".to_string()],
+        })
+    );
 }
 
 #[test]

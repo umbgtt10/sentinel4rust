@@ -39,7 +39,8 @@ are kept, as written, under `located/`.
 
 `Located` and `MutantKey` (`core/src/model/`) with `core/tests/model/mutant_key_tests.rs` (keys survive lines inserted
 above, duplicates get ordinals, colons in paths are kept) and `MutantKey::changes` for the set differences;
-`MutantsOutLists` reads the lists, and a completed exit without `caught.txt` and `missed.txt` is a tool failure.
+`MutantsOutLists` reads the lists -- tested on lists the real cargo-mutants 27.1.0 wrote -- and a completed exit
+without `caught.txt` and `missed.txt` is a tool failure.
 
 ## Related
 

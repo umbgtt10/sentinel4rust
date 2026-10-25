@@ -15,7 +15,7 @@ be observed yet, that it is to be verified on the machine. Recorded 2026-10-24. 
 | 6 | `cargo xtask` does not exist | closed: `.cargo/config.toml` |
 | 7 | the family's gates and coding standards do not apply here yet | closed: `docs/ROADMAP.md` |
 | 8 | the design and the code disagree in four places | small fix |
-| 9 | only the `completed` outcome has been seen against the real cargo-mutants | to verify on the machine |
+| 9 | only the `completed` outcome has been seen against the real cargo-mutants | closed: stage-2 fixtures |
 | 10 | repositories the tool cannot test yet | before onboarding each repository |
 | 11 | flaky tests and machine-dependent timeouts make the lists noisy | to watch |
 | 12 | a dead machine looks like a quiet repository | to decide |
@@ -109,12 +109,12 @@ commit, `48c8fb1`, so no slice can be reverted alone, and the history cannot sho
 
 ## 9. Only `completed` has been seen against the real cargo-mutants
 
-Stage 2 (`real_cargo_mutants_on_a_fixture_crate`) runs the real cargo-mutants on a three-function crate and sees a
-`completed` run. Baseline failure (exit `4`), timeouts (exit `3`), the run cap and a cargo-mutants usage error are
-tested only through fakes and a stub. The mapping matches the 27.1.0 source, but the `.txt` lists' format under
-`timeout.txt`, and the log tail on a real baseline failure, have not been seen.
-
-**To verify on the machine:** a fixture whose tests fail (exit `4`), and one with a mutant that loops (exit `3`).
+**Closed.** Stage 2 now runs the real cargo-mutants 27.1.0 on three fixture crates: survivors (exit 2), a crate whose
+test fails without any mutation (exit 4, published as `baseline-failed` with the real log tail, after the one retry),
+and `spin`, whose `+ with *` mutant loops (exit 3, `timeout.txt` holding it). Seen on 2026-10-25: on exit 4
+cargo-mutants still writes all four lists, empty; on exit 3 `timeout.txt` uses the same `file:line:col: description`
+lines as the others. The lists of those two runs are kept, unedited, in `core/tests/fixtures/mutants_out/`, and stage
+1 reads them. The run cap and a cargo-mutants usage error remain tested through fakes and the stub.
 
 ## 10. Repositories the tool cannot test yet
 

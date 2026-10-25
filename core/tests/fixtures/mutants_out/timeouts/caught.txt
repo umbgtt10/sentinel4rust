@@ -1,0 +1,6 @@
+src/lib.rs:4:5: replace spin -> u64 with 0
+src/lib.rs:4:5: replace spin -> u64 with 1
+src/lib.rs:5:13: replace < with == in spin
+src/lib.rs:5:13: replace < with > in spin
+src/lib.rs:5:13: replace < with <= in spin
+src/lib.rs:6:25: replace + with - in spin

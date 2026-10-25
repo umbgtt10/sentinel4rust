@@ -13,6 +13,9 @@ files and commit messages on `mutants`. The library's paths all changed; it has 
 this repository uses it.
 
 ### Added
+- Stage 2 runs the real cargo-mutants 27.1.0 on a crate with a failing baseline and on one with a mutant that loops,
+  beside the survivors' fixture; the lists those runs wrote are kept in `core/tests/fixtures/mutants_out/` and read
+  in stage 1 (open point 9).
 - `run_timeout_hours` per `[[repo]]`, defaulting to the roster's, so one large repository can have a longer cap than
   the rest; `deploy/SETUP.md` gains a procedure for measuring a repository and sizing its `jobs` and cap from it
   (open point 3). `OnboardedRepo` carries the cap as `run_timeout`.

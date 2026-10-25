@@ -50,7 +50,8 @@ version. `baseline-failed` and `tool-failed` record the commit, so they wait for
 `OutcomeInterpreter` (`core/src/system/mutants/outcome_interpreter.rs`) and its exit-code-table test;
 `RepoState`'s back-off tests; the sentinel tests for a flaky baseline, a second baseline failure, the third tool
 failure, a new commit, unreachable logged once, and transient failures; `UnreachableClassifier`'s tests;
-`SystemCommandRunner`'s deadline test. Stage 2 runs the real cargo-mutants 27.1.0 on a fixture crate.
+`SystemCommandRunner`'s deadline test. Stage 2 runs the real cargo-mutants 27.1.0 on fixture crates for exit 2, 4
+and 3, and stage 1 reads the lists two of those runs wrote (`core/tests/fixtures/mutants_out/`).
 
 ## Related
 

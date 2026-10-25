@@ -43,6 +43,40 @@ mod tests {
     }
 }
 ";
+// Its one test fails without any mutation: cargo-mutants exits 4.
+const RED_LIB: &str = "\
+pub fn add(a: i32, b: i32) -> i32 {
+    a + b
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn add_is_checked_against_the_wrong_sum() {
+        assert_eq!(super::add(2, 2), 5);
+    }
+}
+";
+// The `+ with *` mutant leaves `i` at 0 forever: cargo-mutants exits 3.
+const SPIN_LIB: &str = "\
+use std::hint::black_box;
+
+pub fn spin(limit: u64) -> u64 {
+    let mut i = 0;
+    while i < limit {
+        i = black_box(i + 1);
+    }
+    i
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn spin_counts_to_its_limit() {
+        assert_eq!(super::spin(1000), 1000);
+    }
+}
+";
 const STUB: &str = r#"#!/bin/sh
 # A stand-in for cargo-mutants. Behaviour comes from $STUB_EXIT (default 2).
 if [ "$1" = "mutants" ] && [ "$2" = "--version" ]; then
@@ -110,6 +144,8 @@ impl Bench {
         git(&self.origin.bare(), &["show", &format!("mutants:{path}")])
     }
 
+    // The service runs cargo-mutants without the gates' `RUSTFLAGS=-D warnings`,
+    // under which a mutant leaving a parameter unused would not build.
     fn once(&self, stub_exit: &str, use_stub: bool) -> Output {
         let path = if use_stub {
             format!(
@@ -124,6 +160,7 @@ impl Bench {
             .args(["--roster", &self.roster.to_string_lossy(), "--once"])
             .env("PATH", path)
             .env("STUB_EXIT", stub_exit)
+            .env_remove("RUSTFLAGS")
             .output()
             .unwrap()
     }
@@ -255,6 +292,82 @@ fn once_real_cargo_mutants_on_a_fixture_crate_publishes_its_survivors() {
     );
     let summary = bench.mutants("summary.toml");
     assert!(summary.contains("outcome = \"completed\""), "{summary}");
+}
+
+#[test]
+#[ignore = "stage 2: needs cargo-mutants installed"]
+fn once_real_cargo_mutants_on_a_looping_mutant_publishes_its_timeout() {
+    // Arrange
+    assert!(has_cargo_mutants(), "cargo-mutants is not installed");
+    let bench = Bench::new();
+    bench.origin.commit(&[
+        (
+            "Cargo.toml",
+            "[package]\nname = \"fixture_spin\"\nversion = \"0.1.0\"\nedition = \"2021\"\n\n[dependencies]\n",
+        ),
+        (
+            ".cargo/mutants.toml",
+            "timeout_multiplier = 1.0\nminimum_test_timeout = 2.0\n",
+        ),
+        ("src/lib.rs", SPIN_LIB),
+    ]);
+
+    // Act
+    let output = bench.once("", false);
+
+    // Assert
+    assert_success(&output);
+    assert_eq!(
+        bench.mutants("timeout.txt"),
+        "src/lib.rs: replace + with * in spin"
+    );
+    assert_eq!(bench.mutants("missed.txt"), "");
+    let summary = bench.mutants("summary.toml");
+    assert!(summary.contains("outcome = \"completed\""), "{summary}");
+    assert!(summary.contains("caught = 6\n"), "{summary}");
+    assert!(summary.contains("timeout = 1\n"), "{summary}");
+}
+
+#[test]
+#[ignore = "stage 2: needs cargo-mutants installed"]
+fn once_real_cargo_mutants_on_a_red_fixture_publishes_baseline_failed() {
+    // Arrange
+    assert!(has_cargo_mutants(), "cargo-mutants is not installed");
+    let bench = Bench::new();
+    bench.origin.commit(&[
+        (
+            "Cargo.toml",
+            "[package]\nname = \"fixture_red\"\nversion = \"0.1.0\"\nedition = \"2021\"\n\n[dependencies]\n",
+        ),
+        (".cargo/mutants.toml", "timeout_multiplier = 3.0\n"),
+        ("src/lib.rs", RED_LIB),
+    ]);
+
+    // Act
+    let output = bench.once("", false);
+
+    // Assert
+    assert_success(&output);
+    assert!(
+        stdout(&output).contains("outcome=baseline-failed"),
+        "{}",
+        stdout(&output)
+    );
+    let summary = bench.mutants("summary.toml");
+    assert!(
+        summary.contains("outcome = \"baseline-failed\""),
+        "{summary}"
+    );
+    assert!(
+        summary.contains("cargo test failed in an unmutated tree"),
+        "{summary}"
+    );
+    assert!(
+        summary.contains("add_is_checked_against_the_wrong_sum"),
+        "{summary}"
+    );
+    let files = git(&bench.origin.bare(), &["ls-tree", "--name-only", "mutants"]);
+    assert!(!files.contains("missed.txt"), "{files}");
 }
 
 #[test]

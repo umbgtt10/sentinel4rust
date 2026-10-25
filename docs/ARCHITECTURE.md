@@ -130,8 +130,10 @@ contracts on a fake clock; `ScriptedRunner`, a `CommandRunner` answering from a 
 tested against; `Origin`, a bare repository with a working clone, for `GitCli` on real git through `file://` remotes,
 with no network; `TempDir`, `git_shell` and `run_records`.
 
-`main_tests.rs` drives the binary end to end against a stub `cargo` in stage 1; its one `#[ignore]`d test runs the
-real cargo-mutants 27.1.0 on a fixture crate, and stage 2's end-to-end gate runs it.
+`main_tests.rs` drives the binary end to end against a stub `cargo` in stage 1; its `#[ignore]`d tests run the real
+cargo-mutants 27.1.0 on three fixture crates -- survivors, a failing baseline, a mutant that loops -- and stage 2's
+end-to-end gate runs them. `fixtures/mutants_out/` keeps the lists two of those real runs wrote, which the stage-1
+tests of `MutantsOutLists` read.
 
 ## Gates
 
