@@ -29,6 +29,8 @@ use crate::system::process::stdout_journal::StdoutJournal;
 use crate::system::process::system_clock::SystemClock;
 use crate::system::process::system_command_runner::SystemCommandRunner;
 use crate::system::process::thread_pause::ThreadPause;
+use crate::system::unit::job_runner::JobRunner;
+use crate::system::unit::unit_command_runner::UnitCommandRunner;
 use crate::traits::clock::Clock;
 use crate::traits::command_runner::CommandRunner;
 
@@ -44,6 +46,7 @@ usage: sentinel4rust --roster <file> [--once]
   --once           visit every repository once and exit (1 if any visit failed)
   --status         fetch only, and say how far each repository's record is behind main
                    (1 if one has waited longer than stale_after_hours, or could not be judged)
+  --run-job <dir>  run the job in <dir> and write its result there (the run unit's ExecStart)
   --help           this text
   --version        the version
 ";
@@ -53,7 +56,8 @@ usage: sentinel4rust --roster <file> [--once]
 pub struct EntryPoint;
 
 impl EntryPoint {
-    /// The sentinel for `roster`, wired to git, cargo-mutants, the system clock, sleeping and stdout; the
+    /// The sentinel for `roster`, wired to git, cargo-mutants (in the roster's run unit, when it names one), the
+    /// system clock, sleeping and stdout; the
     /// leftovers of a crash -- checkouts, staging areas, stale worktree entries, temporary files -- are pruned
     /// first.
     pub fn compose(&self, roster: Roster) -> Sentinel {
@@ -61,8 +65,16 @@ impl EntryPoint {
         let work_dir = WorkDir::new(roster.work_dir.clone());
         let git = Rc::new(GitCli::new(runner.clone(), work_dir.clone()));
         git.prune(&roster.repos);
+        let mutants_runner: Rc<dyn CommandRunner> = match &roster.run_unit {
+            Some(unit) => Rc::new(UnitCommandRunner::new(
+                runner,
+                work_dir.jobs(),
+                unit.clone(),
+            )),
+            None => runner,
+        };
         let mutants = CargoMutantsCli::new(
-            runner,
+            mutants_runner,
             work_dir,
             "cargo".to_string(),
             OutcomeInterpreter::new(LogTail::new(LOG_TAIL_LINES, LOG_TAIL_BYTES)),
@@ -97,6 +109,7 @@ impl EntryPoint {
             }
             Ok(CommandLine::Run { roster, once }) => Self::exit(self.start(&roster, once)),
             Ok(CommandLine::Status { roster }) => Self::exit(Self::status(&roster)),
+            Ok(CommandLine::RunJob { dir }) => Self::exit(Self::run_job(&dir)),
             Err(error) => {
                 eprintln!("sentinel4rust: {error}\n\n{USAGE}");
                 ExitCode::from(2)
@@ -120,6 +133,11 @@ impl EntryPoint {
             reason: e.to_string(),
         })?;
         Ok(TomlRoster.parse(&text)?)
+    }
+
+    fn run_job(dir: &Path) -> Result<u8, StartupError> {
+        JobRunner::new(Rc::new(SystemCommandRunner)).run(dir)?;
+        Ok(0)
     }
 
     fn start(&self, roster_path: &Path, once: bool) -> Result<u8, StartupError> {

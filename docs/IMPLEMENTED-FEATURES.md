@@ -72,6 +72,9 @@ for what changed, [CHANGELOG.md](../CHANGELOG.md); for what is known to be missi
 
 ### Deployment
 
+- `deploy/sentinel4rust-mutants@.service` and `deploy/50-sentinel4rust-mutants.rules`: with `run_unit` in the roster,
+  cargo-mutants runs in a unit of its own that cannot read `~/.ssh`, started through a polkit rule allowing only that;
+  `deploy/verify-isolation.sh` proves it on the machine
 - `deploy/sentinel4rust.service`, a systemd unit; `deploy/SETUP.md`, the machine, keys and rulesets step by step;
   `deploy/verify-access.sh`, checking that a repository's key reads and that its ruleset refuses every branch but
   `mutants`; `deploy/roster.example.toml`

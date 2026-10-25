@@ -431,6 +431,38 @@ fn once_tool_failure_backs_off_and_exits_one() {
     assert_eq!(bench.origin.remote_ref("refs/heads/mutants"), "");
 }
 
+// What the run unit's ExecStart does: the job in, the result and output out.
+#[test]
+fn run_job_runs_the_command_and_writes_its_result() {
+    // Arrange
+    let job = TempDir::new("e2e-job");
+    fs::write(
+        job.path().join("job.toml"),
+        format!(
+            "program = \"sh\"\ndir = \"{}\"\ntimeout_seconds = 10\n\n[[arg]]\nvalue = \"-c\"\n\n[[arg]]\nvalue = \"echo ran; exit 4\"\n",
+            job.path().display()
+        ),
+    )
+    .unwrap();
+
+    // Act
+    let output = Command::new(env!("CARGO_BIN_EXE_sentinel4rust"))
+        .args(["--run-job", &job.path().to_string_lossy()])
+        .output()
+        .unwrap();
+
+    // Assert
+    assert_success(&output);
+    assert_eq!(
+        fs::read_to_string(job.path().join("result.toml")).unwrap(),
+        "kind = \"exited\"\ncode = 4\n"
+    );
+    assert_eq!(
+        fs::read_to_string(job.path().join("stdout")).unwrap(),
+        "ran\n"
+    );
+}
+
 #[test]
 fn status_after_a_publish_is_current_then_behind_and_never_pushes() {
     // Arrange

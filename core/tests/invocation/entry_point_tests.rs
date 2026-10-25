@@ -24,6 +24,7 @@ fn unreachable_roster(dir: &TempDir) -> Roster {
         run_timeout: Duration::from_secs(60),
         config_version: 1,
         stale_after: Duration::from_secs(24 * 3600),
+        run_unit: None,
         repos: vec![OnboardedRepo {
             name: String::from("x"),
             url: format!("file://{}/nowhere.git", dir.path().display()),
@@ -89,6 +90,18 @@ fn run_once_with_an_unreachable_repository_exits_one() {
 
     // Assert
     assert_eq!(code, ExitCode::from(1));
+}
+
+#[test]
+fn run_run_job_without_a_job_fails() {
+    // Arrange
+    let dir = TempDir::new("no-job");
+
+    // Act
+    let code = EntryPoint.run(&args(&["--run-job", &dir.path().to_string_lossy()]));
+
+    // Assert
+    assert_eq!(code, ExitCode::FAILURE);
 }
 
 #[test]

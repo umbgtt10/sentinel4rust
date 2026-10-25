@@ -1,0 +1,24 @@
+[Unit]
+Description=sentinel4rust: one cargo-mutants run, away from the deploy keys
+Documentation=https://github.com/umbgtt10/sentinel4rust
+
+[Service]
+Type=oneshot
+User=sentinel
+Group=sentinel
+# The instance names the job directory the service wrote (deploy/SETUP.md section 6).
+ExecStart=/home/sentinel/.cargo/bin/sentinel4rust --run-job /home/sentinel/sentinel4rust/jobs/%i
+Environment=PATH=/home/sentinel/.cargo/bin:/usr/local/bin:/usr/bin:/bin
+
+# The repositories' code runs here; the deploy keys stay with the service.
+InaccessiblePaths=/home/sentinel/.ssh
+
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ReadWritePaths=/home/sentinel
+MemoryMax=80%
+TasksMax=8192
+Nice=5
+# A backstop only: the job's own deadline ends the run first.
+RuntimeMaxSec=2d

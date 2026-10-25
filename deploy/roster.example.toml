@@ -7,6 +7,7 @@ jobs = 6                                     # cargo-mutants --jobs (default for
 run_timeout_hours = 12                       # cap on one cargo-mutants run
 config_version = 1                           # bump to rerun every repository (upgrading cargo-mutants reruns them too)
 stale_after_hours = 24                       # --status exits 1 when main has waited longer than this
+# run_unit = "sentinel4rust-mutants"        # run cargo-mutants away from the keys (deploy/SETUP.md section 6)
 
 [[repo]]
 name = "twin4rust"                           # unique; names the local clone

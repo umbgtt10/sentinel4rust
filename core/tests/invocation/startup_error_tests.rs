@@ -4,7 +4,24 @@
 
 use sentinel4rust::invocation::startup_error::StartupError;
 use sentinel4rust::model::onboarding::roster_error::RosterError;
+use sentinel4rust::system::unit::job_error::JobError;
 use std::path::PathBuf;
+
+#[test]
+fn from_a_job_error_is_a_job_failure_worded_as_the_job() {
+    // Arrange
+    let error = JobError(String::from("read /w/jobs/run/job.toml: not found"));
+
+    // Act
+    let startup = StartupError::from(error.clone());
+
+    // Assert
+    assert_eq!(startup, StartupError::Job(error));
+    assert_eq!(
+        startup.to_string(),
+        "job: read /w/jobs/run/job.toml: not found"
+    );
+}
 
 #[test]
 fn from_a_roster_error_is_invalid() {

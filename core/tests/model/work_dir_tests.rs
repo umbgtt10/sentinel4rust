@@ -41,6 +41,15 @@ fn checkout_of_a_repo_is_under_runs() {
 }
 
 #[test]
+fn jobs_holds_the_jobs_handed_to_the_run_unit() {
+    // Arrange & Act
+    let path = work_dir().jobs();
+
+    // Assert
+    assert_eq!(path, Path::new("/srv/s/jobs"));
+}
+
+#[test]
 fn mutants_out_of_a_repo_is_under_out() {
     // Arrange & Act
     let path = work_dir().mutants_out(&repo());

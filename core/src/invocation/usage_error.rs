@@ -13,6 +13,8 @@ pub enum UsageError {
     MissingRosterFile,
     /// No `--roster` at all.
     MissingRoster,
+    /// `--run-job` came last, with no directory after it.
+    MissingJobDir,
     /// An argument nobody knows.
     UnknownArgument(String),
 }
@@ -22,6 +24,7 @@ impl fmt::Display for UsageError {
         match self {
             Self::MissingRosterFile => write!(f, "--roster needs a file"),
             Self::MissingRoster => write!(f, "--roster is required"),
+            Self::MissingJobDir => write!(f, "--run-job needs a directory"),
             Self::UnknownArgument(argument) => write!(f, "unknown argument `{argument}`"),
         }
     }

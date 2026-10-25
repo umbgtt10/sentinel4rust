@@ -29,7 +29,10 @@ does before a repository is relied on.
 ## Consequences
 
 Accepted, and recorded in `docs/OPEN_POINTS.md`: a leaked key reads its repository; survivors and log tails are
-published on public repositories too (point 15); every repository's code runs where every key is (point 5).
+published on public repositories too (point 15). Every repository's code runs where cargo-mutants runs; with
+`run_unit` set, that is a unit of its own with `~/.ssh` inaccessible, started through a polkit rule that allows the
+`sentinel` user to start that unit and nothing else, while git and the keys stay in the service (point 5; to be
+proven on the machine with `deploy/verify-isolation.sh`).
 Rulesets on private repositories need a paid GitHub plan; without one, those rely on the tool pushing only `mutants`
 (`ADR-ExactCommitOnlyMutantsPushed.md`). Commits on `mutants` are unsigned, so signed commits may be required on
 `main` only. Revoking is deleting the key on GitHub and the key file.

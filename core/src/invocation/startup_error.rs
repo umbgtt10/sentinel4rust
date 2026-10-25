@@ -8,6 +8,7 @@ use std::fmt;
 use std::path::PathBuf;
 
 use crate::model::onboarding::roster_error::RosterError;
+use crate::system::unit::job_error::JobError;
 
 /// Why the service could not start.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -35,6 +36,8 @@ pub enum StartupError {
         /// What opening it said.
         reason: String,
     },
+    /// The run unit's job could not be read, or its result written.
+    Job(JobError),
     /// Another instance holds the work directory.
     Locked {
         /// The work directory.
@@ -49,6 +52,7 @@ impl fmt::Display for StartupError {
         match self {
             Self::Unreadable { path, reason } => write!(f, "read {}: {reason}", path.display()),
             Self::Invalid(error) => write!(f, "{error}"),
+            Self::Job(error) => write!(f, "{error}"),
             Self::NoWorkDir { path, reason } => write!(f, "create {}: {reason}", path.display()),
             Self::NoLockFile { path, reason } => write!(f, "open {}: {reason}", path.display()),
             Self::Locked { work_dir, lock } => write!(
@@ -58,6 +62,12 @@ impl fmt::Display for StartupError {
                 lock.display()
             ),
         }
+    }
+}
+
+impl From<JobError> for StartupError {
+    fn from(error: JobError) -> Self {
+        Self::Job(error)
     }
 }
 

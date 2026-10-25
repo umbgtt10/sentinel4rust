@@ -13,6 +13,11 @@ files and commit messages on `mutants`. The library's paths all changed; it has 
 this repository uses it.
 
 ### Added
+- `run_unit` in the roster: cargo-mutants then runs in a systemd template unit of its own,
+  `deploy/sentinel4rust-mutants@.service`, which cannot read `~/.ssh`, started through the polkit rule in `deploy/`;
+  git and the deploy keys stay in the service. The command goes in as a job file and comes back as a result file and
+  its output, written by the unit's `sentinel4rust --run-job <dir>`; `deploy/verify-isolation.sh` proves the
+  isolation on the machine (open point 5). Not yet proven there.
 - `--status`: a read-only pass saying how far each repository's record is behind `main` and how long `main`'s head
   has waited, exiting 1 when one has waited longer than the roster's new `stale_after_hours` (24 by default) or
   could not be judged, so a dead sentinel shows from another machine (open point 12). `RepoSource` gains

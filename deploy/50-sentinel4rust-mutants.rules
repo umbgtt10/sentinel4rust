@@ -1,0 +1,9 @@
+// Lets the sentinel user start, and only start, instances of the run unit (deploy/SETUP.md section 6).
+polkit.addRule(function (action, subject) {
+    if (action.id == "org.freedesktop.systemd1.manage-units" &&
+        subject.user == "sentinel" &&
+        action.lookup("verb") == "start" &&
+        /^sentinel4rust-mutants@[a-z]+\.service$/.test(action.lookup("unit"))) {
+        return polkit.Result.YES;
+    }
+});

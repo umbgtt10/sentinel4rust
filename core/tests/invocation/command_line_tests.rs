@@ -35,6 +35,22 @@ fn parse_bad_command_lines_names_each_problem() {
     );
 }
 
+// The unit's ExecStart: no roster, the job's directory alone.
+#[test]
+fn parse_run_job_reads_the_directory_and_needs_no_roster() {
+    // Arrange & Act & Assert
+    assert_eq!(
+        CommandLine::parse(&args(&["--run-job", "/w/jobs/run"])),
+        Ok(CommandLine::RunJob {
+            dir: PathBuf::from("/w/jobs/run")
+        })
+    );
+    assert_eq!(
+        CommandLine::parse(&args(&["--run-job"])),
+        Err(UsageError::MissingJobDir)
+    );
+}
+
 #[test]
 fn parse_status_reads_the_roster_and_wins_over_once() {
     // Arrange & Act & Assert

@@ -21,6 +21,7 @@ const ROOT_KEYS: &[&str] = &[
     "run_timeout_hours",
     "config_version",
     "stale_after_hours",
+    "run_unit",
 ];
 const REPO_KEYS: &[&str] = &["name", "url", "branch", "jobs", "run_timeout_hours"];
 
@@ -65,6 +66,7 @@ impl TomlRoster {
                 24,
                 "stale_after_hours",
             )?),
+            run_unit: Self::run_unit(root.string("run_unit")?)?,
             repos,
         })
     }
@@ -126,6 +128,22 @@ impl TomlRoster {
                 "run_timeout_hours",
             )?),
         })
+    }
+
+    fn run_unit(unit: Option<String>) -> Result<Option<String>, RosterError> {
+        match unit {
+            Some(unit)
+                if unit.is_empty()
+                    || !unit
+                        .chars()
+                        .all(|c| c.is_ascii_alphanumeric() || matches!(c, '-' | '_')) =>
+            {
+                Err(RosterError(format!(
+                    "invalid `run_unit` `{unit}` (letters, digits, `-`, `_`)"
+                )))
+            }
+            unit => Ok(unit),
+        }
     }
 
     fn valid_branch(branch: &str) -> bool {

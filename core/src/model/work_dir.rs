@@ -30,6 +30,11 @@ impl WorkDir {
         self.runs().join(&repo.name)
     }
 
+    /// Where the jobs handed to the run unit are written.
+    pub fn jobs(&self) -> PathBuf {
+        self.root.join("jobs")
+    }
+
     /// Where cargo-mutants writes `mutants.out` for `repo`.
     pub fn mutants_out(&self, repo: &OnboardedRepo) -> PathBuf {
         self.root.join("out").join(&repo.name)

@@ -125,6 +125,27 @@ fn parse_repo_run_timeout_overrides_the_global_cap() {
 }
 
 #[test]
+fn parse_run_unit_names_the_unit_runs_go_through() {
+    // Arrange
+    let none = "work_dir = \"/w\"\n[[repo]]\nname = \"a\"\nurl = \"u\"";
+    let named = "work_dir = \"/w\"\nrun_unit = \"sentinel4rust-mutants\"\n[[repo]]\nname = \"a\"\nurl = \"u\"";
+    let odd = "work_dir = \"/w\"\nrun_unit = \"x; rm -rf\"\n[[repo]]\nname = \"a\"\nurl = \"u\"";
+
+    // Act
+    let direct = TomlRoster.parse(none).unwrap();
+    let isolated = TomlRoster.parse(named).unwrap();
+    let refused = TomlRoster.parse(odd).unwrap_err().0;
+
+    // Assert
+    assert_eq!(direct.run_unit, None);
+    assert_eq!(
+        isolated.run_unit,
+        Some(String::from("sentinel4rust-mutants"))
+    );
+    assert!(refused.contains("run_unit"), "{refused}");
+}
+
+#[test]
 fn parse_stale_after_hours_defaults_to_a_day() {
     // Arrange
     let minimal = "work_dir = \"/w\"\n[[repo]]\nname = \"a\"\nurl = \"u\"";

@@ -8,8 +8,10 @@ How a `sentinel4rust` process flows through the code, module by module. The deci
 ```text
 main.rs
   └─ EntryPoint::run(args)                     invocation/entry_point.rs
-      ├─ CommandLine::parse                    --roster <file> [--once | --status], --help, --version; else
+      ├─ CommandLine::parse                    --roster <file> [--once | --status], --run-job <dir>, --help,
+      │                                        --version; else
       │                                        UsageError, exit 2
+      ├─ run_job                               --run-job: JobRunner, inside the run unit
       ├─ status                                --status: StatusReport over its own clones in <work_dir>/status,
       │                                        one StatusLine per repository; exit 1 if one needs attention
       └─ start                                 any StartupError: exit 1
@@ -67,7 +69,7 @@ One trait per file, no default bodies: `CommandRunner` (run a `Command` to compl
 - **Contract data:** `Command` and `CommandResult`; `Snapshot` and `SyncError` (what a fetch found, or why it did
   not); `CheckoutError`, `PublishError`; `MutationRun` and `RunOutcome` (what a run produced); `OutcomeKind`,
   `SkipReason` and `RoundStep` (what a visit did, with its journal name); `WorkDir`, which owns every path under the
-  roster's `work_dir`: `repos/<name>.git`, `runs/<name>`, `stage/<name>`, `out/<name>`, `tmp/<name>`.
+  roster's `work_dir`: `repos/<name>.git`, `runs/<name>`, `stage/<name>`, `out/<name>`, `tmp/<name>`, `jobs/`.
 - **`branch/`** -- what `mutants` holds ([ADR-OrphanMutantsBranch](ADRs/ADR-OrphanMutantsBranch.md)): the
   `RunRecord` and `Publication` records, `RecordState` (absent, present or unreadable), `SummaryToml` (render and
   parse, schema 1), `RecordCurrency`, `BranchLayout`
@@ -112,6 +114,13 @@ long `main`'s head has waited -- into a `StatusLine` that says whether it needs 
   `OutcomeInterpreter` (the exit-code table), which reads the lists with `MutantsOutLists` (`UnreadableList` when a
   required one is missing) and keeps a failing run's `LogTail`.
 
+- **`unit/`** -- when the roster names a `run_unit`, `CargoMutantsCli` runs its commands through
+  `UnitCommandRunner`: each is written as `jobs/run/job.toml` (`JobToml`), the template unit started with
+  `systemctl start --wait <unit>@run.service`, and the `result.toml` (`ResultToml`), `stdout` and `stderr` the unit
+  left are read back into a `CommandResult`. The unit's `ExecStart` is `sentinel4rust --run-job <dir>`: `JobRunner`
+  runs the job with the `SystemCommandRunner` and writes those files. Git never runs there
+  ([ADR-DeployKeyAndRuleset](ADRs/ADR-DeployKeyAndRuleset.md)).
+
 ## Configuration
 
 The roster is TOML, read once on start ([`deploy/roster.example.toml`](../deploy/roster.example.toml)):
@@ -124,6 +133,7 @@ The roster is TOML, read once on start ([`deploy/roster.example.toml`](../deploy
 | `run_timeout_hours` | 12 | the cap on one cargo-mutants run |
 | `config_version` | 1 | bump to rerun every repository |
 | `stale_after_hours` | 24 | how long `main` may wait for a record before `--status` exits 1 |
+| `run_unit` | none | the systemd template unit cargo-mutants runs in, away from the deploy keys |
 | `[[repo]]` `name`, `url` | required | a unique name (letters, digits, `-`, `_`, `.`) and what git fetches from |
 | `[[repo]]` `branch` | `main` | the branch tested; never `mutants` |
 | `[[repo]]` `jobs` | the global `jobs` | this repository's `--jobs` |

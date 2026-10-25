@@ -16,6 +16,10 @@ fn to_string_of_each_names_the_problem() {
         "--roster is required"
     );
     assert_eq!(
+        UsageError::MissingJobDir.to_string(),
+        "--run-job needs a directory"
+    );
+    assert_eq!(
         UsageError::UnknownArgument(String::from("--frobnicate")).to_string(),
         "unknown argument `--frobnicate`"
     );

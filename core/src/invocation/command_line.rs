@@ -23,6 +23,11 @@ pub enum CommandLine {
         /// The roster file.
         roster: PathBuf,
     },
+    /// Run the job in this directory: the run unit's `ExecStart`.
+    RunJob {
+        /// The job's directory.
+        dir: PathBuf,
+    },
     /// Print usage.
     Help,
     /// Print the version.
@@ -42,6 +47,12 @@ impl CommandLine {
                 "--version" | "-V" => return Ok(Self::Version),
                 "--once" => once = true,
                 "--status" => status = true,
+                "--run-job" => {
+                    let dir = iter.next().ok_or(UsageError::MissingJobDir)?;
+                    return Ok(Self::RunJob {
+                        dir: PathBuf::from(dir),
+                    });
+                }
                 "--roster" => {
                     let value = iter.next().ok_or(UsageError::MissingRosterFile)?;
                     roster = Some(PathBuf::from(value));

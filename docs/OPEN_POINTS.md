@@ -11,7 +11,7 @@ be observed yet, that it is to be verified on the machine. Recorded 2026-10-24. 
 | 2 | `cargo install sentinel4rust` installs the placeholder that does nothing | closed: `deploy/SETUP.md` |
 | 3 | a large repository can hold the machine for 36 hours per commit and publish nothing | to measure on the machine |
 | 4 | an unreadable `summary.toml` silently reruns the same commit forever | closed: its own state |
-| 5 | every repository's code runs where every repository's key is | accepted in design 5.1; decide again |
+| 5 | every repository's code runs where every repository's key is | closed in the code; prove on the machine |
 | 6 | `cargo xtask` does not exist | closed: `.cargo/config.toml` |
 | 7 | the family's gates and coding standards do not apply here yet | closed: `docs/ROADMAP.md` |
 | 8 | the design and the code disagree in four places | closed: `docs/DESIGN.md` |
@@ -77,7 +77,13 @@ Design 5.1 accepts this. It is recorded here because the blast radius covers the
 can be narrowed: run git as one user, which holds the keys, and cargo-mutants as another, which cannot read them; or
 give the run a mount namespace without `~/.ssh` (systemd `InaccessiblePaths=` on a separate unit).
 
-**To decide.** Observed: the layout in design 5.2 and the unit file.
+**Closed in the code; to prove on the machine.** With `run_unit = "sentinel4rust-mutants"` in the roster, every
+cargo-mutants command runs in `sentinel4rust-mutants@run.service`, a fixed system template unit (`deploy/`) with
+`InaccessiblePaths=/home/sentinel/.ssh`, which the service starts through a polkit rule allowing the `sentinel` user
+to start that unit's instances and nothing else; git, which needs the keys, stays in the service. The command goes
+in as a job file and the result and output come back beside it (`core/src/system/unit/`). Tested here through a
+stand-in for systemd; the unit and the rule have not been installed on the machine, and `deploy/verify-isolation.sh`
+-- `~/.ssh` readable in the service, refused in the unit -- is the proof still to run there.
 
 ## 6. `cargo xtask` does not exist
 

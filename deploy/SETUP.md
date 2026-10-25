@@ -88,3 +88,23 @@ sentinel4rust --roster roster.toml --status
 ```
 
 It keeps its own clones and lock under `<work_dir>/status`, so it can also run beside the service.
+
+## 6. Running cargo-mutants without the keys
+
+Every repository's build scripts, tests and dependencies run where cargo-mutants runs. To keep them away from the
+deploy keys, cargo-mutants can run in a unit of its own, `sentinel4rust-mutants@.service`, with
+`InaccessiblePaths=/home/sentinel/.ssh`; git, which needs the keys, stays in the service. The service starts the unit
+through a polkit rule that lets the `sentinel` user start that unit's instances and nothing else.
+
+```sh
+sudo cp deploy/sentinel4rust-mutants@.service /etc/systemd/system/
+sudo cp deploy/50-sentinel4rust-mutants.rules /etc/polkit-1/rules.d/
+sudo systemctl daemon-reload
+sudo -iu sentinel /path/to/sentinel4rust/deploy/verify-isolation.sh /home/sentinel/sentinel4rust
+```
+
+Then add `run_unit = "sentinel4rust-mutants"` to the roster and restart the service. Each cargo-mutants command is
+written to `<work_dir>/jobs/run/job.toml`, the unit runs it with `sentinel4rust --run-job` and writes the result and
+output beside it, and the service reads them back. The unit's paths assume `work_dir = /home/sentinel/sentinel4rust`;
+change `ExecStart=` if yours differs. This has not yet been proven on the machine: `verify-isolation.sh` is that
+proof.
