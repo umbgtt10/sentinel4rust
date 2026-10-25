@@ -40,7 +40,8 @@ repo=etheram-raft step=unchanged hash=9f8e7d6 duration_s=1
 
 - Roster format: [`deploy/roster.example.toml`](deploy/roster.example.toml)
 - Machine set-up, keys and rulesets: [`deploy/SETUP.md`](deploy/SETUP.md)
-- Design: [`docs/DESIGN.md`](docs/DESIGN.md)
+- Architecture: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md); decisions: [`docs/ADRs/`](docs/ADRs/README.md); the original
+  design: [`docs/history/`](docs/history/README.md)
 
 ## Development
 

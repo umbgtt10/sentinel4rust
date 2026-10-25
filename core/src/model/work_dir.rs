@@ -2,7 +2,7 @@
 // Licensed under the MIT License
 // SPDX-License-Identifier: MIT
 
-//! Where the clones, checkouts, staging areas and cargo-mutants output live (design 2.4).
+//! Where the clones, checkouts, staging areas and cargo-mutants output live (`ADR-ExactCommitOnlyMutantsPushed`).
 
 use std::path::{Path, PathBuf};
 

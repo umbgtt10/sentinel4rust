@@ -9,7 +9,7 @@ use std::path::Path;
 
 use crate::invocation::startup_error::StartupError;
 
-/// Holds the work directory's lock for the life of the process (design 5).
+/// Holds the work directory's lock for the life of the process (`deploy/SETUP.md`).
 pub struct WorkDirLock {
     _file: File,
 }

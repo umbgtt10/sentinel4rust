@@ -2,7 +2,7 @@
 // Licensed under the MIT License
 // SPDX-License-Identifier: MIT
 
-//! The contracts every part of the tool talks through (design 4). Each has a system implementation and, in
+//! The contracts every part of the tool talks through (`docs/ARCHITECTURE.md`). Each has a system implementation and, in
 //! tests, a fake.
 
 pub mod clock;

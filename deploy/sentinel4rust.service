@@ -14,7 +14,7 @@ RestartSec=30
 # cargo, rustup and cargo-mutants live in the user's cargo home.
 Environment=PATH=/home/sentinel/.cargo/bin:/usr/local/bin:/usr/bin:/bin
 
-# A runaway test must not freeze the box (design 5). Adjust to the machine.
+# A runaway test must not freeze the box (deploy/SETUP.md). Adjust to the machine.
 MemoryMax=80%
 TasksMax=8192
 Nice=5

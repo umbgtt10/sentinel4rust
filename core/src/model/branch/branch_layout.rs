@@ -2,7 +2,7 @@
 // Licensed under the MIT License
 // SPDX-License-Identifier: MIT
 
-//! The files and the commit message one publication writes on `mutants` (design 2.2).
+//! The files and the commit message one publication writes on `mutants` (`ADR-OrphanMutantsBranch`).
 
 use crate::model::branch::branch_file::BranchFile;
 use crate::model::branch::publication::Publication;
@@ -60,7 +60,7 @@ impl BranchLayout {
         files
     }
 
-    /// The commit message (design 2.2).
+    /// The commit message (`ADR-OrphanMutantsBranch`).
     pub fn message(&self, publication: &Publication) -> String {
         let r = &publication.record;
         let short = r.commit.short();

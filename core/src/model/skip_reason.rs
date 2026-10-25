@@ -4,7 +4,7 @@
 
 //! Why a visit ran nothing although `main` had moved.
 
-/// Why a visit ran nothing although `main` had moved (design 2.6).
+/// Why a visit ran nothing although `main` had moved (`ADR-FiltersLiveInEachRepository`).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SkipReason {
     /// The configured branch does not exist on the remote.

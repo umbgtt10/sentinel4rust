@@ -1,4 +1,4 @@
-# ~sentinel/.config/sentinel4rust/roster.toml -- see docs/DESIGN.md section 3.
+# ~sentinel/.config/sentinel4rust/roster.toml -- every key, with its default, in docs/ARCHITECTURE.md.
 # Edit, then: sudo systemctl restart sentinel4rust
 
 work_dir = "/home/sentinel/sentinel4rust"   # clones, worktrees, cargo-mutants output

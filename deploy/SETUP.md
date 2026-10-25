@@ -1,6 +1,6 @@
 # Setting up the machine
 
-The short version of `docs/DESIGN.md` section 5, in order.
+In order. Why it is set up this way: `docs/ADRs/ADR-DeployKeyAndRuleset.md`.
 
 ## 1. User and tools
 

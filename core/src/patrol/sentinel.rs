@@ -2,7 +2,7 @@
 // Licensed under the MIT License
 // SPDX-License-Identifier: MIT
 
-//! The loop (design 1): visit one due repository at a time, run, publish, back off.
+//! The loop (`ADR-PollingPerRepository`): visit one due repository at a time, run, publish, back off.
 
 use std::time::Duration;
 

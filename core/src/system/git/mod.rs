@@ -2,7 +2,8 @@
 // Licensed under the MIT License
 // SPDX-License-Identifier: MIT
 
-//! `RepoSource` and `ResultStore` by shelling out to `git` (design 2.1, 2.4). Credentials stay with the
+//! `RepoSource` and `ResultStore` by shelling out to `git` (`ADR-StateLivesOnMutants`,
+//! `ADR-ExactCommitOnlyMutantsPushed`). Credentials stay with the
 //! system's git and SSH configuration.
 //!
 //! Each repository is a bare clone at `<work_dir>/repos/<name>.git` whose remote branches are fetched into

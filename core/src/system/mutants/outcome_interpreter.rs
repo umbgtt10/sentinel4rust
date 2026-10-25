@@ -11,7 +11,7 @@ use crate::model::run_outcome::RunOutcome;
 use crate::system::mutants::log_tail::LogTail;
 use crate::system::mutants::mutants_out_lists::MutantsOutLists;
 
-/// Turns the process result and `mutants.out` into an outcome (the exit-code table of design 2.6).
+/// Turns the process result and `mutants.out` into an outcome (the exit-code table of `ADR-ResultsFailuresAndBackOff`).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct OutcomeInterpreter {
     tail: LogTail,

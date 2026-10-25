@@ -2,7 +2,7 @@
 
 Notes for agents working in this repository.
 
-- Read `docs/DESIGN.md` first; section 9 records where the code differs from the design.
+- Read `docs/ARCHITECTURE.md` and `docs/ADRs/` first; the original design is in `docs/history/`, unchanged.
 - `just stage1` and `just stage2` must pass before every commit. Stage 1 is fmt, clippy pedantic with `-D warnings`
   and all tests. Stage 2 is `cargo xtask stage2`, the gates in this order: stern4rust (house rules, both packages,
   pinned), `cargo shear` (dependencies), `cargo dry4rust` (duplication in `core/src`, floor 25), `cargo crap4rust`

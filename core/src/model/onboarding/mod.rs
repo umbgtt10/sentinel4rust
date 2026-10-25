@@ -2,7 +2,7 @@
 // Licensed under the MIT License
 // SPDX-License-Identifier: MIT
 
-//! The roster: which repositories to watch, and how (design 3).
+//! The roster: which repositories to watch, and how (`deploy/roster.example.toml`).
 
 pub mod onboarded_repo;
 pub mod roster;

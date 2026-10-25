@@ -2,7 +2,7 @@
 // Licensed under the MIT License
 // SPDX-License-Identifier: MIT
 
-//! The command line, the lock and the composition root (design 3, 5).
+//! The command line, the lock and the composition root (`docs/ARCHITECTURE.md`).
 
 pub mod command_line;
 pub mod entry_point;

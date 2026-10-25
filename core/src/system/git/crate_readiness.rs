@@ -11,7 +11,7 @@ use crate::model::skip_reason::SkipReason;
 use crate::system::git::git_constants::LOCAL_TIMEOUT;
 use crate::system::git::git_runner::GitRunner;
 
-/// Whether a commit is a crate with cargo-mutants filters (design 2.3).
+/// Whether a commit is a crate with cargo-mutants filters (`ADR-FiltersLiveInEachRepository`).
 #[derive(Clone)]
 pub struct CrateReadiness {
     git: GitRunner,

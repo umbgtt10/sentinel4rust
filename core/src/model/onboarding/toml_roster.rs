@@ -2,7 +2,7 @@
 // Licensed under the MIT License
 // SPDX-License-Identifier: MIT
 
-//! The roster file, read and validated (design 3).
+//! The roster file, read and validated (`deploy/roster.example.toml`).
 
 use std::collections::BTreeSet;
 use std::path::PathBuf;

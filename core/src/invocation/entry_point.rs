@@ -39,7 +39,7 @@ const LOG_TAIL_BYTES: usize = 16 * 1024;
 const USAGE: &str = "\
 usage: sentinel4rust --roster <file> [--once]
 
-  --roster <file>  the roster (TOML); see docs/DESIGN.md
+  --roster <file>  the roster (TOML); see deploy/roster.example.toml
   --once           visit every repository once and exit (1 if any visit failed)
   --help           this text
   --version        the version

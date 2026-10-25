@@ -2,7 +2,7 @@
 // Licensed under the MIT License
 // SPDX-License-Identifier: MIT
 
-//! Whether a record answers for a commit (design 2.1).
+//! Whether a record answers for a commit (`ADR-StateLivesOnMutants`).
 
 use crate::model::branch::run_record::RunRecord;
 use crate::model::commit_hash::CommitHash;

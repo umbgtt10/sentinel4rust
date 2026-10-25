@@ -2,7 +2,8 @@
 
 Known gaps, deliberately recorded rather than silently assumed correct. Each entry says what was actually observed
 -- in the code at `48c8fb1`, in cargo-mutants 27.1.0's source, or on the development laptop -- or, where it could not
-be observed yet, that it is to be verified on the machine. Recorded 2026-10-24.
+be observed yet, that it is to be verified on the machine. Recorded 2026-10-24. "Design N" names a section of
+`docs/history/[SUPERSEDED] DESIGN.md`.
 
 | # | point | weight |
 |---|---|---|

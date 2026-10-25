@@ -2,7 +2,7 @@
 // Licensed under the MIT License
 // SPDX-License-Identifier: MIT
 
-//! Position-free mutant identities (design 2.3).
+//! Position-free mutant identities (`ADR-PositionFreeMutantKeys`).
 //!
 //! cargo-mutants names a mutant `src/lib.rs:12:5: replace == with != in Parser::next`. The position changes
 //! whenever a line is added above it, so the published lists drop it: the key is

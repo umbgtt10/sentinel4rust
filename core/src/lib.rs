@@ -5,7 +5,7 @@
 //! sentinel4rust: mutation testing around the clock.
 //!
 //! Walks a roster of repositories; whenever a repository's `main` moves, runs cargo-mutants against that exact
-//! commit and publishes the surviving mutants on the repository's own `mutants` branch. See `docs/DESIGN.md`.
+//! commit and publishes the surviving mutants on the repository's own `mutants` branch. See `docs/ARCHITECTURE.md`.
 
 #![warn(missing_docs)]
 

@@ -12,7 +12,7 @@ use crate::model::onboarding::roster::Roster;
 use crate::model::round_step::RoundStep;
 use crate::model::timestamp::Timestamp;
 
-/// The journal's lines: one at start, one per visit (design 4).
+/// The journal's lines: one at start, one per visit (`docs/ARCHITECTURE.md`).
 #[derive(Debug, Clone, Copy, Default)]
 pub struct JournalLine;
 

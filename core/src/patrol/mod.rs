@@ -2,7 +2,8 @@
 // Licensed under the MIT License
 // SPDX-License-Identifier: MIT
 
-//! The loop: which repository to visit next, and the in-memory back-off (design 1, 2.6).
+//! The loop: which repository to visit next, and the in-memory back-off (`ADR-PollingPerRepository`,
+//! `ADR-ResultsFailuresAndBackOff`).
 //!
 //! A repository is due when `pause` has passed since its last visit and it is not backing off. Among the due
 //! repositories, the one that has waited longest goes first (ties in roster order), so a repository whose

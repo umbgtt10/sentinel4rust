@@ -2,7 +2,7 @@
 // Licensed under the MIT License
 // SPDX-License-Identifier: MIT
 
-//! What the `mutants` branch holds for one commit (design 2.2).
+//! What the `mutants` branch holds for one commit (`ADR-OrphanMutantsBranch`).
 
 pub mod branch_constants;
 pub mod branch_file;
