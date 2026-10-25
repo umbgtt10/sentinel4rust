@@ -16,5 +16,4 @@ pub mod mutants;
 pub mod schedule;
 pub mod sentinel;
 pub mod system;
-pub mod toml;
 pub mod traits;

@@ -4,4 +4,5 @@
 
 mod git_tests;
 mod main_tests;
+mod model;
 mod support;

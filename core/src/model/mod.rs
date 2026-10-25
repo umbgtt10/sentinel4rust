@@ -11,6 +11,7 @@ mod outcome;
 mod record;
 mod roster;
 mod timestamp;
+pub mod toml;
 
 pub use commit_hash::CommitHash;
 pub use counts::MutantCounts;

@@ -9,7 +9,8 @@ use std::fmt;
 use std::path::PathBuf;
 use std::time::Duration;
 
-use crate::toml;
+use crate::model::toml::toml_error::TomlError;
+use crate::model::toml::toml_parser::TomlParser;
 
 /// Global settings and the onboarded repositories.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -53,8 +54,8 @@ impl fmt::Display for RosterError {
 
 impl std::error::Error for RosterError {}
 
-impl From<toml::TomlError> for RosterError {
-    fn from(error: toml::TomlError) -> Self {
+impl From<TomlError> for RosterError {
+    fn from(error: TomlError) -> Self {
         Self(error.to_string())
     }
 }
@@ -101,7 +102,7 @@ fn valid_branch(branch: &str) -> bool {
 impl Roster {
     /// Parses and validates the roster file's text.
     pub fn parse(text: &str) -> Result<Self, RosterError> {
-        let doc = toml::parse(text)?;
+        let doc = TomlParser.parse(text)?;
         let root = &doc.root;
         root.only(ROOT_KEYS)?;
         if let Some(name) = doc.arrays.keys().find(|name| *name != "repo") {

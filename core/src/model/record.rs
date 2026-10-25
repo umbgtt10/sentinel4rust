@@ -7,7 +7,9 @@
 use std::fmt;
 
 use super::{CommitHash, MutantCounts, MutantKey, OutcomeKind, Timestamp};
-use crate::toml::{self, TomlError};
+use crate::model::toml::toml_error::TomlError;
+use crate::model::toml::toml_parser::TomlParser;
+use crate::model::toml::toml_writer::TomlWriter;
 
 /// The `summary.toml` schema this version writes and understands.
 pub const SCHEMA: i64 = 1;
@@ -88,12 +90,12 @@ impl RunRecord {
             out.push('\n');
         };
         line("schema", SCHEMA.to_string());
-        line("commit", toml::quote(self.commit.as_str()));
+        line("commit", TomlWriter.quote(self.commit.as_str()));
         line("config_version", self.config_version.to_string());
-        line("kind", toml::quote(&self.kind));
-        line("outcome", toml::quote(self.outcome.as_str()));
-        line("started", toml::quote(&self.started.to_string()));
-        line("finished", toml::quote(&self.finished.to_string()));
+        line("kind", TomlWriter.quote(&self.kind));
+        line("outcome", TomlWriter.quote(self.outcome.as_str()));
+        line("started", TomlWriter.quote(&self.started.to_string()));
+        line("finished", TomlWriter.quote(&self.finished.to_string()));
         line(
             "duration_seconds",
             self.finished.since(self.started).as_secs().to_string(),
@@ -106,22 +108,22 @@ impl RunRecord {
         line("gone", self.gone.to_string());
         line(
             "cargo_mutants_version",
-            toml::quote(&self.cargo_mutants_version),
+            TomlWriter.quote(&self.cargo_mutants_version),
         );
-        line("rustc_version", toml::quote(&self.rustc_version));
-        line("arguments", toml::quote(&self.arguments));
+        line("rustc_version", TomlWriter.quote(&self.rustc_version));
+        line("arguments", TomlWriter.quote(&self.arguments));
         if let Some(reason) = &self.reason {
-            line("reason", toml::quote(reason));
+            line("reason", TomlWriter.quote(reason));
         }
         if let Some(tail) = &self.log_tail {
-            line("log_tail", toml::quote(tail));
+            line("log_tail", TomlWriter.quote(tail));
         }
         out
     }
 
     /// Parses `summary.toml`.
     pub fn parse(text: &str) -> Result<Self, RecordError> {
-        let doc = toml::parse(text)?;
+        let doc = TomlParser.parse(text)?;
         let t = &doc.root;
         let schema = t.required_integer("schema")?;
         if schema != SCHEMA {

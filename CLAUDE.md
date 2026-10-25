@@ -5,9 +5,10 @@ Notes for agents working in this repository.
 - Read `docs/DESIGN.md` first; section 9 records where the code differs from the design.
 - `just stage1` and `just stage2` must pass before every commit. Stage 1 is fmt, clippy pedantic with `-D warnings`
   and all tests. Stage 2 is `cargo xtask stage2`, the gates in this order: `cargo stern4rust` (house rules, both
-  packages), `cargo shear` (dependencies), `cargo dry4rust` (duplication in `core/src`, floor 25), then the end-to-end
-  tests against the real cargo-mutants 27.1.0 (the `#[ignore]`d ones). crap4rust, twin4rust and iceberg4rust are
-  built into the xtask and switched on as `docs/ROADMAP.md`'s restructure makes each pass.
+  packages), `cargo shear` (dependencies), `cargo dry4rust` (duplication in `core/src`, floor 25), `cargo crap4rust`
+  (threshold 15), `cargo iceberg4rust` (ceiling 20), then the end-to-end tests against the real cargo-mutants 27.1.0
+  (the `#[ignore]`d ones). twin4rust is built into the xtask and switched on when `docs/ROADMAP.md`'s restructure
+  makes it pass.
 - `stern4rust-baseline.json` and `dry4rust-baseline.json` record the offences and duplication there when the gates
   arrived. They only shrink: a change may remove entries, never add one. The stern baseline is recorded with both
   the installed stern4rust and the next release's rules and merged, so it holds under either; re-record it only to
