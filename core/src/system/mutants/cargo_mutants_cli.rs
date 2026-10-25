@@ -1,0 +1,101 @@
+// Copyright 2026 Umberto Gotti <umberto.gotti@umbertogotti.dev>
+// Licensed under the MIT License
+// SPDX-License-Identifier: MIT
+
+//! cargo-mutants, run in a checkout.
+
+use std::fs;
+use std::path::Path;
+use std::rc::Rc;
+use std::time::Duration;
+
+use crate::model::command::Command;
+use crate::model::mutation_run::MutationRun;
+use crate::model::onboarding::onboarded_repo::OnboardedRepo;
+use crate::model::run_outcome::RunOutcome;
+use crate::model::work_dir::WorkDir;
+use crate::system::mutants::outcome_interpreter::OutcomeInterpreter;
+use crate::traits::command_runner::CommandRunner;
+use crate::traits::mutation_runner::MutationRunner;
+
+const VERSION_TIMEOUT: Duration = Duration::from_secs(60);
+
+/// cargo-mutants, run through a [`CommandRunner`].
+pub struct CargoMutantsCli {
+    runner: Rc<dyn CommandRunner>,
+    work_dir: WorkDir,
+    cargo: String,
+    interpreter: OutcomeInterpreter,
+}
+
+impl CargoMutantsCli {
+    /// Runs `cargo` (or a stand-in, for tests), writes output where `work_dir` says and reads it with
+    /// `interpreter`.
+    pub fn new(
+        runner: Rc<dyn CommandRunner>,
+        work_dir: WorkDir,
+        cargo: String,
+        interpreter: OutcomeInterpreter,
+    ) -> Self {
+        Self {
+            runner,
+            work_dir,
+            cargo,
+            interpreter,
+        }
+    }
+
+    /// The arguments given to cargo, `--output` excluded (it is machine-specific).
+    pub fn arguments(jobs: u32) -> Vec<String> {
+        vec![
+            "mutants".to_string(),
+            "--jobs".to_string(),
+            jobs.to_string(),
+        ]
+    }
+
+    fn version(&self, program: &str, args: &[&str], dir: &Path) -> String {
+        self.runner
+            .run(&Command::new(program, args, dir, VERSION_TIMEOUT))
+            .success()
+            .map_or_else(|| "unknown".to_string(), |s| s.trim().to_string())
+    }
+}
+
+impl MutationRunner for CargoMutantsCli {
+    fn run(
+        &self,
+        repo: &OnboardedRepo,
+        checkout: &Path,
+        jobs: u32,
+        timeout: Duration,
+    ) -> MutationRun {
+        let out = self.work_dir.mutants_out(repo);
+        let _ = fs::remove_dir_all(&out);
+        let cargo_mutants_version = self.version(&self.cargo, &["mutants", "--version"], checkout);
+        let rustc_version = self.version("rustc", &["--version"], checkout);
+        let arguments = Self::arguments(jobs);
+        let outcome = if let Err(error) = fs::create_dir_all(&out) {
+            RunOutcome::ToolFailed {
+                reason: format!("create {}: {error}", out.display()),
+                log_tail: String::new(),
+            }
+        } else {
+            let out_text = out.to_string_lossy().into_owned();
+            let mut args: Vec<&str> = arguments.iter().map(String::as_str).collect();
+            args.extend(["--output", &out_text]);
+            let command = Command::new(&self.cargo, &args, checkout, timeout)
+                .with_env("CARGO_TERM_COLOR", "never")
+                .with_env("NO_COLOR", "1");
+            self.interpreter
+                .interpret(&self.runner.run(&command), &out.join("mutants.out"))
+        };
+        let _ = fs::remove_dir_all(&out);
+        MutationRun {
+            outcome,
+            cargo_mutants_version,
+            rustc_version,
+            arguments: arguments.join(" "),
+        }
+    }
+}

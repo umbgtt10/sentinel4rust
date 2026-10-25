@@ -12,15 +12,22 @@ use crate::model::onboarding::roster::Roster;
 use crate::model::onboarding::toml_roster::TomlRoster;
 use crate::model::round_step::RoundStep;
 use crate::model::work_dir::WorkDir;
-use crate::mutants::CargoMutantsCli;
 use crate::sentinel::{Dependencies, Sentinel, startup_line};
 use crate::system::git::git_cli::GitCli;
+use crate::system::mutants::cargo_mutants_cli::CargoMutantsCli;
+use crate::system::mutants::log_tail::LogTail;
+use crate::system::mutants::outcome_interpreter::OutcomeInterpreter;
 use crate::system::process::stdout_journal::StdoutJournal;
 use crate::system::process::system_clock::SystemClock;
 use crate::system::process::system_command_runner::SystemCommandRunner;
 use crate::system::process::thread_pause::ThreadPause;
 use crate::traits::clock::Clock;
 use crate::traits::command_runner::CommandRunner;
+
+/// Lines kept from a failing run's output.
+const LOG_TAIL_LINES: usize = 200;
+/// Bytes kept from a failing run's output.
+const LOG_TAIL_BYTES: usize = 16 * 1024;
 
 /// Usage text.
 pub const USAGE: &str = "\
@@ -116,7 +123,12 @@ pub fn run(roster_path: &PathBuf, once: bool) -> Result<i32, String> {
     let work_dir = WorkDir::new(roster.work_dir.clone());
     let git = Rc::new(GitCli::new(runner.clone(), work_dir.clone()));
     git.prune(&roster.repos);
-    let mutants = CargoMutantsCli::new(runner, work_dir, "cargo".to_string());
+    let mutants = CargoMutantsCli::new(
+        runner,
+        work_dir,
+        "cargo".to_string(),
+        OutcomeInterpreter::new(LogTail::new(LOG_TAIL_LINES, LOG_TAIL_BYTES)),
+    );
     println!("{}", startup_line(&roster, SystemClock.now()));
     let mut sentinel = Sentinel::new(
         roster,

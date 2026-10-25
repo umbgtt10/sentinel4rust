@@ -11,7 +11,6 @@
 
 pub mod cli;
 pub mod model;
-pub mod mutants;
 pub mod schedule;
 pub mod sentinel;
 pub mod system;
