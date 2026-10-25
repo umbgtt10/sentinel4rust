@@ -48,6 +48,10 @@ On GitHub:
   **all branches**, **exclude** `mutants`; **Restrict creations**, **Restrict updates**, **Restrict deletions**,
   **Block force pushes**; bypass list: the **Repository admin** role only -- on a personal repository, you --,
   **no deploy keys**. The same ruleset as the API's body: `deploy/rulesets/sentinel-only-mutants.json`.
+- Settings → Rules → Rulesets → New tag ruleset `sentinel: no tags`: enforcement **Active**; target **all tags**;
+  **Restrict creations**, **Restrict updates**, **Restrict deletions**; the same bypass list. A write key can write
+  every ref, tags included, and the branch ruleset does not cover them. As the API's body:
+  `deploy/rulesets/sentinel-no-tags.json`.
 - The repository needs a `.cargo/mutants.toml` on `main` (it is skipped without one).
 
 Verify, then add it to the roster:
@@ -56,9 +60,9 @@ Verify, then add it to the roster:
 deploy/verify-access.sh git@github-<repo>:umbgtt10/<repo>.git
 ```
 
-`deploy/onboard.sh <repo>...` does this section, the ruleset before the deploy key, and appends the roster entry
-once the access proof passes. It changes GitHub only with `--apply-github`, and refuses a private repository on the
-free plan, on which GitHub offers no ruleset.
+It tries to create a branch and a tag, and both must be rejected. `deploy/onboard.sh <repo>...` does this section,
+the rulesets before the deploy key, and appends the roster entry once the access proof passes. It changes GitHub
+only with `--apply-github`, and refuses a private repository on the free plan, on which GitHub offers no ruleset.
 
 ## 3. The service
 

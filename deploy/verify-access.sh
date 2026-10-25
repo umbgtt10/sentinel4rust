@@ -1,15 +1,15 @@
 #!/bin/sh
 # Verifies the security model for one repository (deploy/SETUP.md): reading works, and writing anything but
-# `mutants` is rejected by the ruleset. Run as the `sentinel` user.
+# `mutants` is rejected by the rulesets. Run as the `sentinel` user.
 #
 #   deploy/verify-access.sh [--include-main] git@github-<repo>:umbgtt10/<repo>.git
 #
-# By default it only probes by creating a branch, which is harmless: a missing ruleset lets it through, and
-# the script deletes it again. The ruleset in deploy/SETUP.md targets every branch except `mutants`, so a rejected
-# creation means the rule is in force. With --include-main it also tries to update and delete `main`; if the
-# ruleset is missing those succeed, and the script pushes `main` back to where it was at once. Every write to
-# `main` carries a lease on what the script last saw there, so a commit someone else pushed to `main` in between
-# is never overwritten or deleted: when a lease refuses, the script says so and leaves `main` alone.
+# By default it only probes by creating a branch and a tag, which is harmless: a missing ruleset lets them through,
+# and the script deletes them again. The rulesets in deploy/SETUP.md target every branch except `mutants`, and every
+# tag, so a rejected creation means the rule is in force. With --include-main it also tries to update and delete
+# `main`; if the ruleset is missing those succeed, and the script pushes `main` back to where it was at once. Every
+# write to `main` carries a lease on what the script last saw there, so a commit someone else pushed to `main` in
+# between is never overwritten or deleted: when a lease refuses, the script says so and leaves `main` alone.
 
 set -u
 include_main=0
@@ -44,6 +44,13 @@ if g push --quiet origin "$probe:refs/heads/sentinel4rust-probe" >/dev/null 2>&1
     && echo "      (probe branch deleted again)"
 else
   echo "ok    creating a branch rejected"
+fi
+if g push --quiet origin "$probe:refs/tags/sentinel4rust-probe" >/dev/null 2>&1; then
+  echo "FAIL  creating a tag was ACCEPTED"; fail=1
+  g push --quiet origin --delete refs/tags/sentinel4rust-probe >/dev/null 2>&1 \
+    && echo "      (probe tag deleted again)"
+else
+  echo "ok    creating a tag rejected"
 fi
 
 if [ "$include_main" -eq 1 ]; then
@@ -81,7 +88,7 @@ fi
 
 echo "== writing mutants is checked by the first run: sentinel4rust --roster <file> --once"
 if [ "$fail" -ne 0 ]; then
-  echo "RESULT: FAIL -- fix the ruleset (deploy/SETUP.md) before relying on this repository"
+  echo "RESULT: FAIL -- fix the rulesets (deploy/SETUP.md) before relying on this repository"
   exit 1
 fi
 echo "RESULT: ok"

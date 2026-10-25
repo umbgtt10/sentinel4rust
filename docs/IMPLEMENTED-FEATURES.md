@@ -77,11 +77,11 @@ for what changed, [CHANGELOG.md](../CHANGELOG.md); for what is known to be missi
   only that; `deploy/verify-isolation.sh` proves it on the machine
 - `deploy/sentinel4rust.service`, a systemd unit, which ends a run in progress in the run unit when it stops or
   restarts; `deploy/SETUP.md`, the machine, keys and rulesets step by step;
-  `deploy/verify-access.sh`, checking that a repository's key reads and that its ruleset refuses every branch but
-  `mutants`; `deploy/roster.example.toml`
+  `deploy/verify-access.sh`, checking that a repository's key reads and that its rulesets refuse every branch but
+  `mutants`, and every tag; `deploy/roster.example.toml`
 - `deploy/PROVISION.md`, the set-up for an agent on the machine, through three idempotent scripts with `--dry-run`:
   `deploy/provision.sh` (the machine, the `sentinel` user and its tools, sentinel4rust from the checkout, the units,
-  the isolation proof), `deploy/onboard.sh` (per repository the key, the ruleset in `deploy/rulesets/`, the deploy key
+  the isolation proof), `deploy/onboard.sh` (per repository the key, the rulesets in `deploy/rulesets/`, the deploy key
   and the access proof, changing GitHub only with `--apply-github`) and `deploy/go-live.sh` (the first pass, then the
   service); `deploy/status-check.sh` watches it from another machine. Proven on the machine only once run there (open
   point 17)

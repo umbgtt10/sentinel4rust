@@ -13,6 +13,11 @@ files and commit messages on `mutants`. The library's paths all changed; it has 
 this repository uses it.
 
 ### Added
+- A second ruleset per repository, `sentinel: no tags` (`deploy/rulesets/sentinel-no-tags.json`): every tag's
+  creation, update and deletion restricted to the repository admin role, since a write key can write every ref and
+  the branch ruleset covers no tag. `deploy/onboard.sh` creates it after the branch ruleset, before the deploy key;
+  `deploy/verify-access.sh` also tries to create a tag, which must be rejected; `deploy/SETUP.md` section 2 has it by
+  hand (open point 20).
 - `deploy/PROVISION.md`: the machine's set-up written for an agent, Claude Code on the machine in the owner's
   checkout. Preconditions first; then numbered steps, each with its command, the check that proves it and when to
   stop and ask; GitHub changed only after the owner's go in the chat, on a plan that lists what changes per

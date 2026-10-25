@@ -13,7 +13,8 @@ credential to a branch.
 
 Two layers per repository: a **deploy key with write access**, reached through a per-repository SSH host alias, and
 a **ruleset** that blocks creating, updating, deleting and force-pushing every branch except `mutants`, with no
-bypass for deploy keys.
+bypass for deploy keys. A second ruleset blocks creating, updating and deleting every tag the same way, since the key
+can write every ref and a branch ruleset covers no tag (`docs/OPEN_POINTS.md` point 20).
 
 ## Forcing constraints / Evidence
 
@@ -39,7 +40,7 @@ Rulesets on private repositories need a paid GitHub plan; without one, those rel
 
 ## Enforcement
 
-`deploy/verify-access.sh` (reading works; pushing anything but `mutants` is rejected); `deploy/SETUP.md` for the steps;
+`deploy/verify-access.sh` (reading works; creating a branch or a tag is rejected); `deploy/SETUP.md` for the steps;
 `GitCli`'s single push refspec.
 
 ## Related

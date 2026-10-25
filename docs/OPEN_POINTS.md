@@ -26,7 +26,7 @@ be observed yet, that it is to be verified on the machine. Recorded 2026-10-24. 
 | 17 | the automated set-up is proven only as far as the laptop allows | to prove on the machine |
 | 18 | a private repository on GitHub's free plan cannot be onboarded | open: the owner decides |
 | 19 | restarting the service leaves a run in the run unit running | closed in the unit; prove on the machine |
-| 20 | the ruleset covers branches, not tags | open: the owner decides |
+| 20 | the ruleset covers branches, not tags | closed in `deploy/`; prove on GitHub |
 | 21 | the deploy keys depend on the GitHub CLI's authorization | recorded |
 
 ---
@@ -234,10 +234,11 @@ changing GitHub. Proven there:
 **To prove on the machine**, the first time each runs. Everything that needs root: the packages, the
 unattended-upgrade settings and the reboot they schedule, the `sentinel` user, rustup and the toolchain installed
 for it, the units, the polkit rule and with them `verify-isolation.sh` (point 5), the first pass in its transient
-unit as `sentinel`, the service enabled, a restart ending a run (point 19). Everything that changes GitHub: the
-ruleset's body accepted as it is by `POST /repos/{owner}/{repo}/rulesets`, the deploy key added, `verify-access.sh`
-rejected by a real ruleset. And whether `sudo -n` sees the cache the owner's `sudo -v` left, which depends on sudo's
-`timestamp_type` and on how Claude Code runs commands: `PROVISION.md` stops and asks when it does not.
+unit as `sentinel`, the service enabled, a restart ending a run (point 19). Everything that changes GitHub: the two
+rulesets' bodies accepted as they are by `POST /repos/{owner}/{repo}/rulesets`, the deploy key added,
+`verify-access.sh` rejected by real rulesets, a branch and a tag (point 20). And whether `sudo -n` sees the cache
+the owner's `sudo -v` left, which depends on sudo's `timestamp_type` and on how Claude Code runs commands:
+`PROVISION.md` stops and asks when it does not.
 
 ## 18. A private repository on GitHub's free plan cannot be onboarded
 
@@ -288,8 +289,17 @@ and the stop as `sentinel` wait for the machine (point 17).
 `sentinel: only mutants` is a branch ruleset. A deploy key with write access can write every ref, so a leaked key can
 create, move or delete tags, which no rule restricts; `verify-access.sh` probes branches only.
 
-**Open, for the owner:** a second ruleset beside the first in `deploy/rulesets/`, target `tag`, every tag, creation,
-update and deletion restricted to repository admins, created by `onboard.sh` and probed by `verify-access.sh`.
+**Closed in `deploy/`; to prove on GitHub.** `deploy/rulesets/sentinel-no-tags.json`, the tag ruleset `sentinel: no
+tags`: every tag, creation, update and deletion restricted, the repository admin role the only bypass, as for the
+branches. `onboard.sh` creates it after the branch ruleset and before the deploy key, idempotently by name, with the
+same `BLOCKED` handling; `verify-access.sh` also tries to create a tag, `sentinel4rust-probe`, which must be
+rejected, and deletes it again when it is not. Checked here against local bare repositories, without and with a
+stand-in ruleset (a `pre-receive` hook refusing every ref but `refs/heads/mutants`), with and without
+`--include-main`; and with a read-only `onboard.sh --dry-run` against GitHub, which lists both rulesets to create on
+iceberg4rust. No onboarding candidate's workflow creates a tag (2026-10-25): the owner tags releases, and the admin
+role bypasses the ruleset. A workflow that tags with `GITHUB_TOKEN` would be refused, and would need GitHub Actions
+as a bypass actor on that repository. GitHub accepting the body, and refusing a real probe, wait for the first
+onboarding (point 17).
 
 ## 21. The deploy keys depend on the GitHub CLI's authorization
 

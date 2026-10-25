@@ -1,16 +1,16 @@
 #!/usr/bin/env bash
 # Onboards repositories onto the sentinel (deploy/SETUP.md section 2, deploy/PROVISION.md). Per repository: a deploy
-# key and an SSH host alias for the `sentinel` user; on GitHub, that key with write access and the ruleset in
-# deploy/rulesets/sentinel-only-mutants.json; the access proof, deploy/verify-access.sh; then the repository's
-# [[repo]] entry in the roster, with the date the access was verified. Whatever is already in place is left alone,
-# so it can be re-run; it stops at the first failure.
+# key and an SSH host alias for the `sentinel` user; on GitHub, that key with write access and the two rulesets in
+# deploy/rulesets/, every branch but `mutants` and every tag; the access proof, deploy/verify-access.sh; then the
+# repository's [[repo]] entry in the roster, with the date the access was verified. Whatever is already in place
+# is left alone, so it can be re-run; it stops at the first failure.
 #
 # Run as the owner, from the checkout, after deploy/provision.sh, with sudo cached (sudo -v) and gh logged in.
 #
 #   deploy/onboard.sh [options] <repo>...
 #
 #   --dry-run              print every action without doing any: GitHub is read, never written
-#   --apply-github         allow the GitHub changes, a deploy key and a ruleset per repository -- passed only after
+#   --apply-github         allow the GitHub changes, a deploy key and two rulesets per repository -- passed only after
 #                          the owner's go (deploy/PROVISION.md); without it, onboard.sh refuses to change anything
 #   --github-owner <name>  the repositories' owner (default umbgtt10)
 #   --roster <file>        the roster (default ~sentinel/.config/sentinel4rust/roster.toml)
@@ -21,10 +21,11 @@
 
 set -euo pipefail
 
-readonly RULESET_NAME="sentinel: only mutants"
+# The rulesets, by name, and the API bodies they are created from: every branch but `mutants`, and every tag.
+readonly RULESET_NAMES=("sentinel: only mutants" "sentinel: no tags")
 deploy_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 readonly deploy_dir
-readonly ruleset_file="$deploy_dir/rulesets/sentinel-only-mutants.json"
+readonly ruleset_files=("$deploy_dir/rulesets/sentinel-only-mutants.json" "$deploy_dir/rulesets/sentinel-no-tags.json")
 
 dry_run=0
 apply_github=0
@@ -91,13 +92,16 @@ if [ -n "$local_dir" ]; then
   sentinel_exists=1
 else
   if [ "$dry_run" -eq 0 ] && [ "$apply_github" -eq 0 ]; then
-    fail "refusing: onboarding changes GitHub -- a deploy key and a ruleset per repository. Pass --apply-github,
+    fail "refusing: onboarding changes GitHub -- a deploy key and two rulesets per repository. Pass --apply-github,
       and only after the owner's go in the chat (deploy/PROVISION.md); --dry-run prints the plan"
   fi
   command -v gh >/dev/null || fail "gh is not installed"
   gh auth status >/dev/null 2>&1 || fail "gh is not logged in: gh auth login"
-  [ -f "$ruleset_file" ] || fail "no $ruleset_file"
-  grep -qF "\"name\": \"$RULESET_NAME\"" "$ruleset_file" || fail "$ruleset_file is not named '$RULESET_NAME'"
+  for i in "${!RULESET_NAMES[@]}"; do
+    [ -f "${ruleset_files[$i]}" ] || fail "no ${ruleset_files[$i]}"
+    grep -qF "\"name\": \"${RULESET_NAMES[$i]}\"" "${ruleset_files[$i]}" \
+      || fail "${ruleset_files[$i]} is not named '${RULESET_NAMES[$i]}'"
+  done
   if id sentinel >/dev/null 2>&1; then
     sentinel_exists=1
     sentinel_home="$(getent passwd sentinel | cut -d: -f6)"
@@ -243,10 +247,10 @@ ensure_deploy_key() {
 
 # Sets `blocked` when GitHub offers no rulesets on the repository: the access proof could never pass there.
 ensure_ruleset() {
-  local repo=$1 found id
+  local repo=$1 name=$2 file=$3 found id
   blocked=0
   if ! found="$(gh api "repos/$owner/$repo/rulesets" --paginate \
-    --jq ".[] | select(.name == \"$RULESET_NAME\") | \"\(.id) \(.enforcement)\"" 2> "$scratch/error")"; then
+    --jq ".[] | select(.name == \"$name\") | \"\(.id) \(.enforcement)\"" 2> "$scratch/error")"; then
     sed 's/^/      /' "$scratch/error" >&2
     grep -q 'HTTP 403' "$scratch/error" || fail "cannot list $owner/$repo's rulesets"
     say "BLOCKED $owner/$repo offers no rulesets (GitHub's answer is above), so nothing could keep its deploy key off"
@@ -258,19 +262,28 @@ ensure_ruleset() {
   fi
   found="${found%%$'\n'*}"
   if [ -n "$found" ]; then
-    ok "ruleset '$RULESET_NAME' on $owner/$repo (id ${found% *}, ${found#* })"
+    ok "ruleset '$name' on $owner/$repo (id ${found% *}, ${found#* })"
     [ "${found#* }" = "active" ] || note "it is not active: the access proof will fail until it is"
     return
   fi
   if [ "$dry_run" -eq 1 ]; then
-    say "would create the ruleset '$RULESET_NAME' on $owner/$repo from $ruleset_file"
+    say "would create the ruleset '$name' on $owner/$repo from $file"
     return
   fi
-  say "do    create the ruleset '$RULESET_NAME' on $owner/$repo from $ruleset_file"
-  id="$(gh api --method POST "repos/$owner/$repo/rulesets" --input "$ruleset_file" --jq '.id')" \
+  say "do    create the ruleset '$name' on $owner/$repo from $file"
+  id="$(gh api --method POST "repos/$owner/$repo/rulesets" --input "$file" --jq '.id')" \
     || fail "GitHub refused the ruleset on $owner/$repo (its message is above). A private repository needs a paid
       plan for one (docs/ADRs/ADR-DeployKeyAndRuleset.md): stop, and ask the owner"
-  ok "ruleset '$RULESET_NAME' on $owner/$repo (id $id)"
+  ok "ruleset '$name' on $owner/$repo (id $id)"
+}
+
+# Every ruleset, in order, until one sets `blocked`.
+ensure_rulesets() {
+  local repo=$1 i
+  for i in "${!RULESET_NAMES[@]}"; do
+    ensure_ruleset "$repo" "${RULESET_NAMES[$i]}" "${ruleset_files[$i]}"
+    [ "$blocked" -eq 0 ] || return 0
+  done
 }
 
 prove_access() {
@@ -312,7 +325,7 @@ ensure_entry() {
   appended=$((appended + 1))
 }
 
-# The ruleset goes on before the deploy key, so that the key is never on GitHub without it.
+# The rulesets go on before the deploy key, so that the key is never on GitHub without them.
 onboard() {
   local repo=$1 url
   say "== $repo"
@@ -324,7 +337,7 @@ onboard() {
   else
     url="git@github-$repo:$owner/$repo.git"
     check_github_repo "$repo"
-    ensure_ruleset "$repo"
+    ensure_rulesets "$repo"
     if [ "$blocked" -eq 1 ]; then
       blocked_repos+=("$repo")
       return

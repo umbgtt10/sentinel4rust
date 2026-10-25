@@ -12,7 +12,7 @@ Four scripts do the work. Each is idempotent, has `--dry-run`, and stops at its 
 | script | run as | does |
 |---|---|---|
 | `deploy/provision.sh` | `sudo` | packages, unattended upgrades, the `sentinel` user, Rust 1.99.1, cargo-mutants 27.1.0, sentinel4rust from HEAD, the roster skeleton, GitHub's host keys, the units, the polkit rule, the isolation proof |
-| `deploy/onboard.sh` | the owner | per repository: the sentinel's key and host alias, the ruleset and the deploy key on GitHub, the access proof, the roster entry |
+| `deploy/onboard.sh` | the owner | per repository: the sentinel's key and host alias, the two rulesets and the deploy key on GitHub, the access proof, the roster entry |
 | `deploy/go-live.sh` | `sudo` | the first `--once` pass, then the service enabled and started |
 | `deploy/status-check.sh` | anyone, elsewhere | `--status` from another machine, for cron or a timer |
 
@@ -111,8 +111,8 @@ deploy/onboard.sh --dry-run <repo>... > ~/sentinel-onboard-plan.log 2>&1; echo "
 ```
 
 It reads GitHub and writes nothing, anywhere. Per repository it says whether it is public or private, whether
-`.cargo/mutants.toml` is there, and, as `ok` or `would`, each of: the ruleset, the sentinel's key and host alias, the
-deploy key, the access proof, the roster entry. A repository marked `BLOCKED` is one on which GitHub offers no
+`.cargo/mutants.toml` is there, and, as `ok` or `would`, each of: the two rulesets, the sentinel's key and host alias,
+the deploy key, the access proof, the roster entry. A repository marked `BLOCKED` is one on which GitHub offers no
 ruleset -- a private repository on the free plan: nothing would keep its write key off `main`. Leave it out of
 step 5 and put the owner's choices to them: make it public, move to a paid plan, or leave it off the roster
 (`docs/ADRs/ADR-DeployKeyAndRuleset.md`).
@@ -126,8 +126,10 @@ umbgtt10/<repo> (PUBLIC|PRIVATE), mutants branch public: yes|no
   GitHub:
   - ruleset "sentinel: only mutants" created, from deploy/rulesets/sentinel-only-mutants.json: on every branch
     but mutants, creating, updating, deleting and force-pushing restricted to repository admins   | already there
+  - ruleset "sentinel: no tags" created, from deploy/rulesets/sentinel-no-tags.json: on every tag, creating,
+    updating and deleting restricted to repository admins                                         | already there
   - deploy key "sentinel4rust" added, WITH WRITE ACCESS: the sentinel's key sentinel_<repo>      | already there
-  - a probe push of a branch sentinel4rust-probe, which the ruleset must reject
+  - probe pushes of a branch and a tag, both sentinel4rust-probe, which the rulesets must reject
   This machine:
   - key ~sentinel/.ssh/sentinel_<repo>, host alias github-<repo>, the [[repo]] entry in the roster
 ```
@@ -151,9 +153,10 @@ roster`. Check the roster -- it holds no secret:
 sudo -n -u sentinel -H cat /home/sentinel/.config/sentinel4rust/roster.toml
 ```
 
-**Stop** when the access proof fails (`creating a branch was ACCEPTED`: the ruleset is not in force), when a deploy
-key titled `sentinel4rust` is there that is not this machine's (a previous machine's, perhaps: the owner deletes it),
-or on anything `BLOCKED`. Do not change anything on GitHub by other means to get past it.
+**Stop** when the access proof fails (`creating a branch was ACCEPTED` or `creating a tag was ACCEPTED`: that
+ruleset is not in force), when a deploy key titled `sentinel4rust` is there that is not this machine's (a previous
+machine's, perhaps: the owner deletes it), or on anything `BLOCKED`. Do not change anything on GitHub by other means
+to get past it.
 
 ## 7. Go live
 
