@@ -12,7 +12,9 @@ use crate::model::onboarding::roster::Roster;
 use crate::model::onboarding::toml_roster::TomlRoster;
 use crate::model::round_step::RoundStep;
 use crate::model::work_dir::WorkDir;
-use crate::sentinel::{Dependencies, Sentinel, startup_line};
+use crate::patrol::dependencies::Dependencies;
+use crate::patrol::journal_line::JournalLine;
+use crate::patrol::sentinel::Sentinel;
 use crate::system::git::git_cli::GitCli;
 use crate::system::mutants::cargo_mutants_cli::CargoMutantsCli;
 use crate::system::mutants::log_tail::LogTail;
@@ -129,7 +131,7 @@ pub fn run(roster_path: &PathBuf, once: bool) -> Result<i32, String> {
         "cargo".to_string(),
         OutcomeInterpreter::new(LogTail::new(LOG_TAIL_LINES, LOG_TAIL_BYTES)),
     );
-    println!("{}", startup_line(&roster, SystemClock.now()));
+    println!("{}", JournalLine.startup(&roster, SystemClock.now()));
     let mut sentinel = Sentinel::new(
         roster,
         Dependencies {

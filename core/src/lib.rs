@@ -12,6 +12,5 @@
 pub mod cli;
 pub mod model;
 pub mod patrol;
-pub mod sentinel;
 pub mod system;
 pub mod traits;
