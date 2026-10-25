@@ -7,7 +7,9 @@
 # By default it only probes by creating a branch, which is harmless: a missing ruleset lets it through, and
 # the script deletes it again. The ruleset in deploy/SETUP.md targets every branch except `mutants`, so a rejected
 # creation means the rule is in force. With --include-main it also tries to update and delete `main`; if the
-# ruleset is missing those succeed, and the script immediately force-pushes `main` back to where it was.
+# ruleset is missing those succeed, and the script pushes `main` back to where it was at once. Every write to
+# `main` carries a lease on what the script last saw there, so a commit someone else pushed to `main` in between
+# is never overwritten or deleted: when a lease refuses, the script says so and leaves `main` alone.
 
 set -u
 include_main=0
@@ -27,7 +29,11 @@ echo "ok    main is at $original"
 
 g init --quiet
 g remote add origin "$url"
-g fetch --quiet --depth 1 origin main || { echo "FAIL  cannot fetch main"; exit 1; }
+# One commit is enough to probe with. --include-main takes main's whole history: a remote refuses a shallow
+# push, and putting main back after the probe deleted it is one.
+depth="--depth 1"
+if [ "$include_main" -eq 1 ]; then depth=""; fi
+g fetch --quiet $depth origin main || { echo "FAIL  cannot fetch main"; exit 1; }
 probe="$(g -c user.name=probe -c user.email=probe@localhost \
   commit-tree -p FETCH_HEAD -m 'sentinel4rust access probe -- must be rejected' 'FETCH_HEAD^{tree}')"
 
@@ -41,18 +47,33 @@ else
 fi
 
 if [ "$include_main" -eq 1 ]; then
+  # Puts main back at $original, if main still holds what the probe left there ($1: the probe commit, or nothing
+  # when the probe deleted main). Fails when it is not back.
   restore() {
-    g push --quiet --force origin "$original:refs/heads/main" >/dev/null 2>&1 \
-      && echo "      (main restored to $original)" \
-      || echo "      !! could not restore main: push $original to main by hand"
+    if g push --quiet --force-with-lease="refs/heads/main:$1" origin "$original:refs/heads/main" >/dev/null 2>&1
+    then
+      echo "      (main restored to $original)"
+    elif [ "$(git ls-remote "$url" refs/heads/main 2>/dev/null | cut -f1)" != "$1" ]; then
+      echo "      !! main moved again after the probe; the lease kept that push and main was NOT restored:"
+      echo "         check main, and push $original to it by hand only if the probe is still on it"
+      return 1
+    else
+      echo "      !! could not restore main: push $original to main by hand"
+      return 1
+    fi
   }
+  at_original=1
   if g push --quiet origin "$probe:refs/heads/main" >/dev/null 2>&1; then
-    echo "FAIL  updating main was ACCEPTED"; fail=1; restore
+    echo "FAIL  updating main was ACCEPTED"; fail=1; restore "$probe" || at_original=0
   else
     echo "ok    updating main rejected"
   fi
-  if g push --quiet origin --delete main >/dev/null 2>&1; then
-    echo "FAIL  deleting main was ACCEPTED"; fail=1; restore
+  if [ "$at_original" -eq 0 ]; then
+    echo "skip  deleting main: main is not at $original, and deleting it could discard someone's push"
+  elif out="$(g push --force-with-lease="refs/heads/main:$original" origin --delete main 2>&1)"; then
+    echo "FAIL  deleting main was ACCEPTED"; fail=1; restore "" || true
+  elif printf '%s' "$out" | grep -q "stale info"; then
+    echo "skip  deleting main: main moved after $original, and deleting it could discard someone's push"
   else
     echo "ok    deleting main rejected"
   fi

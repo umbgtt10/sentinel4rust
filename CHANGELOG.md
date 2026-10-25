@@ -47,6 +47,9 @@ this repository uses it.
 ### Fixed
 - `deploy/SETUP.md` no longer offers `cargo install sentinel4rust`, which installs the 0.0.1 placeholder: it
   installs from the repository with `--path` until 0.1.0 is published (open point 2).
+- `deploy/verify-access.sh --include-main` no longer force-pushes `main`: putting it back, and the delete probe,
+  carry a lease, so a commit pushed to `main` meanwhile is kept and reported; and it fetches `main`'s whole history,
+  so `main` can be put back after the delete probe (open point 14).
 
 ### Removed
 - The stray `src/main.rs` at the repository root, the 0.0.1 placeholder's leftover.

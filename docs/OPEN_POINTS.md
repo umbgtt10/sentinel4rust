@@ -20,7 +20,7 @@ be observed yet, that it is to be verified on the machine. Recorded 2026-10-24. 
 | 11 | flaky tests and machine-dependent timeouts make the lists noisy | to watch |
 | 12 | a dead machine looks like a quiet repository | to decide |
 | 13 | `config_version` has to be bumped by hand after a cargo-mutants upgrade | small |
-| 14 | `verify-access.sh --include-main` force-pushes `main` | small |
+| 14 | `verify-access.sh --include-main` force-pushes `main` | closed: `deploy/verify-access.sh` |
 | 15 | what public repositories publish | accepted in design 5.1; decide per repository |
 | 16 | smaller things | low |
 
@@ -168,12 +168,12 @@ side, and nothing reruns until `main` moves.
 
 ## 14. `verify-access.sh --include-main` force-pushes `main`
 
-Without a ruleset, the `--include-main` probes succeed, and the script restores `main` with
-`git push --force origin <original>:refs/heads/main`. A commit pushed to `main` by anyone in those seconds is
-discarded, and if the restore itself fails, `main` is left moved or deleted. The default mode only creates and deletes
-a probe branch, which is harmless.
-
-**To decide:** drop `--include-main`, or have it push with `--force-with-lease=main:<original>`. Observed.
+**Closed.** Every write the script makes to `main` now carries a lease on what it last saw there: putting `main` back
+expects what the probe left (the probe commit, or no `main` after the delete probe), and the delete probe expects
+`main` where it was. A commit someone pushes to `main` in between is never overwritten or deleted: the lease refuses,
+the script says so, and leaves `main` alone. `--include-main` fetches `main`'s whole history, since putting `main`
+back after the delete probe is a push a remote refuses from a shallow clone. Checked by hand against local bare
+repositories without and with a stand-in ruleset, and with a push landing on `main` right after the probe's.
 
 ## 15. What public repositories publish
 
