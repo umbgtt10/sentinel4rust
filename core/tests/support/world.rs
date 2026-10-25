@@ -5,6 +5,7 @@
 use sentinel4rust::model::branch::publication::Publication;
 use sentinel4rust::model::checkout_error::CheckoutError;
 use sentinel4rust::model::commit_hash::CommitHash;
+use sentinel4rust::model::counts::MutantCounts;
 use sentinel4rust::model::mutation_run::MutationRun;
 use sentinel4rust::model::onboarding::onboarded_repo::OnboardedRepo;
 use sentinel4rust::model::publish_error::PublishError;
@@ -29,7 +30,9 @@ use std::time::Duration;
 pub const RUN_SECONDS: i64 = 60;
 
 // A fake for every contract the sentinel talks to: no git, no cargo, no
-// sleeping. Syncs and runs answer from queues; everything else is recorded.
+// sleeping. Syncs, runs and re-checks answer from queues -- a re-check with
+// none queued confirms every mutant it was given --; everything else is
+// recorded.
 // With `pause_limit` set, the pause after that many panics, so a loop that
 // never returns can be stopped.
 #[derive(Default)]
@@ -41,6 +44,8 @@ pub struct World {
     pub removals: Cell<usize>,
     pub runs: RefCell<VecDeque<RunOutcome>>,
     pub run_calls: RefCell<Vec<(PathBuf, u32, Duration)>>,
+    pub rechecks: RefCell<VecDeque<RunOutcome>>,
+    pub recheck_calls: RefCell<Vec<Vec<String>>>,
     pub publishes: RefCell<Vec<Publication>>,
     pub publish_errors: RefCell<VecDeque<PublishError>>,
     pub pauses: RefCell<Vec<Duration>>,
@@ -49,6 +54,10 @@ pub struct World {
 }
 
 impl World {
+    pub fn queue_recheck(&self, outcome: RunOutcome) {
+        self.rechecks.borrow_mut().push_back(outcome);
+    }
+
     pub fn queue_run(&self, outcome: RunOutcome) {
         self.runs.borrow_mut().push_back(outcome);
     }
@@ -91,6 +100,25 @@ impl MutationRunner for World {
             rustc_version: "rustc 1.97.0".to_string(),
             arguments: format!("mutants --jobs {jobs}"),
         }
+    }
+
+    fn recheck(
+        &self,
+        _: &OnboardedRepo,
+        _: &Path,
+        _: u32,
+        _: Duration,
+        mutants: &[String],
+    ) -> RunOutcome {
+        self.recheck_calls.borrow_mut().push(mutants.to_vec());
+        self.rechecks
+            .borrow_mut()
+            .pop_front()
+            .unwrap_or_else(|| RunOutcome::Completed {
+                counts: MutantCounts::default(),
+                missed: mutants.to_vec(),
+                timed_out: vec![],
+            })
     }
 }
 

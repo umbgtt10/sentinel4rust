@@ -31,7 +31,7 @@ Sentinel::visit(repo) -> RoundStep
      RecordCurrency            present, naming head, config_version and the installed cargo-mutants -> Unchanged
   3. readiness                 not-a-crate / no-filters / path-outside-repo -> Skipped
   4. BaselineRetry             RepoSource::checkout, MutationRunner::run (again once on a baseline failure),
-                               RepoSource::remove_checkout
+                               MutationRunner::recheck on the new survivors (SurvivorRecheck), RepoSource::remove_checkout
   5. a missing toolchain -> Skipped; a tool failure below the third on this commit -> BackedOff
   6. PublicationBuilder::build -> Publication; ResultStore::publish -> Published, or BackedOff if rejected
 ```
@@ -79,7 +79,8 @@ One trait per file, no default bodies: `CommandRunner` (run a `Command` to compl
 ## `patrol/` -- the loop
 
 `Sentinel` is the policy: the visit above, the tool-failure count and the publication; `BaselineRetry` runs a commit
-in its checkout, once more on a failing baseline, and always removes the checkout. `Schedule`
+in its checkout, once more on a failing baseline, has `SurvivorRecheck` pick the survivors the previous record did not
+list and fold a second run on exactly those back in, and always removes the checkout. `Schedule`
 keeps one `RepoState` per repository -- last visit, back-off deadline, consecutive failures, tool failures on one
 commit, unreachable, unreadable -- and answers `Next`
 ([ADR-PollingPerRepository](ADRs/ADR-PollingPerRepository.md),
@@ -100,7 +101,7 @@ start-up line and one `repo=… step=… …` line per visit. `Dependencies` is 
   `PlumbingCommit` (blobs, a temporary index and `commit-tree`) and `UnreachableClassifier`. The deadlines and the
   remote `mutants` ref are in `git_constants.rs`. Only `refs/heads/mutants` is ever pushed
   ([ADR-ExactCommitOnlyMutantsPushed](ADRs/ADR-ExactCommitOnlyMutantsPushed.md)).
-- **`mutants/`** -- `CargoMutantsCli` records `cargo mutants --version` and `rustc --version`, runs
+- **`mutants/`** -- `CargoMutantsCli` re-checks named mutants with an anchored `--re`, and records `cargo mutants --version` and `rustc --version`, runs
   `cargo mutants --jobs <n> --output <out>` in the checkout with the run cap and `TMPDIR` under the work directory
   (its `prune` empties `tmp/` on start), and hands the result to
   `OutcomeInterpreter` (the exit-code table), which reads the lists with `MutantsOutLists` (`UnreadableList` when a

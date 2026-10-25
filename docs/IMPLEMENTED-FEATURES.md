@@ -32,6 +32,8 @@ for what changed, [CHANGELOG.md](../CHANGELOG.md); for what is known to be missi
   `TMPDIR` at `<work_dir>/tmp/<name>`, all removed after every run; `--jobs` and the run cap per repository or from
   the roster
 - `cargo mutants --version` and `rustc --version` recorded with every run
+- New survivors are run once more on exactly their names, in the same checkout, before publishing; one caught then
+  counts as caught
 - Exit 0, 2 and 3 publish `completed`, with counts and lists read from `mutants.out`; exit 4 reruns once at once and,
   a second time, publishes `baseline-failed`; anything else backs off, and the third tool failure on one commit
   publishes `tool-failed`

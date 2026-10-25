@@ -152,6 +152,63 @@ fn prune_removes_leftover_temporary_files() {
     assert!(!work.path().join("tmp").exists());
 }
 
+// cargo-mutants matches --re against `file:line:col: description`, so the
+// names go in whole, escaped, and anchored to match nothing else.
+#[test]
+fn recheck_runs_only_those_mutants_and_reads_their_lists() {
+    // Arrange
+    let work = TempDir::new("mutants-recheck");
+    let (cli, runner) = cli_with(
+        &work,
+        2,
+        &[
+            ("caught.txt", "src/a.rs:3:1: replace + with * in f\n"),
+            ("missed.txt", "src/a.rs:9:1: replace f -> bool with true\n"),
+        ],
+    );
+    let checkout = work.path().join("checkout");
+    let names = [
+        "src/a.rs:3:1: replace + with * in f".to_string(),
+        "src/a.rs:9:1: replace f -> bool with true".to_string(),
+    ];
+
+    // Act
+    let outcome = cli.recheck(&repo(), &checkout, 2, Duration::from_secs(99), &names);
+
+    // Assert
+    let calls = runner.calls.borrow();
+    assert_eq!(calls.len(), 1);
+    let out = work.path().join("out").join("r");
+    assert_eq!(
+        calls[0].args(),
+        [
+            "mutants",
+            "--jobs",
+            "2",
+            "--re",
+            r"^(?:src/a\.rs:3:1: replace \+ with \* in f|src/a\.rs:9:1: replace f \-> bool with true)$",
+            "--output",
+            &out.to_string_lossy()
+        ]
+    );
+    assert_eq!(calls[0].dir(), checkout);
+    assert_eq!(calls[0].timeout(), Duration::from_secs(99));
+    assert_eq!(
+        outcome,
+        RunOutcome::Completed {
+            counts: MutantCounts {
+                caught: 1,
+                missed: 1,
+                timeout: 0,
+                unviable: 0
+            },
+            missed: vec!["src/a.rs:9:1: replace f -> bool with true".to_string()],
+            timed_out: vec![],
+        }
+    );
+    assert!(!out.exists(), "output left behind");
+}
+
 #[test]
 fn run_completed_without_lists_is_a_tool_failure() {
     // Arrange

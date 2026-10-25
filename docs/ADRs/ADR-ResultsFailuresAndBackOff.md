@@ -44,6 +44,8 @@ version. `baseline-failed` and `tool-failed` record the commit, so they wait for
 - **Timeouts:** every command has a deadline and is killed with its process group: git talking to the remote and
   creating a checkout 5 minutes, other git 1 minute, the cargo-mutants run `run_timeout_hours` (12 by default).
 - **Log tails** keep the last 200 lines and at most 16 KiB of a failing run's output; nothing is redacted.
+- **New survivors** are run once more, in the same checkout, on exactly their names (`cargo mutants --re`); one caught
+  on the re-check counts as caught, so a flaky test does not publish a survivor that is not one.
 - **A missing toolchain** -- rustc does not run in the checkout -- is a skip, `toolchain-missing` with rustup's
   message, not a tool failure: cargo-mutants is not started and nothing backs off.
 

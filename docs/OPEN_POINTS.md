@@ -17,7 +17,7 @@ be observed yet, that it is to be verified on the machine. Recorded 2026-10-24. 
 | 8 | the design and the code disagree in four places | closed: `docs/DESIGN.md` |
 | 9 | only the `completed` outcome has been seen against the real cargo-mutants | closed: stage-2 fixtures |
 | 10 | repositories the tool cannot test yet | before onboarding each repository |
-| 11 | flaky tests and machine-dependent timeouts make the lists noisy | to watch |
+| 11 | flaky tests and machine-dependent timeouts make the lists noisy | re-check done; to watch |
 | 12 | a dead machine looks like a quiet repository | to decide |
 | 13 | `config_version` has to be bumped by hand after a cargo-mutants upgrade | closed: the version counts |
 | 14 | `verify-access.sh --include-main` force-pushes `main` | closed: `deploy/verify-access.sh` |
@@ -143,8 +143,10 @@ baseline triggers the retry (design 2.6) and, twice in a row, `baseline-failed`.
 restart-test flake. Timeouts scale with the machine's speed, so the same commit can produce different `timeout.txt`
 lists on different machines.
 
-**To watch:** the first weeks of `git log -p mutants` on each repository. Design 8 lists re-checking new survivors
-once before publishing, if it gets noisy.
+**Code side closed:** new survivors -- those whose keys the previous record did not list -- are run once more, in
+the same checkout, with `cargo mutants --re` on exactly their names before anything is published; one caught on the
+re-check counts as caught, one missed or timed out again stays missed. **To watch:** the first weeks of
+`git log -p mutants` on each repository, and timeouts, which the re-check does not smooth.
 
 ## 12. A dead machine looks like a quiet repository
 

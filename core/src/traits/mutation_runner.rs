@@ -9,6 +9,7 @@ use std::time::Duration;
 
 use crate::model::mutation_run::MutationRun;
 use crate::model::onboarding::onboarded_repo::OnboardedRepo;
+use crate::model::run_outcome::RunOutcome;
 
 /// Runs mutation testing.
 pub trait MutationRunner {
@@ -20,4 +21,14 @@ pub trait MutationRunner {
         jobs: u32,
         timeout: Duration,
     ) -> MutationRun;
+    /// Runs cargo-mutants in `checkout` on exactly `mutants`, named as cargo-mutants lists them, killed after
+    /// `timeout`.
+    fn recheck(
+        &self,
+        repo: &OnboardedRepo,
+        checkout: &Path,
+        jobs: u32,
+        timeout: Duration,
+        mutants: &[String],
+    ) -> RunOutcome;
 }

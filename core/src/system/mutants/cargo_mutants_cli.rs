@@ -64,6 +64,22 @@ impl CargoMutantsCli {
         let _ = fs::remove_dir_all(self.work_dir.tmp_root());
     }
 
+    fn anchored(mutants: &[String]) -> String {
+        let escaped: Vec<String> = mutants
+            .iter()
+            .map(|name| {
+                name.chars().fold(String::new(), |mut text, c| {
+                    if "\\.+*?()|[]{}^$#&-~".contains(c) {
+                        text.push('\\');
+                    }
+                    text.push(c);
+                    text
+                })
+            })
+            .collect();
+        format!("^(?:{})$", escaped.join("|"))
+    }
+
     fn create_all(dirs: [&Path; 2]) -> Result<(), String> {
         for dir in dirs {
             fs::create_dir_all(dir)
@@ -148,5 +164,25 @@ impl MutationRunner for CargoMutantsCli {
             rustc_version,
             arguments: arguments.join(" "),
         }
+    }
+
+    fn recheck(
+        &self,
+        repo: &OnboardedRepo,
+        checkout: &Path,
+        jobs: u32,
+        timeout: Duration,
+        mutants: &[String],
+    ) -> RunOutcome {
+        let out = self.work_dir.mutants_out(repo);
+        let tmp = self.work_dir.tmp(repo);
+        let _ = fs::remove_dir_all(&out);
+        let _ = fs::remove_dir_all(&tmp);
+        let mut arguments = Self::arguments(jobs);
+        arguments.extend(["--re".to_string(), Self::anchored(mutants)]);
+        let outcome = self.mutate(checkout, &arguments, timeout, &out, &tmp);
+        let _ = fs::remove_dir_all(&out);
+        let _ = fs::remove_dir_all(&tmp);
+        outcome
     }
 }

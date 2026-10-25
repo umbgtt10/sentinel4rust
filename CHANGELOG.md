@@ -13,6 +13,9 @@ files and commit messages on `mutants`. The library's paths all changed; it has 
 this repository uses it.
 
 ### Added
+- New survivors -- whose keys the previous record did not list -- are re-checked once in the same checkout with
+  `cargo mutants --re` on exactly their names before publishing; one caught on the re-check counts as caught (open
+  point 11). `MutationRunner` gains `recheck`; `MutantKey::of_each` keys each line in place.
 - A checkout in which rustc does not run -- its `rust-toolchain.toml` names a toolchain the machine lacks -- is
   skipped with `toolchain-missing` and rustup's message, instead of counting as a tool failure; cargo-mutants is not
   started (open point 10, toolchains). `RunOutcome` and `SkipReason` gain a `ToolchainMissing { message }` variant.
@@ -39,6 +42,7 @@ this repository uses it.
   `.github/rulesets/main.json`, the copy of record for `main`'s ruleset.
 
 ### Changed
+- `BaselineRetry::run` takes the previous record's survivors, to tell the new ones.
 - `Sentinel::new` takes the installed cargo-mutants version, and `RecordCurrency::new` the same beside the
   `config_version`; `CargoMutantsCli::installed_version` reads it.
 - The journal has a sixth step, `unreadable`, and `RoundStep` a sixth variant, `Unreadable { reason }`; the

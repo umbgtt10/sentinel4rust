@@ -84,3 +84,29 @@ fn from_located_lines_inserted_above_keep_their_keys() {
     // Assert
     assert_eq!(before, after);
 }
+
+#[test]
+fn of_each_keys_every_line_in_its_place() {
+    // Arrange
+    let lines: Vec<String> = [
+        "src/a.rs:9:1: replace f -> bool with true",
+        "src/a.rs:2:1: replace f -> bool with true",
+        "src/b.rs:1:1: delete !",
+    ]
+    .iter()
+    .map(ToString::to_string)
+    .collect();
+
+    // Act
+    let keyed = MutantKey::of_each(&lines);
+
+    // Assert
+    assert_eq!(
+        keyed,
+        [
+            MutantKey::new("src/a.rs: replace f -> bool with true #2"),
+            MutantKey::new("src/a.rs: replace f -> bool with true"),
+            MutantKey::new("src/b.rs: delete !"),
+        ]
+    );
+}
