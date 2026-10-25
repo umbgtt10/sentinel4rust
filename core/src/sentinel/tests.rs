@@ -11,6 +11,7 @@ use std::rc::Rc;
 use std::time::Duration;
 
 use super::*;
+use crate::model::branch::branch_layout::BranchLayout;
 use crate::model::commit_hash::CommitHash;
 use crate::model::skip_reason::SkipReason;
 use crate::schedule::MAX_BACKOFF;
@@ -325,7 +326,10 @@ fn a_second_baseline_failure_publishes_baseline_failed_without_lists() {
     let p = &w.publishes.borrow()[0];
     assert_eq!(p.missed, Vec::<MutantKey>::new());
     assert_eq!(p.record.log_tail.as_deref(), Some("test x ... FAILED"));
-    assert_eq!(p.message(), "Mutants of aaaaaaa: baseline failed");
+    assert_eq!(
+        BranchLayout.message(p),
+        "Mutants of aaaaaaa: baseline failed"
+    );
 }
 
 #[test]

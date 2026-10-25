@@ -15,10 +15,11 @@ use std::path::{Path, PathBuf};
 use std::rc::Rc;
 use std::time::Duration;
 
+use crate::model::branch::branch_layout::BranchLayout;
+use crate::model::branch::publication::Publication;
+use crate::model::branch::summary_toml::SummaryToml;
 use crate::model::commit_hash::CommitHash;
 use crate::model::mutant_key::MutantKey;
-use crate::model::record::Publication;
-use crate::model::record::RunRecord;
 use crate::model::roster::OnboardedRepo;
 use crate::model::skip_reason::SkipReason;
 use crate::traits::{
@@ -167,11 +168,12 @@ impl GitCli {
     ) -> Result<String, String> {
         let index = stage.join("index");
         let index_text = index.to_string_lossy().into_owned();
-        for (number, (path, contents)) in publication.files().iter().enumerate() {
+        for (number, file_entry) in BranchLayout.files(publication).iter().enumerate() {
             let file = stage.join(format!("blob-{number}"));
-            fs::write(&file, contents).map_err(|e| format!("write {}: {e}", file.display()))?;
+            fs::write(&file, &file_entry.contents)
+                .map_err(|e| format!("write {}: {e}", file.display()))?;
             let blob = self.local(dir, &["hash-object", "-w", &file.to_string_lossy()])?;
-            let info = format!("100644,{},{path}", blob.trim());
+            let info = format!("100644,{},{}", blob.trim(), file_entry.path);
             let command = Self::command(
                 dir,
                 &["update-index", "--add", "--cacheinfo", &info],
@@ -199,7 +201,7 @@ impl GitCli {
                 LOCAL_TIMEOUT,
             )
             .ok();
-        let message = publication.message();
+        let message = BranchLayout.message(publication);
         let mut args = vec!["commit-tree", tree.trim()];
         if let Some(parent) = &parent {
             args.extend(["-p", parent.trim()]);
@@ -267,7 +269,7 @@ impl RepoSource for GitCli {
         let (record, previous_missed) = if has_mutants {
             let record = self
                 .show(&dir, &format!("{MUTANTS_REMOTE_REF}:summary.toml"))
-                .and_then(|text| RunRecord::parse(&text).ok());
+                .and_then(|text| SummaryToml.parse(&text).ok());
             let missed = self
                 .show(&dir, &format!("{MUTANTS_REMOTE_REF}:missed.txt"))
                 .map(|text| {

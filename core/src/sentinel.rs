@@ -7,14 +7,15 @@
 use std::fmt::Write as _;
 use std::time::Duration;
 
+use crate::model::branch::branch_constants::KIND_FULL;
+use crate::model::branch::publication::Publication;
+use crate::model::branch::record_currency::RecordCurrency;
+use crate::model::branch::run_record::RunRecord;
 use crate::model::commit_hash::CommitHash;
 use crate::model::counts::MutantCounts;
 use crate::model::mutant_key::MutantKey;
 use crate::model::mutation_run::MutationRun;
 use crate::model::outcome_kind::OutcomeKind;
-use crate::model::record::KIND_FULL;
-use crate::model::record::Publication;
-use crate::model::record::RunRecord;
 use crate::model::roster::OnboardedRepo;
 use crate::model::roster::Roster;
 use crate::model::round_step::RoundStep;
@@ -127,7 +128,7 @@ impl Sentinel {
         if snapshot
             .record
             .as_ref()
-            .is_some_and(|r| r.is_current(&head, self.roster.config_version))
+            .is_some_and(|r| RecordCurrency::new(self.roster.config_version).is_current(r, &head))
         {
             self.schedule.succeeded(name);
             self.schedule.clear_tool_failures(name);

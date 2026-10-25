@@ -9,13 +9,14 @@ use crate::support::git_shell::git;
 use crate::support::origin::Origin;
 use crate::support::temp_dir::TempDir;
 use sentinel4rust::git::GitCli;
+use sentinel4rust::model::branch::branch_constants::KIND_FULL;
+use sentinel4rust::model::branch::publication::Publication;
+use sentinel4rust::model::branch::record_currency::RecordCurrency;
+use sentinel4rust::model::branch::run_record::RunRecord;
 use sentinel4rust::model::commit_hash::CommitHash;
 use sentinel4rust::model::counts::MutantCounts;
 use sentinel4rust::model::mutant_key::MutantKey;
 use sentinel4rust::model::outcome_kind::OutcomeKind;
-use sentinel4rust::model::record::KIND_FULL;
-use sentinel4rust::model::record::Publication;
-use sentinel4rust::model::record::RunRecord;
 use sentinel4rust::model::skip_reason::SkipReason;
 use sentinel4rust::model::timestamp::Timestamp;
 use sentinel4rust::system::SystemCommandRunner;
@@ -177,7 +178,7 @@ fn publish_first_creates_an_orphan_branch_and_leaves_main_alone() {
 
     // Assert
     let record = snapshot.record.unwrap();
-    assert!(record.is_current(&head, 1));
+    assert!(RecordCurrency::new(1).is_current(&record, &head));
     assert_eq!(
         snapshot.previous_missed,
         [MutantKey::new("src/lib.rs: replace f -> bool with false")]
@@ -204,7 +205,7 @@ fn publish_second_appends_to_mutants() {
 
     // Assert
     assert_eq!(snapshot.head, second);
-    assert!(!snapshot.record.unwrap().is_current(&second, 1));
+    assert!(!RecordCurrency::new(1).is_current(&snapshot.record.unwrap(), &second));
 
     // Act
     git_cli

@@ -4,4 +4,5 @@
 
 pub mod git_shell;
 pub mod origin;
+pub mod run_records;
 pub mod temp_dir;

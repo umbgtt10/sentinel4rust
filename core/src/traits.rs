@@ -8,11 +8,11 @@
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 
+use crate::model::branch::publication::Publication;
+use crate::model::branch::run_record::RunRecord;
 use crate::model::commit_hash::CommitHash;
 use crate::model::mutant_key::MutantKey;
 use crate::model::mutation_run::MutationRun;
-use crate::model::record::Publication;
-use crate::model::record::RunRecord;
 use crate::model::roster::OnboardedRepo;
 use crate::model::skip_reason::SkipReason;
 use crate::model::timestamp::Timestamp;
