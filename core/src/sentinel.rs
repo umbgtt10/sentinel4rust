@@ -5,6 +5,7 @@
 //! The loop (design 1): visit one due repository at a time, run, publish, back off.
 
 use std::fmt::Write as _;
+use std::rc::Rc;
 use std::time::Duration;
 
 use crate::model::branch::branch_constants::KIND_FULL;
@@ -21,24 +22,31 @@ use crate::model::outcome_kind::OutcomeKind;
 use crate::model::round_step::RoundStep;
 use crate::model::run_outcome::RunOutcome;
 use crate::model::skip_reason::SkipReason;
+use crate::model::sync_error::SyncError;
 use crate::model::timestamp::Timestamp;
 use crate::schedule::{MAX_TOOL_FAILURES, Next, Schedule};
-use crate::traits::{Clock, Journal, MutationRunner, Pause, RepoSource, ResultStore, SyncError};
+use crate::traits::clock::Clock;
+use crate::traits::journal::Journal;
+use crate::traits::mutation_runner::MutationRunner;
+use crate::traits::pause::Pause;
+use crate::traits::repo_source::RepoSource;
+use crate::traits::result_store::ResultStore;
 
-/// Everything the sentinel talks to, injected once.
+/// Everything the sentinel talks to, injected once. Shared, so one implementation (`GitCli`, or a test's
+/// fake) can fill several roles.
 pub struct Dependencies {
     /// Fetches and checks out repositories.
-    pub source: Box<dyn RepoSource>,
+    pub source: Rc<dyn RepoSource>,
     /// Runs cargo-mutants.
-    pub runner: Box<dyn MutationRunner>,
+    pub runner: Rc<dyn MutationRunner>,
     /// Publishes on `mutants`.
-    pub store: Box<dyn ResultStore>,
+    pub store: Rc<dyn ResultStore>,
     /// The time.
-    pub clock: Box<dyn Clock>,
+    pub clock: Rc<dyn Clock>,
     /// Sleeping.
-    pub pause: Box<dyn Pause>,
+    pub pause: Rc<dyn Pause>,
     /// One line per visit.
-    pub journal: Box<dyn Journal>,
+    pub journal: Rc<dyn Journal>,
 }
 
 /// The service.

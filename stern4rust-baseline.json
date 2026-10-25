@@ -116,18 +116,6 @@
     "src/system.rs\u001fsingle-implemented-type\u001fThreadPause": 1,
     "src/system.rs\u001ftest-free-source\u001fthe `#[cfg(test)]` module `tests`": 1,
     "src/system.rs\u001ftimeless-tests\u001fa_command_past_its_deadline_is_killed_with_its_children": 1,
-    "src/system.rs\u001ftimeless-tests\u001fthe_clock_is_after_2026_and_pause_waits": 1,
-    "src/traits.rs\u001fimported-paths\u001fstd::iter::once": 1,
-    "src/traits.rs\u001fnamed-subject\u001fCommand": 1,
-    "src/traits.rs\u001fordered-impl-functions\u001fCommand": 1,
-    "src/traits.rs\u001fordered-impl-functions\u001fCommandResult": 1,
-    "src/traits.rs\u001frecord-home\u001fSnapshot": 1,
-    "src/traits.rs\u001frecord-home\u001fSyncError": 1,
-    "src/traits.rs\u001frecords-and-objects\u001fCommand": 1,
-    "src/traits.rs\u001fsingle-implemented-type\u001fCommandResult": 1,
-    "src/traits.rs\u001ftested-public-api\u001fdescribe/0": 1,
-    "src/traits.rs\u001ftested-public-api\u001fnew/4": 1,
-    "src/traits.rs\u001ftyped-errors\u001fcheckout": 1,
-    "src/traits.rs\u001ftyped-errors\u001fpublish": 1
+    "src/system.rs\u001ftimeless-tests\u001fthe_clock_is_after_2026_and_pause_waits": 1
   }
 }

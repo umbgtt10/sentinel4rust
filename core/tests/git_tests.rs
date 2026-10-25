@@ -18,15 +18,18 @@ use sentinel4rust::model::counts::MutantCounts;
 use sentinel4rust::model::mutant_key::MutantKey;
 use sentinel4rust::model::outcome_kind::OutcomeKind;
 use sentinel4rust::model::skip_reason::SkipReason;
+use sentinel4rust::model::sync_error::SyncError;
 use sentinel4rust::model::timestamp::Timestamp;
+use sentinel4rust::model::work_dir::WorkDir;
 use sentinel4rust::system::SystemCommandRunner;
-use sentinel4rust::traits::{RepoSource, ResultStore, SyncError};
+use sentinel4rust::traits::repo_source::RepoSource;
+use sentinel4rust::traits::result_store::ResultStore;
 use std::fs;
 use std::process::Command;
 use std::rc::Rc;
 
 fn cli(work: &TempDir) -> GitCli {
-    GitCli::new(Rc::new(SystemCommandRunner), work.path().to_path_buf())
+    GitCli::new(Rc::new(SystemCommandRunner), work_dir(work))
 }
 
 fn publication(commit: &CommitHash, missed: &[&str]) -> Publication {
@@ -65,6 +68,10 @@ fn publication(commit: &CommitHash, missed: &[&str]) -> Publication {
     }
 }
 
+fn work_dir(work: &TempDir) -> WorkDir {
+    WorkDir::new(work.path().to_path_buf())
+}
+
 #[test]
 fn checkout_is_detached_at_head_and_removed_completely() {
     // Arrange
@@ -91,7 +98,7 @@ fn checkout_is_detached_at_head_and_removed_completely() {
     // Assert
     assert!(!checkout.exists());
     assert_eq!(
-        git(&git_cli.repo_dir(&repo), &["worktree", "list"])
+        git(&work_dir(&work).bare_clone(&repo), &["worktree", "list"])
             .lines()
             .count(),
         1
@@ -115,7 +122,7 @@ fn publish_after_mutants_moved_is_rejected() {
     let error = b.publish(&repo, &publication(&head, &["b"])).unwrap_err();
 
     // Assert
-    assert!(error.contains("git push"), "{error}");
+    assert!(error.0.contains("git push"), "{error}");
     assert_eq!(
         git(&origin.bare(), &["show", "mutants:missed.txt"]),
         "src/lib.rs: a"
@@ -248,7 +255,10 @@ fn sync_changed_url_resets_origin_and_deleted_mutants_drops_the_record() {
 
     // Assert
     assert_eq!(
-        git(&git_cli.repo_dir(&repo), &["remote", "get-url", "origin"]),
+        git(
+            &work_dir(&work).bare_clone(&repo),
+            &["remote", "get-url", "origin"]
+        ),
         origin.url()
     );
 

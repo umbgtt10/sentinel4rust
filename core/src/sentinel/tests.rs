@@ -12,10 +12,12 @@ use std::time::Duration;
 
 use super::*;
 use crate::model::branch::branch_layout::BranchLayout;
+use crate::model::checkout_error::CheckoutError;
 use crate::model::commit_hash::CommitHash;
+use crate::model::publish_error::PublishError;
 use crate::model::skip_reason::SkipReason;
+use crate::model::snapshot::Snapshot;
 use crate::schedule::MAX_BACKOFF;
-use crate::traits::Snapshot;
 
 const PAUSE: Duration = Duration::from_secs(300);
 const RUN_SECONDS: i64 = 60;
@@ -24,13 +26,13 @@ const RUN_SECONDS: i64 = 60;
 struct World {
     now: Cell<i64>,
     syncs: RefCell<VecDeque<Result<Snapshot, SyncError>>>,
-    checkout_error: RefCell<Option<String>>,
+    checkout_error: RefCell<Option<CheckoutError>>,
     checkouts: Cell<usize>,
     removals: Cell<usize>,
     runs: RefCell<VecDeque<RunOutcome>>,
     run_calls: RefCell<Vec<(PathBuf, u32, Duration)>>,
     publishes: RefCell<Vec<Publication>>,
-    publish_errors: RefCell<VecDeque<String>>,
+    publish_errors: RefCell<VecDeque<PublishError>>,
     pauses: RefCell<Vec<Duration>>,
     lines: RefCell<Vec<String>>,
 }
@@ -43,7 +45,7 @@ impl RepoSource for World {
             .unwrap_or_else(|| panic!("unexpected sync of {}", repo.name))
     }
 
-    fn checkout(&self, _: &OnboardedRepo, _: &CommitHash) -> Result<PathBuf, String> {
+    fn checkout(&self, _: &OnboardedRepo, _: &CommitHash) -> Result<PathBuf, CheckoutError> {
         self.checkouts.set(self.checkouts.get() + 1);
         match self.checkout_error.borrow().clone() {
             Some(error) => Err(error),
@@ -72,7 +74,7 @@ impl MutationRunner for World {
 }
 
 impl ResultStore for World {
-    fn publish(&self, _: &OnboardedRepo, publication: &Publication) -> Result<(), String> {
+    fn publish(&self, _: &OnboardedRepo, publication: &Publication) -> Result<(), PublishError> {
         if let Some(error) = self.publish_errors.borrow_mut().pop_front() {
             return Err(error);
         }
@@ -126,12 +128,12 @@ fn sentinel(names: &[&str]) -> (Sentinel, Rc<World>) {
         repos: names.iter().map(|n| repo(n)).collect(),
     };
     let deps = Dependencies {
-        source: Box::new(world.clone()),
-        runner: Box::new(world.clone()),
-        store: Box::new(world.clone()),
-        clock: Box::new(world.clone()),
-        pause: Box::new(world.clone()),
-        journal: Box::new(world.clone()),
+        source: world.clone(),
+        runner: world.clone(),
+        store: world.clone(),
+        clock: world.clone(),
+        pause: world.clone(),
+        journal: world.clone(),
     };
     (Sentinel::new(roster, deps), world)
 }
@@ -439,7 +441,7 @@ fn transient_fetch_failures_checkout_failures_and_rejected_pushes_back_off() {
         }]
     );
 
-    *w.checkout_error.borrow_mut() = Some("disk full".to_string());
+    *w.checkout_error.borrow_mut() = Some(CheckoutError("disk full".to_string()));
     w.queue_sync(Ok(snapshot(&hash('a'), None, &[])));
     assert_eq!(
         s.run_once(),
@@ -452,7 +454,7 @@ fn transient_fetch_failures_checkout_failures_and_rejected_pushes_back_off() {
 
     w.publish_errors
         .borrow_mut()
-        .push_back("rejected".to_string());
+        .push_back(PublishError("rejected".to_string()));
     w.queue_sync(Ok(snapshot(&hash('a'), None, &[])));
     w.queue_run(completed(&[]));
     assert_eq!(

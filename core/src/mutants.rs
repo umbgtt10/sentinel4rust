@@ -9,15 +9,19 @@
 //! failed and tool failed: `3` (timeouts) takes precedence over `2` (missed), so it cannot give the counts.
 
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::rc::Rc;
 use std::time::Duration;
 
+use crate::model::command::Command;
+use crate::model::command_result::CommandResult;
 use crate::model::counts::MutantCounts;
 use crate::model::mutation_run::MutationRun;
 use crate::model::onboarding::onboarded_repo::OnboardedRepo;
 use crate::model::run_outcome::RunOutcome;
-use crate::traits::{Command, CommandResult, CommandRunner, MutationRunner};
+use crate::model::work_dir::WorkDir;
+use crate::traits::command_runner::CommandRunner;
+use crate::traits::mutation_runner::MutationRunner;
 
 /// Lines kept from a failing run's output.
 pub const LOG_TAIL_LINES: usize = 200;
@@ -29,16 +33,16 @@ const VERSION_TIMEOUT: Duration = Duration::from_secs(60);
 /// cargo-mutants, run through a [`CommandRunner`].
 pub struct CargoMutantsCli {
     runner: Rc<dyn CommandRunner>,
-    out_root: PathBuf,
+    work_dir: WorkDir,
     cargo: String,
 }
 
 impl CargoMutantsCli {
-    /// Runs `cargo` (or a stand-in, for tests) and writes output under `out_root/<repo name>`.
-    pub fn new(runner: Rc<dyn CommandRunner>, out_root: PathBuf, cargo: String) -> Self {
+    /// Runs `cargo` (or a stand-in, for tests) and writes output where `work_dir` says.
+    pub fn new(runner: Rc<dyn CommandRunner>, work_dir: WorkDir, cargo: String) -> Self {
         Self {
             runner,
-            out_root,
+            work_dir,
             cargo,
         }
     }
@@ -68,7 +72,7 @@ impl MutationRunner for CargoMutantsCli {
         jobs: u32,
         timeout: Duration,
     ) -> MutationRun {
-        let out = self.out_root.join(&repo.name);
+        let out = self.work_dir.mutants_out(repo);
         let _ = fs::remove_dir_all(&out);
         let cargo_mutants_version = self.version(&self.cargo, &["mutants", "--version"], checkout);
         let rustc_version = self.version("rustc", &["--version"], checkout);
@@ -79,12 +83,12 @@ impl MutationRunner for CargoMutantsCli {
                 log_tail: String::new(),
             }
         } else {
-            let mut command = Command::new(&self.cargo, &[], checkout, timeout)
-                .env("CARGO_TERM_COLOR", "never")
-                .env("NO_COLOR", "1");
-            command.args.clone_from(&arguments);
-            command.args.push("--output".to_string());
-            command.args.push(out.to_string_lossy().into_owned());
+            let out_text = out.to_string_lossy().into_owned();
+            let mut args: Vec<&str> = arguments.iter().map(String::as_str).collect();
+            args.extend(["--output", &out_text]);
+            let command = Command::new(&self.cargo, &args, checkout, timeout)
+                .with_env("CARGO_TERM_COLOR", "never")
+                .with_env("NO_COLOR", "1");
             interpret(&self.runner.run(&command), &out.join("mutants.out"))
         };
         let _ = fs::remove_dir_all(&out);
@@ -187,6 +191,7 @@ pub fn log_tail(stdout: &str, stderr: &str) -> String {
 #[cfg(test)]
 mod tests {
     use std::cell::RefCell;
+    use std::path::PathBuf;
 
     use super::*;
 
@@ -238,10 +243,10 @@ mod tests {
         let runner = Rc::new(FakeRunner {
             calls: RefCell::new(Vec::new()),
             script: Box::new(move |c: &Command| {
-                if c.args.iter().any(|a| a == "--version") {
-                    return exited(0, &format!("{} 9.9\n", c.program));
+                if c.args().iter().any(|a| a == "--version") {
+                    return exited(0, &format!("{} 9.9\n", c.program()));
                 }
-                let out = PathBuf::from(c.args.last().unwrap()).join("mutants.out");
+                let out = PathBuf::from(c.args().last().unwrap()).join("mutants.out");
                 fs::create_dir_all(&out).unwrap();
                 for (name, text) in lists {
                     fs::write(out.join(name), text).unwrap();
@@ -249,7 +254,11 @@ mod tests {
                 exited(code, "log line\n")
             }),
         });
-        let cli = CargoMutantsCli::new(runner.clone(), root.join("out"), "cargo".to_string());
+        let cli = CargoMutantsCli::new(
+            runner.clone(),
+            WorkDir::new(root.clone()),
+            "cargo".to_string(),
+        );
         (cli, runner, root)
     }
 
@@ -268,14 +277,14 @@ mod tests {
         let run = cli.run(&repo(), &checkout, 3, Duration::from_secs(99));
         let calls = runner.calls.borrow();
         assert_eq!(calls.len(), 3);
-        assert_eq!(calls[0].args, ["mutants", "--version"]);
-        assert_eq!(calls[1].program, "rustc");
+        assert_eq!(calls[0].args(), ["mutants", "--version"]);
+        assert_eq!(calls[1].program(), "rustc");
         let main = &calls[2];
-        assert_eq!(main.dir, checkout);
-        assert_eq!(main.timeout, Duration::from_secs(99));
+        assert_eq!(main.dir(), checkout);
+        assert_eq!(main.timeout(), Duration::from_secs(99));
         let out = root.join("out").join("r");
         assert_eq!(
-            main.args,
+            main.args(),
             ["mutants", "--jobs", "3", "--output", &out.to_string_lossy()]
         );
         assert_eq!(run.arguments, "mutants --jobs 3");

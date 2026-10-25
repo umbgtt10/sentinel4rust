@@ -18,13 +18,20 @@ use std::time::Duration;
 use crate::model::branch::branch_layout::BranchLayout;
 use crate::model::branch::publication::Publication;
 use crate::model::branch::summary_toml::SummaryToml;
+use crate::model::checkout_error::CheckoutError;
+use crate::model::command::Command;
+use crate::model::command_result::CommandResult;
 use crate::model::commit_hash::CommitHash;
 use crate::model::mutant_key::MutantKey;
 use crate::model::onboarding::onboarded_repo::OnboardedRepo;
+use crate::model::publish_error::PublishError;
 use crate::model::skip_reason::SkipReason;
-use crate::traits::{
-    Command, CommandResult, CommandRunner, RepoSource, ResultStore, Snapshot, SyncError,
-};
+use crate::model::snapshot::Snapshot;
+use crate::model::sync_error::SyncError;
+use crate::model::work_dir::WorkDir;
+use crate::traits::command_runner::CommandRunner;
+use crate::traits::repo_source::RepoSource;
+use crate::traits::result_store::ResultStore;
 
 /// Deadline for commands that talk to the remote, and for creating a checkout.
 pub const NETWORK_TIMEOUT: Duration = Duration::from_secs(5 * 60);
@@ -49,34 +56,19 @@ const UNREACHABLE_MARKERS: &[&str] = &[
 /// git, run through a [`CommandRunner`].
 pub struct GitCli {
     runner: Rc<dyn CommandRunner>,
-    work_dir: PathBuf,
+    work_dir: WorkDir,
 }
 
 impl GitCli {
-    /// A git client keeping its clones under `work_dir`.
-    pub fn new(runner: Rc<dyn CommandRunner>, work_dir: PathBuf) -> Self {
+    /// A git client keeping its clones, checkouts and staging areas under `work_dir`.
+    pub fn new(runner: Rc<dyn CommandRunner>, work_dir: WorkDir) -> Self {
         Self { runner, work_dir }
-    }
-
-    /// The bare clone of `repo`.
-    pub fn repo_dir(&self, repo: &OnboardedRepo) -> PathBuf {
-        self.work_dir
-            .join("repos")
-            .join(format!("{}.git", repo.name))
-    }
-
-    fn run_dir(&self, repo: &OnboardedRepo) -> PathBuf {
-        self.work_dir.join("runs").join(&repo.name)
-    }
-
-    fn stage_dir(&self, repo: &OnboardedRepo) -> PathBuf {
-        self.work_dir.join("stage").join(&repo.name)
     }
 
     fn command(dir: &Path, args: &[&str], timeout: Duration) -> Command {
         Command::new("git", args, dir, timeout)
-            .env("GIT_TERMINAL_PROMPT", "0")
-            .env("LC_ALL", "C")
+            .with_env("GIT_TERMINAL_PROMPT", "0")
+            .with_env("LC_ALL", "C")
     }
 
     fn run(&self, command: &Command) -> Result<String, CommandResult> {
@@ -98,11 +90,11 @@ impl GitCli {
 
     /// Removes leftovers of a crash: run checkouts, staging areas, stale worktree entries.
     pub fn prune(&self, repos: &[OnboardedRepo]) {
-        for sub in ["runs", "stage"] {
-            let _ = fs::remove_dir_all(self.work_dir.join(sub));
+        for leftovers in [self.work_dir.runs(), self.work_dir.stages()] {
+            let _ = fs::remove_dir_all(leftovers);
         }
         for repo in repos {
-            let dir = self.repo_dir(repo);
+            let dir = self.work_dir.bare_clone(repo);
             if dir.join("HEAD").exists() {
                 let _ = self.local(&dir, &["worktree", "prune"]);
             }
@@ -110,7 +102,7 @@ impl GitCli {
     }
 
     fn ensure_clone(&self, repo: &OnboardedRepo) -> Result<PathBuf, String> {
-        let dir = self.repo_dir(repo);
+        let dir = self.work_dir.bare_clone(repo);
         if dir.join("HEAD").exists() {
             let current = self.local(&dir, &["remote", "get-url", "origin"])?;
             if current.trim() != repo.url {
@@ -118,7 +110,7 @@ impl GitCli {
             }
             return Ok(dir);
         }
-        let parent = dir.parent().unwrap_or(&self.work_dir).to_path_buf();
+        let parent = dir.parent().unwrap_or(self.work_dir.root()).to_path_buf();
         let _ = fs::remove_dir_all(&dir);
         fs::create_dir_all(&parent).map_err(|e| format!("create {}: {e}", parent.display()))?;
         let dir_text = dir.to_string_lossy().into_owned();
@@ -179,14 +171,14 @@ impl GitCli {
                 &["update-index", "--add", "--cacheinfo", &info],
                 LOCAL_TIMEOUT,
             )
-            .env("GIT_INDEX_FILE", &index_text);
+            .with_env("GIT_INDEX_FILE", &index_text);
             self.run(&command)
                 .map_err(|r| format!("git update-index: {}", r.describe()))?;
         }
         let tree = self
             .run(
                 &Self::command(dir, &["write-tree"], LOCAL_TIMEOUT)
-                    .env("GIT_INDEX_FILE", &index_text),
+                    .with_env("GIT_INDEX_FILE", &index_text),
             )
             .map_err(|r| format!("git write-tree: {}", r.describe()))?;
         let parent = self
@@ -208,10 +200,10 @@ impl GitCli {
         }
         args.extend(["-m", &message]);
         let command = Self::command(dir, &args, LOCAL_TIMEOUT)
-            .env("GIT_AUTHOR_NAME", IDENTITY_NAME)
-            .env("GIT_AUTHOR_EMAIL", IDENTITY_EMAIL)
-            .env("GIT_COMMITTER_NAME", IDENTITY_NAME)
-            .env("GIT_COMMITTER_EMAIL", IDENTITY_EMAIL);
+            .with_env("GIT_AUTHOR_NAME", IDENTITY_NAME)
+            .with_env("GIT_AUTHOR_EMAIL", IDENTITY_EMAIL)
+            .with_env("GIT_COMMITTER_NAME", IDENTITY_NAME)
+            .with_env("GIT_COMMITTER_EMAIL", IDENTITY_EMAIL);
         self.run(&command)
             .map(|commit| commit.trim().to_string())
             .map_err(|r| format!("git commit-tree: {}", r.describe()))
@@ -292,12 +284,13 @@ impl RepoSource for GitCli {
         })
     }
 
-    fn checkout(&self, repo: &OnboardedRepo, head: &CommitHash) -> Result<PathBuf, String> {
+    fn checkout(&self, repo: &OnboardedRepo, head: &CommitHash) -> Result<PathBuf, CheckoutError> {
         self.remove_checkout(repo);
-        let dir = self.repo_dir(repo);
-        let run_dir = self.run_dir(repo);
+        let dir = self.work_dir.bare_clone(repo);
+        let run_dir = self.work_dir.checkout(repo);
         if let Some(parent) = run_dir.parent() {
-            fs::create_dir_all(parent).map_err(|e| format!("create {}: {e}", parent.display()))?;
+            fs::create_dir_all(parent)
+                .map_err(|e| CheckoutError(format!("create {}: {e}", parent.display())))?;
         }
         let run_text = run_dir.to_string_lossy().into_owned();
         self.git(
@@ -313,13 +306,13 @@ impl RepoSource for GitCli {
             ],
             NETWORK_TIMEOUT,
         )
-        .map_err(|r| format!("git worktree add: {}", r.describe()))?;
+        .map_err(|r| CheckoutError(format!("git worktree add: {}", r.describe())))?;
         Ok(run_dir)
     }
 
     fn remove_checkout(&self, repo: &OnboardedRepo) {
-        let dir = self.repo_dir(repo);
-        let run_dir = self.run_dir(repo);
+        let dir = self.work_dir.bare_clone(repo);
+        let run_dir = self.work_dir.checkout(repo);
         if run_dir.exists() && dir.join("HEAD").exists() {
             let run_text = run_dir.to_string_lossy().into_owned();
             let _ = self.local(
@@ -335,11 +328,12 @@ impl RepoSource for GitCli {
 }
 
 impl ResultStore for GitCli {
-    fn publish(&self, repo: &OnboardedRepo, publication: &Publication) -> Result<(), String> {
-        let dir = self.repo_dir(repo);
-        let stage = self.stage_dir(repo);
+    fn publish(&self, repo: &OnboardedRepo, publication: &Publication) -> Result<(), PublishError> {
+        let dir = self.work_dir.bare_clone(repo);
+        let stage = self.work_dir.stage(repo);
         let _ = fs::remove_dir_all(&stage);
-        fs::create_dir_all(&stage).map_err(|e| format!("create {}: {e}", stage.display()))?;
+        fs::create_dir_all(&stage)
+            .map_err(|e| PublishError(format!("create {}: {e}", stage.display())))?;
         let result = self
             .write_commit(&dir, &stage, publication)
             .and_then(|commit| {
@@ -354,6 +348,6 @@ impl ResultStore for GitCli {
                 Ok(())
             });
         let _ = fs::remove_dir_all(&stage);
-        result
+        result.map_err(PublishError)
     }
 }

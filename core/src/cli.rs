@@ -12,10 +12,12 @@ use crate::git::GitCli;
 use crate::model::onboarding::roster::Roster;
 use crate::model::onboarding::toml_roster::TomlRoster;
 use crate::model::round_step::RoundStep;
+use crate::model::work_dir::WorkDir;
 use crate::mutants::CargoMutantsCli;
 use crate::sentinel::{Dependencies, Sentinel, startup_line};
 use crate::system::{StdoutJournal, SystemClock, SystemCommandRunner, ThreadPause};
-use crate::traits::{Clock, CommandRunner};
+use crate::traits::clock::Clock;
+use crate::traits::command_runner::CommandRunner;
 
 /// Usage text.
 pub const USAGE: &str = "\
@@ -108,19 +110,20 @@ pub fn run(roster_path: &PathBuf, once: bool) -> Result<i32, String> {
     let roster = TomlRoster.parse(&text).map_err(|e| e.to_string())?;
     let _lock = WorkDirLock::acquire(&roster)?;
     let runner: Rc<dyn CommandRunner> = Rc::new(SystemCommandRunner);
-    let git = Rc::new(GitCli::new(runner.clone(), roster.work_dir.clone()));
+    let work_dir = WorkDir::new(roster.work_dir.clone());
+    let git = Rc::new(GitCli::new(runner.clone(), work_dir.clone()));
     git.prune(&roster.repos);
-    let mutants = CargoMutantsCli::new(runner, roster.work_dir.join("out"), "cargo".to_string());
+    let mutants = CargoMutantsCli::new(runner, work_dir, "cargo".to_string());
     println!("{}", startup_line(&roster, SystemClock.now()));
     let mut sentinel = Sentinel::new(
         roster,
         Dependencies {
-            source: Box::new(git.clone()),
-            runner: Box::new(mutants),
-            store: Box::new(git),
-            clock: Box::new(SystemClock),
-            pause: Box::new(ThreadPause),
-            journal: Box::new(StdoutJournal),
+            source: git.clone(),
+            runner: Rc::new(mutants),
+            store: git,
+            clock: Rc::new(SystemClock),
+            pause: Rc::new(ThreadPause),
+            journal: Rc::new(StdoutJournal),
         },
     );
     if once {

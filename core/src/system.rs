@@ -10,8 +10,13 @@ use std::process::{Child, Stdio};
 use std::thread::{self, JoinHandle};
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
+use crate::model::command::Command;
+use crate::model::command_result::CommandResult;
 use crate::model::timestamp::Timestamp;
-use crate::traits::{Clock, Command, CommandResult, CommandRunner, Journal, Pause};
+use crate::traits::clock::Clock;
+use crate::traits::command_runner::CommandRunner;
+use crate::traits::journal::Journal;
+use crate::traits::pause::Pause;
 
 /// Runs commands with `std::process`, each in its own process group so a timeout kills its children too.
 #[derive(Debug, Default)]
@@ -41,10 +46,10 @@ fn kill_group(child: &mut Child) {
 
 impl CommandRunner for SystemCommandRunner {
     fn run(&self, command: &Command) -> CommandResult {
-        let spawned = std::process::Command::new(&command.program)
-            .args(&command.args)
-            .current_dir(&command.dir)
-            .envs(command.env.iter().map(|(k, v)| (k, v)))
+        let spawned = std::process::Command::new(command.program())
+            .args(command.args())
+            .current_dir(command.dir())
+            .envs(command.env())
             .stdin(Stdio::null())
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
@@ -56,7 +61,7 @@ impl CommandRunner for SystemCommandRunner {
         };
         let stdout = reader(child.stdout.take());
         let stderr = reader(child.stderr.take());
-        let deadline = Instant::now() + command.timeout;
+        let deadline = Instant::now() + command.timeout();
         let status = loop {
             match child.try_wait() {
                 Ok(Some(status)) => break Some(status),
@@ -125,7 +130,7 @@ mod tests {
 
     fn sh(script: &str, timeout: Duration) -> CommandResult {
         let command = Command::new("sh", &["-c", script], &std::env::temp_dir(), timeout)
-            .env("SENTINEL_TEST", "yes");
+            .with_env("SENTINEL_TEST", "yes");
         SystemCommandRunner.run(&command)
     }
 
