@@ -176,7 +176,7 @@ preflight() {
   head="$(git_head rev-parse HEAD)" || fail "$repo_root is not a git checkout"
   short="${head:0:7}"
   ok "$pretty, systemd; installing from $repo_root at $short"
-  if [ -n "$(git_head status --porcelain)" ]; then
+  if [ -n "$(git_head --no-optional-locks status --porcelain)" ]; then
     warn "the checkout has uncommitted changes: only HEAD ($short) is installed"
   fi
 }
