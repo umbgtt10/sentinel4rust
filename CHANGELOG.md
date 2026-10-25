@@ -55,6 +55,9 @@ this repository uses it.
 - `docs/DESIGN.md` moved, unchanged, to `docs/history/[SUPERSEDED] DESIGN.md`.
 
 ### Fixed
+- The four statements of the original design that the code contradicted -- publishing, the exit codes' provenance,
+  the parser's fixtures, stage 2 having run -- are stated as they hold in ARCHITECTURE and the ADRs, and the stub at
+  `docs/DESIGN.md` names them (open point 8).
 - Upgrading cargo-mutants no longer needs a `config_version` bump: a record made by another cargo-mutants than the
   installed one is not current, and the commit runs again. The installed version is read once on start; when it
   cannot be read it decides nothing (open point 13).

@@ -14,7 +14,7 @@ be observed yet, that it is to be verified on the machine. Recorded 2026-10-24. 
 | 5 | every repository's code runs where every repository's key is | accepted in design 5.1; decide again |
 | 6 | `cargo xtask` does not exist | closed: `.cargo/config.toml` |
 | 7 | the family's gates and coding standards do not apply here yet | closed: `docs/ROADMAP.md` |
-| 8 | the design and the code disagree in four places | small fix |
+| 8 | the design and the code disagree in four places | closed: `docs/DESIGN.md` |
 | 9 | only the `completed` outcome has been seen against the real cargo-mutants | closed: stage-2 fixtures |
 | 10 | repositories the tool cannot test yet | before onboarding each repository |
 | 11 | flaky tests and machine-dependent timeouts make the lists noisy | to watch |
@@ -92,20 +92,14 @@ ARCHITECTURE, the ADRs, ROADMAP, IMPLEMENTED-FEATURES and CHANGELOG. `docs/ROADM
 
 ## 8. The design and the code disagree in four places
 
-- **2.4** says publishing uses a second worktree and `git push origin HEAD:refs/heads/mutants`; section 9 and
-  `git.rs` publish with plumbing and push `<commit>:refs/heads/mutants`, with no worktree.
-- **2.6** says the exit codes were "checked against 27.1.0 in S5"; section 9 says `outcomes.json` could not be
-  checked against 27.1.0. The exit-code table does match 27.1.0's `exit_code.rs` (read on 2026-10-23); the
-  `outcomes.json` format was never needed, since the lists are read from the `.txt` files.
-- **6** says the parser is tested "against `mutants.out` fixtures captured from real runs"; the tests in
-  `mutants.rs` write synthetic lists through a fake runner, and no captured `mutants.out` is in the repository.
-- **9** says stage 2 "has not been run yet". It ran and passed on the development laptop on 2026-10-24, against
-  cargo-mutants 27.1.0.
+**Closed.** The design moved, unchanged, to `docs/history/`; the documents that replace it -- `docs/ARCHITECTURE.md`
+and the ADRs -- were written from the code and say what holds in the four places: publishing by plumbing and
+`<commit>:refs/heads/mutants` (2.4), the exit codes as read in 27.1.0's source, with `outcomes.json` never read
+(2.6), the parser tested against lists captured from real runs since open point 9 (6), and stage 2 having run (9).
+The stub at `docs/DESIGN.md` lists the four, so a reader of the history copy is told where it was wrong.
 
-Section 7 plans one commit per slice, test-first. The implementation arrived uncommitted and went in as one
-commit, `48c8fb1`, so no slice can be reverted alone, and the history cannot show that the tests came first.
-
-**To close:** update sections 2.4, 2.6, 6 and 9. Observed.
+Section 7 planned one commit per slice, test-first; the implementation went in as one commit, `48c8fb1`, so its
+slices cannot be reverted alone. Everything since is one commit per slice.
 
 ## 9. Only `completed` has been seen against the real cargo-mutants
 
