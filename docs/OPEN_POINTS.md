@@ -13,7 +13,7 @@ be observed yet, that it is to be verified on the machine. Recorded 2026-10-24. 
 | 4 | an unreadable `summary.toml` silently reruns the same commit forever | before the machine runs |
 | 5 | every repository's code runs where every repository's key is | accepted in design 5.1; decide again |
 | 6 | `cargo xtask` does not exist | closed: `.cargo/config.toml` |
-| 7 | the family's gates and coding standards do not apply here yet | before the next feature |
+| 7 | the family's gates and coding standards do not apply here yet | closed: `docs/ROADMAP.md` |
 | 8 | the design and the code disagree in four places | small fix |
 | 9 | only the `completed` outcome has been seen against the real cargo-mutants | to verify on the machine |
 | 10 | repositories the tool cannot test yet | before onboarding each repository |
@@ -94,24 +94,9 @@ give the run a mount namespace without `~/.ssh` (systemd `InaccessiblePaths=` on
 
 ## 7. The family's gates and coding standards do not apply yet
 
-Section 9 records that stern4rust, dry4rust, crap4rust, twin4rust, iceberg4rust and cargo-shear were not available
-where the code was written; `xtask/src/main.rs` runs `fmt`, `clippy` and `test` only, has no tests of its own, and is
-not built from `Gate` implementations against a `CommandRunner` like the sibling tools' xtasks. Measured against the
-house rules the other repositories follow:
-
-- none of the 23 `.rs` files carries the four-line copyright header;
-- 11 source files declare `#[cfg(test)]` modules -- `sentinel.rs`'s in a separate `core/src/sentinel/tests.rs` --
-  instead of mirrored files under `tests/`; the tests have no Arrange/Act/Assert sections and do not follow `<method>_<description>_<outcome>`;
-- 56 `pub` struct fields (stern4rust's private-fields);
-- behaviour in free functions (`interpret`, `read_lists`, `log_tail`, `publication_for`, `journal_line`) rather than
-  named structs with methods;
-- fully qualified paths in bodies (`crate::model::SkipReason::NoBranch` in `sentinel.rs`, `std::process::Command` in
-  `system.rs`);
-- no CI workflow, no CHANGELOG, no ARCHITECTURE, ADRs or ROADMAP.
-
-Turning the gates on will be a sweep of its own; doing it before the code grows keeps it small.
-
-**To close:** add the gates to the xtask, then bring the code under them. Observed.
+**Closed.** All six family gates run in stage 2 with nothing baselined, beside the end-to-end gate; the code is in
+the family's layout, one object per file, every test in a mirrored file under `core/tests/`; the docs are
+ARCHITECTURE, the ADRs, ROADMAP, IMPLEMENTED-FEATURES and CHANGELOG. `docs/ROADMAP.md` lists the slices.
 
 ## 8. The design and the code disagree in four places
 

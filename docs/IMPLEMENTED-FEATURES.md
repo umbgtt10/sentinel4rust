@@ -1,0 +1,70 @@
+# Implemented Features
+
+What `sentinel4rust` does today. For why, see [ADRs/](ADRs/README.md); for how, [ARCHITECTURE.md](ARCHITECTURE.md);
+for what changed, [CHANGELOG.md](../CHANGELOG.md); for what is known to be missing, [OPEN_POINTS.md](OPEN_POINTS.md).
+
+## Unreleased (0.1.0)
+
+### The loop
+
+- Visits the roster's repositories forever, one at a time; no repository twice within `pause_seconds`; the longest
+  waiting due repository first, ties in roster order; sleeps only when none is due, never less than a second
+- `--once` visits every repository once, in roster order, and exits 1 if any visit backed off or found a repository
+  unreachable
+- A visit fetches, compares `main` with the record on `mutants`, and runs only when the record is not current: a
+  different commit, or a different `config_version`
+
+### Repositories
+
+- One full bare clone per repository at `<work_dir>/repos/<name>.git`, its origin reset when the roster's URL changes
+- Explicit refspecs for the configured branch and, when the remote has it, `mutants`; a deleted `mutants` drops the
+  record
+- Skips, publishing nothing: `no-branch` (the branch is not on the remote), `not-a-crate` (no root `Cargo.toml` at
+  `head`), `no-filters` (no `.cargo/mutants.toml` at `head`)
+- Git runs without prompts, in the C locale, with the system's SSH configuration
+
+### Runs
+
+- cargo-mutants in a detached worktree at `head` (`<work_dir>/runs/<name>`), output at `<work_dir>/out/<name>`, both
+  removed after every run; `--jobs` per repository or from the roster
+- `cargo mutants --version` and `rustc --version` recorded with every run
+- Exit 0, 2 and 3 publish `completed`, with counts and lists read from `mutants.out`; exit 4 reruns once at once and,
+  a second time, publishes `baseline-failed`; anything else backs off, and the third tool failure on one commit
+  publishes `tool-failed`
+- Every command has a deadline and is killed with its whole process group: git talking to the remote 5 minutes,
+  other git 1 minute, the run `run_timeout_hours`
+- Failing runs keep the last 200 lines and at most 16 KiB of their output
+
+### Publishing
+
+- An orphan `mutants` branch: `README.md`, `summary.toml`, `missed.txt`, `timeout.txt` (when any), `located/`
+- Mutants keyed without line numbers, duplicates numbered in source order; `new` and `gone` against the previous
+  record
+- Commits written with plumbing only, as `sentinel4rust <sentinel4rust@localhost>`, and pushed as
+  `<commit>:refs/heads/mutants`; nothing else is ever pushed
+- A rejected push backs off; the next visit reruns
+
+### Failures and back-off
+
+- Back-off after a failure: `pause_seconds × 2^(failures-1)`, capped at 6 hours, reset by any success, unchanged
+  `main` or skip
+- A repository that is gone or refuses the key backs off to the cap at once and is logged once per change of state
+- Schedule and back-off are kept in memory; a restart costs at most an early visit
+
+### Start-up and the command line
+
+- `sentinel4rust --roster <file> [--once]`, `--help`, `--version`; a bad command line exits 2 with the usage
+- The roster is validated on start, failing with the line or the key at fault; a second instance on the same work
+  directory fails on its lock
+- Leftovers of a crash are removed on start: checkouts, staging areas, stale worktree entries
+- One journal line on start and one per visit on stdout, for systemd's journal
+
+### Deployment
+
+- `deploy/sentinel4rust.service`, a systemd unit; `deploy/SETUP.md`, the machine, keys and rulesets step by step;
+  `deploy/verify-access.sh`, checking that a repository's key reads and that its ruleset refuses every branch but
+  `mutants`; `deploy/roster.example.toml`
+
+### No dependencies
+
+- The core uses the standard library alone, with its own TOML subset for the roster and `summary.toml`

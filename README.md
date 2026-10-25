@@ -40,17 +40,31 @@ repo=etheram-raft step=unchanged hash=9f8e7d6 duration_s=1
 
 - Roster format: [`deploy/roster.example.toml`](deploy/roster.example.toml)
 - Machine set-up, keys and rulesets: [`deploy/SETUP.md`](deploy/SETUP.md)
-- Architecture: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md); decisions: [`docs/ADRs/`](docs/ADRs/README.md); the original
-  design: [`docs/history/`](docs/history/README.md)
+
+## Documentation
+
+| Doc | What's in it |
+|---|---|
+| [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | How a run flows through the code, module by module; the roster's keys. |
+| [`docs/ADRs/`](docs/ADRs/README.md) | Why the tool is shaped the way it is. |
+| [`docs/IMPLEMENTED-FEATURES.md`](docs/IMPLEMENTED-FEATURES.md) | What it does today. |
+| [`docs/ROADMAP.md`](docs/ROADMAP.md) | What's shipped, what's under way, what's under consideration. |
+| [`docs/OPEN_POINTS.md`](docs/OPEN_POINTS.md) | Known gaps, deliberately recorded. |
+| [`docs/history/`](docs/history/README.md) | The original design, unchanged. |
+| [`CHANGELOG.md`](CHANGELOG.md) | What changed. |
 
 ## Development
 
 ```sh
-just stage1   # fmt, clippy (pedantic, -D warnings), unit + git + end-to-end tests with a stub cargo-mutants
-just stage2   # stern4rust, cargo-shear, dry4rust, crap4rust, twin4rust, iceberg4rust, then the real cargo-mutants 27.1.0
+just stage1   # fmt, clippy (pedantic, -D warnings), the tests: unit, git and end to end with a stub cargo-mutants
+just stage2   # stern4rust (pinned), cargo-shear, dry4rust, crap4rust, twin4rust, iceberg4rust, then the real cargo-mutants 27.1.0
 ```
 
-The core has no dependencies. Layout: `core/` (library and binary), `xtask/` (the gates).
+The core has no dependencies. Layout: `core/` (library and binary), `xtask/` (the gates, with tests of their own).
+CI (`.github/workflows/ci.yml`) runs both stages on Linux. The ruleset for `main` -- a pull request with both jobs
+green -- is kept in [`.github/rulesets/main.json`](.github/rulesets/main.json), as GitHub holds it server-side.
+
+Contributions: [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md). Support: [`DONATE.md`](DONATE.md).
 
 ## License
 

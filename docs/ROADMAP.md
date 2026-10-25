@@ -1,14 +1,21 @@
 # Roadmap
 
-What is under way, and what comes after it.
+What has shipped, what is under way, and what is under consideration.
 
-## In progress: bring it into the family
+## Shipped
 
-The implementation arrived without the gates and coding standards the other `*4rust` tools follow (open point 7).
-This brings it under them in three phases, in this order, one revertable commit per slice, each test-first and green
-on both stages before it lands.
+### The first implementation
 
-### 1. Gates first, with baselines
+The service as [IMPLEMENTED-FEATURES.md](IMPLEMENTED-FEATURES.md) describes it, in one commit (`48c8fb1`), built from
+the design now in [history/](history/README.md).
+
+### Brought into the family
+
+The implementation arrived without the gates and coding standards the other `*4rust` tools follow (open point 7,
+now closed). It was brought under them in three phases, in this order, one revertable commit per slice, each
+test-first and green on both stages before it landed. Phases 1 and 2 are done; phase 3 is under way below.
+
+#### 1. Gates first, with baselines
 
 | slice | what |
 |---|---|
@@ -22,7 +29,7 @@ The stern gate runs stern4rust pinned at one pushed commit, the full rule set of
 version. The baseline is recorded with the pinned binary. It only ever shrinks: each later slice may remove entries and
 never adds one.
 
-### 2. Restructure to the family layout
+#### 2. Restructure to the family layout
 
 Bottom-up, one module per slice. A slice moves a module into the layout below, one object per file, its
 `#[cfg(test)]` tests into mirrored files under `core/tests/` (Arrange/Act/Assert, named
@@ -62,7 +69,7 @@ core/src/
 
 stern4rust allows a directory five subfolders, so `process/`, `git/` and `mutants/` sit under `system/`.
 
-### 3. The open points, one test-first slice each
+## Under way: the open points, one test-first slice each
 
 In this order: 2 (install with `--path`), 14 (`--force-with-lease`), 1 (`TMPDIR` under `work_dir`), 4 (an unreadable
 `summary.toml` is its own state), 13 (the cargo-mutants version counts toward current), 3 (per-repository run caps, a
@@ -71,8 +78,16 @@ three commits: submodules, path dependencies outside the repository, the toolcha
 once), 12 (a staleness check), 5 (cargo-mutants in a separate systemd unit without `~/.ssh`), 15 (what each public
 repository publishes), 16 (the smaller things). Each closes in `docs/OPEN_POINTS.md` as it lands.
 
-## Ideas for later
+## Under consideration
 
-Design section 8, unchanged until real use asks for one of them: incremental runs, docs-only commits republishing the
-previous lists, `--in-place` with a warm `target/`, reloading the roster without a restart, and a notification when
-survivors rise.
+The ideas of the design's section 8 that no open point takes up, each only if real use asks for it:
+
+- **Incremental runs** (`--in-diff` against the last full record, with a periodic full run), if full runs take too
+  long. `kind = "full"` is already in `summary.toml`.
+- **Docs-only commits** republishing the previous lists instead of a full run.
+- **`--in-place`** with a warm `target/` instead of `--jobs` copies, if measurement favours it.
+- **Reloading the roster** without a restart.
+- **A notification** when survivors rise, if the commit messages on `mutants` turn out not to be enough.
+
+Two of its ideas are open points now: re-checking new survivors once before publishing (11), and, instead of a
+heartbeat, a check that compares each repository's `main` with its `mutants` record (12).
