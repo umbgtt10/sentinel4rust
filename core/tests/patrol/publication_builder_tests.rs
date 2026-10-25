@@ -117,6 +117,35 @@ fn build_of_a_completed_run_keys_and_sorts_the_lists_and_counts_new_and_gone() {
     assert_eq!(publication.located_timed_out, ["src/b.rs:4:1: slow"]);
 }
 
+// The sentinel skips such a run rather than publish it; were one published,
+// it would read as the tool failing, with rustup's message as the reason.
+#[test]
+fn build_of_a_missing_toolchain_is_a_tool_failure_with_its_message() {
+    // Arrange
+    let missing = run(RunOutcome::ToolchainMissing {
+        message:
+            "exited with 1: error: toolchain '1.99.1-x86_64-unknown-linux-gnu' is not installed"
+                .to_string(),
+    });
+
+    // Act
+    let publication = PublicationBuilder::new(3).build(
+        &missing,
+        &head(),
+        Timestamp::from_unix(STARTED),
+        Timestamp::from_unix(FINISHED),
+        &[],
+    );
+
+    // Assert
+    assert_eq!(publication.record.outcome, OutcomeKind::ToolFailed);
+    assert_eq!(
+        publication.record.reason.as_deref(),
+        Some("exited with 1: error: toolchain '1.99.1-x86_64-unknown-linux-gnu' is not installed")
+    );
+    assert_eq!(publication.record.log_tail, None);
+}
+
 #[test]
 fn build_of_a_tool_failure_publishes_its_reason_and_log_tail() {
     // Arrange

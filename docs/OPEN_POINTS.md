@@ -127,9 +127,14 @@ repository is onboarded:
   key for `github.com`.
 - **Embedded targets:** a `.cargo/config.toml` with `build.target = "thumbv…"` (etheram-embassy and its consumers)
   cannot run tests on the host; such crates must be excluded in `.cargo/mutants.toml`, or the repository left out.
-- **Pinned toolchains:** each repository's `rust-toolchain.toml` (etheram-core pins 1.99.1) has to be installable by
-  rustup on the machine; whether the machine's rustup installs it on first use, or needs `rustup toolchain install`,
-  is to be checked (rustup 1.29.1 on the development laptop).
+- **Pinned toolchains:** closed in the code -- `rustc --version`, run in the checkout for the record, failing means
+  the toolchain its `rust-toolchain.toml` names is not there: the visit is skipped with `toolchain-missing` and
+  rustup's message, not counted as a tool failure, and cargo-mutants is not started. Whether the machine's rustup
+  installs a pinned toolchain on first use or needs `rustup toolchain install` is still to be checked there (rustup
+  1.29.1 on the development laptop).
+
+Private git dependencies and embedded targets stay as recorded above: to be settled per repository before it is
+onboarded.
 
 ## 11. Flaky tests and machine-dependent timeouts make the lists noisy
 

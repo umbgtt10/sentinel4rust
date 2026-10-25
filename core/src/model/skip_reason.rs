@@ -18,6 +18,11 @@ pub enum SkipReason {
         /// The manifest, relative to the repository's root.
         manifest: String,
     },
+    /// rustc does not run in the checkout: the toolchain its `rust-toolchain.toml` names is not installed.
+    ToolchainMissing {
+        /// How rustc failed: rustup's message.
+        message: String,
+    },
 }
 
 impl SkipReason {
@@ -28,6 +33,7 @@ impl SkipReason {
             Self::NotACrate => "not-a-crate",
             Self::NoFilters => "no-filters",
             Self::PathOutsideRepo { .. } => "path-outside-repo",
+            Self::ToolchainMissing { .. } => "toolchain-missing",
         }
     }
 }

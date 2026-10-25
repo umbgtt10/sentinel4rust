@@ -22,7 +22,8 @@ for what changed, [CHANGELOG.md](../CHANGELOG.md); for what is known to be missi
   record
 - Skips, publishing nothing: `no-branch` (the branch is not on the remote), `not-a-crate` (no root `Cargo.toml` at
   `head`), `no-filters` (no `.cargo/mutants.toml` at `head`), `path-outside-repo` (a manifest at `head` has a
-  `path` dependency outside the repository; the journal names the manifest)
+  `path` dependency outside the repository; the journal names the manifest), `toolchain-missing` (rustc does not
+  run in the checkout; the journal quotes rustup's message)
 - Git runs without prompts, in the C locale, with the system's SSH configuration
 
 ### Runs

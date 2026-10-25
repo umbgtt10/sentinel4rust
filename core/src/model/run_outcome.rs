@@ -23,6 +23,12 @@ pub enum RunOutcome {
         /// The end of the run's output.
         log_tail: String,
     },
+    /// rustc does not run in the checkout -- its `rust-toolchain.toml` names a toolchain the machine lacks --, so
+    /// cargo-mutants was not started.
+    ToolchainMissing {
+        /// How rustc failed: rustup's message.
+        message: String,
+    },
     /// cargo-mutants could not do its job: any other exit, no start, or the run cap.
     ToolFailed {
         /// A one-line reason.

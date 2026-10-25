@@ -32,7 +32,7 @@ Sentinel::visit(repo) -> RoundStep
   3. readiness                 not-a-crate / no-filters / path-outside-repo -> Skipped
   4. BaselineRetry             RepoSource::checkout, MutationRunner::run (again once on a baseline failure),
                                RepoSource::remove_checkout
-  5. a tool failure below the third on this commit -> BackedOff
+  5. a missing toolchain -> Skipped; a tool failure below the third on this commit -> BackedOff
   6. PublicationBuilder::build -> Publication; ResultStore::publish -> Published, or BackedOff if rejected
 ```
 

@@ -77,6 +77,13 @@ impl PublicationBuilder {
                 None,
                 Some(log_tail.clone()),
             )),
+            RunOutcome::ToolchainMissing { message } => Self::without_lists(record(
+                OutcomeKind::ToolFailed,
+                MutantCounts::default(),
+                (0, 0),
+                Some(message.clone()),
+                None,
+            )),
             RunOutcome::ToolFailed { reason, log_tail } => Self::without_lists(record(
                 OutcomeKind::ToolFailed,
                 MutantCounts::default(),

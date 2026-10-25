@@ -570,6 +570,33 @@ fn run_once_unreadable_is_logged_once_never_run_and_recovers() {
 }
 
 #[test]
+fn run_once_without_the_toolchain_skips_with_rustups_message() {
+    // Arrange
+    let (mut s, w) = sentinel(&["a"]);
+    w.queue_sync(Ok(snapshot(&hash('a'), None, &[])));
+    w.queue_run(RunOutcome::ToolchainMissing {
+        message:
+            "exited with 1: error: toolchain '1.99.1-x86_64-unknown-linux-gnu' is not installed"
+                .to_string(),
+    });
+
+    // Act
+    let steps = s.run_once();
+
+    // Assert
+    assert_eq!(
+        steps,
+        [RoundStep::Skipped {
+            reason: SkipReason::ToolchainMissing {
+                message: "exited with 1: error: toolchain '1.99.1-x86_64-unknown-linux-gnu' is not installed".to_string()
+            }
+        }]
+    );
+    assert_eq!(w.run_calls.borrow().len(), 1);
+    assert!(w.publishes.borrow().is_empty());
+}
+
+#[test]
 fn step_follows_the_polling_interval() {
     // Arrange
     let (mut s, w) = sentinel(&["a", "b"]);

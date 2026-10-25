@@ -265,3 +265,48 @@ fn run_points_tmpdir_into_the_work_dir_and_removes_it_after() {
     assert!(runner.tmp_existed.borrow()[2]);
     assert!(!tmp.exists(), "temporary files left behind");
 }
+
+// rustup says why rustc does not run in a checkout whose rust-toolchain.toml
+// names a toolchain the machine lacks: a skip, not a tool failure.
+#[test]
+fn run_without_the_checkouts_toolchain_is_toolchain_missing_and_runs_nothing() {
+    // Arrange
+    let work = TempDir::new("mutants-no-toolchain");
+    let runner = Rc::new(FakeRunner {
+        calls: RefCell::new(Vec::new()),
+        tmp_existed: RefCell::new(Vec::new()),
+        script: Box::new(|c: &Command| {
+            if c.program() == "rustc" {
+                CommandResult::Exited {
+                    code: Some(1),
+                    stdout: String::new(),
+                    stderr: "error: toolchain '1.99.1-x86_64-unknown-linux-gnu' is not installed\n"
+                        .to_string(),
+                }
+            } else {
+                exited(0, "cargo-mutants 27.1.0\n")
+            }
+        }),
+    });
+    let cli = CargoMutantsCli::new(
+        runner.clone(),
+        WorkDir::new(work.path().to_path_buf()),
+        "cargo".to_string(),
+        OutcomeInterpreter::new(LogTail::new(200, 16 * 1024)),
+    );
+
+    // Act
+    let run = cli.run(&repo(), work.path(), 1, Duration::from_secs(9));
+
+    // Assert
+    assert_eq!(
+        run.outcome,
+        RunOutcome::ToolchainMissing {
+            message:
+                "exited with 1: error: toolchain '1.99.1-x86_64-unknown-linux-gnu' is not installed"
+                    .to_string()
+        }
+    );
+    assert_eq!(runner.calls.borrow().len(), 2);
+    assert!(!work.path().join("out").join("r").exists());
+}

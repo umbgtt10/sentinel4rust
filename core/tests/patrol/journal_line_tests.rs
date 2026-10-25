@@ -48,6 +48,27 @@ fn startup_names_the_version_repositories_pause_and_config_version() {
 }
 
 #[test]
+fn visit_skipped_for_a_missing_toolchain_quotes_rustups_message() {
+    // Arrange
+    let step = RoundStep::Skipped {
+        reason: SkipReason::ToolchainMissing {
+            message:
+                "exited with 1: error: toolchain '1.99.1-x86_64-unknown-linux-gnu' is not installed"
+                    .to_string(),
+        },
+    };
+
+    // Act
+    let line = JournalLine.visit(&repo("a"), &step, Duration::from_secs(1));
+
+    // Assert
+    assert_eq!(
+        line,
+        r#"repo=a step=skipped reason=toolchain-missing message="exited with 1: error: toolchain '1.99.1-x86_64-unknown-linux-gnu' is not installed" duration_s=1"#
+    );
+}
+
+#[test]
 fn visit_skipped_for_a_path_outside_names_the_manifest() {
     // Arrange
     let step = RoundStep::Skipped {

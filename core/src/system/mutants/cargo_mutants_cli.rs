@@ -72,6 +72,32 @@ impl CargoMutantsCli {
         Ok(())
     }
 
+    fn mutate(
+        &self,
+        checkout: &Path,
+        arguments: &[String],
+        timeout: Duration,
+        out: &Path,
+        tmp: &Path,
+    ) -> RunOutcome {
+        if let Err(reason) = Self::create_all([out, tmp]) {
+            return RunOutcome::ToolFailed {
+                reason,
+                log_tail: String::new(),
+            };
+        }
+        let out_text = out.to_string_lossy().into_owned();
+        let tmp_text = tmp.to_string_lossy().into_owned();
+        let mut args: Vec<&str> = arguments.iter().map(String::as_str).collect();
+        args.extend(["--output", &out_text]);
+        let command = Command::new(&self.cargo, &args, checkout, timeout)
+            .with_env("CARGO_TERM_COLOR", "never")
+            .with_env("NO_COLOR", "1")
+            .with_env("TMPDIR", &tmp_text);
+        self.interpreter
+            .interpret(&self.runner.run(&command), &out.join("mutants.out"))
+    }
+
     fn version(&self, program: &str, args: &[&str], dir: &Path) -> Option<String> {
         self.runner
             .run(&Command::new(program, args, dir, VERSION_TIMEOUT))
@@ -92,30 +118,27 @@ impl MutationRunner for CargoMutantsCli {
         let tmp = self.work_dir.tmp(repo);
         let _ = fs::remove_dir_all(&out);
         let _ = fs::remove_dir_all(&tmp);
-        let unknown = || "unknown".to_string();
         let cargo_mutants_version = self
             .version(&self.cargo, &["mutants", "--version"], checkout)
-            .unwrap_or_else(unknown);
-        let rustc_version = self
-            .version("rustc", &["--version"], checkout)
-            .unwrap_or_else(unknown);
+            .unwrap_or_else(|| "unknown".to_string());
+        let rustc = self.runner.run(&Command::new(
+            "rustc",
+            &["--version"],
+            checkout,
+            VERSION_TIMEOUT,
+        ));
         let arguments = Self::arguments(jobs);
-        let outcome = if let Err(reason) = Self::create_all([&out, &tmp]) {
-            RunOutcome::ToolFailed {
-                reason,
-                log_tail: String::new(),
-            }
-        } else {
-            let out_text = out.to_string_lossy().into_owned();
-            let tmp_text = tmp.to_string_lossy().into_owned();
-            let mut args: Vec<&str> = arguments.iter().map(String::as_str).collect();
-            args.extend(["--output", &out_text]);
-            let command = Command::new(&self.cargo, &args, checkout, timeout)
-                .with_env("CARGO_TERM_COLOR", "never")
-                .with_env("NO_COLOR", "1")
-                .with_env("TMPDIR", &tmp_text);
-            self.interpreter
-                .interpret(&self.runner.run(&command), &out.join("mutants.out"))
+        let (outcome, rustc_version) = match rustc.success() {
+            None => (
+                RunOutcome::ToolchainMissing {
+                    message: rustc.describe(),
+                },
+                "unknown".to_string(),
+            ),
+            Some(version) => (
+                self.mutate(checkout, &arguments, timeout, &out, &tmp),
+                version.trim().to_string(),
+            ),
         };
         let _ = fs::remove_dir_all(&out);
         let _ = fs::remove_dir_all(&tmp);

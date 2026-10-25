@@ -98,7 +98,14 @@ impl Sentinel {
             }
         };
         let finished = self.deps.clock.now();
-
+        if let RunOutcome::ToolchainMissing { message } = &run.outcome {
+            self.schedule.succeeded(name);
+            return RoundStep::Skipped {
+                reason: SkipReason::ToolchainMissing {
+                    message: message.clone(),
+                },
+            };
+        }
         if let RunOutcome::ToolFailed { reason, .. } = &run.outcome
             && self.schedule.tool_failure(name, &head) < MAX_TOOL_FAILURES
         {

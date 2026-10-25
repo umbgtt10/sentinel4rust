@@ -13,6 +13,9 @@ files and commit messages on `mutants`. The library's paths all changed; it has 
 this repository uses it.
 
 ### Added
+- A checkout in which rustc does not run -- its `rust-toolchain.toml` names a toolchain the machine lacks -- is
+  skipped with `toolchain-missing` and rustup's message, instead of counting as a tool failure; cargo-mutants is not
+  started (open point 10, toolchains). `RunOutcome` and `SkipReason` gain a `ToolchainMissing { message }` variant.
 - A repository whose manifests have a `path` dependency outside it is skipped with `path-outside-repo`, naming the
   manifest, instead of failing its baseline in a checkout that has no sibling (open point 10, path dependencies).
   `SkipReason` gains `PathOutsideRepo { manifest }` and is no longer `Copy`.

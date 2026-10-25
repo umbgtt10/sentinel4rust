@@ -60,8 +60,14 @@ impl JournalLine {
             }
             RoundStep::Skipped { reason } => {
                 let _ = write!(line, " reason={}", reason.as_str());
-                if let SkipReason::PathOutsideRepo { manifest } = reason {
-                    let _ = write!(line, " manifest={manifest}");
+                match reason {
+                    SkipReason::PathOutsideRepo { manifest } => {
+                        let _ = write!(line, " manifest={manifest}");
+                    }
+                    SkipReason::ToolchainMissing { message } => {
+                        let _ = write!(line, " message={message:?}");
+                    }
+                    _ => {}
                 }
             }
         }
