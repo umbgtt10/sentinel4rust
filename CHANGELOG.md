@@ -13,6 +13,13 @@ files and commit messages on `mutants`. The library's paths all changed; it has 
 this repository uses it.
 
 ### Added
+- `deploy/go-live.sh`, run with sudo: with the service stopped, the first `sentinel4rust --once` pass as
+  `sentinel`, in a transient unit with the service's user and limits, so that it outlives the script; its journal
+  lines; then, only if no visit failed, `systemctl enable --now sentinel4rust` and a check that it stays active.
+  Re-run after an interruption, it waits for the running pass and decides on a quick second one.
+  `deploy/status-check.sh`, for another machine: `--status` over a roster with that machine's own access, quiet
+  while nothing needs attention, otherwise printing the lines, mailing them with `--mail`, and exiting with
+  `--status`'s code, for cron or a systemd user timer.
 - `deploy/provision.sh`, run with sudo: `deploy/SETUP.md` sections 1, 3 and 6 as one idempotent script, with
   `--dry-run`, which prints each file it would write or the change to it. It installs the packages, sets up
   unattended security upgrades that reboot at 04:30 when one needs it, and checks the time sync. It creates the
