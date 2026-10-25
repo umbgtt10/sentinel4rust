@@ -5,6 +5,12 @@
 use crate::support::temp_dir::TempDir;
 use sentinel4rust::invocation::work_dir_lock::WorkDirLock;
 
+// Tests in this binary spawn git and sh from other threads. A child holds a
+// copy of every open descriptor from its fork until its exec, so for that
+// instant it can keep the lock taken after its holder dropped it. A bounded
+// number of attempts outlasts the instant; a lock never released fails them all.
+const REACQUIRE_ATTEMPTS: usize = 100_000;
+
 #[test]
 fn acquire_creates_a_missing_work_dir() {
     // Arrange
@@ -36,7 +42,8 @@ fn acquire_twice_fails_until_the_first_is_dropped() {
 
     // Act
     drop(first);
+    let reacquired = (0..REACQUIRE_ATTEMPTS).any(|_| WorkDirLock::acquire(dir.path()).is_ok());
 
     // Assert
-    assert!(WorkDirLock::acquire(dir.path()).is_ok());
+    assert!(reacquired);
 }
