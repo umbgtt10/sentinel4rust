@@ -8,7 +8,7 @@ be observed yet, that it is to be verified on the machine. Recorded 2026-10-24. 
 | # | point | weight |
 |---|---|---|
 | 1 | cargo-mutants builds in a private `/tmp`, which is usually RAM | before the machine runs |
-| 2 | `cargo install sentinel4rust` installs the placeholder that does nothing | before the machine runs |
+| 2 | `cargo install sentinel4rust` installs the placeholder that does nothing | closed: `deploy/SETUP.md` |
 | 3 | a large repository can hold the machine for 36 hours per commit and publish nothing | before onboarding a large repository |
 | 4 | an unreadable `summary.toml` silently reruns the same commit forever | before the machine runs |
 | 5 | every repository's code runs where every repository's key is | accepted in design 5.1; decide again |
@@ -43,11 +43,9 @@ empties `runs/` and `stage/` only. Copies leaked by a killed run stay until the 
 
 ## 2. `cargo install sentinel4rust` installs the placeholder
 
-`deploy/SETUP.md` offers `cargo install sentinel4rust` as the alternative to `--path`. crates.io has only `0.0.1`, the
-placeholder that prints "under construction" and exits `0`. Under systemd with `Restart=always` it would restart
-every 30 seconds, quietly doing nothing.
-
-**To close:** use `--path` until `0.1.0` is published, or publish it. Observed.
+**Closed.** crates.io has only `0.0.1`, the placeholder that prints "under construction" and exits `0`.
+`deploy/SETUP.md` now installs from the repository only, with `cargo install --path core --locked`, until `0.1.0`
+is published; nothing is published from here.
 
 ## 3. A large repository can hold the machine for 36 hours per commit
 

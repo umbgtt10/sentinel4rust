@@ -9,7 +9,7 @@ sudo useradd --create-home --shell /bin/bash sentinel
 sudo -iu sentinel
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
 cargo install cargo-mutants --version 27.1.0 --locked
-cargo install --path /path/to/sentinel4rust/core --locked      # or: cargo install sentinel4rust
+cargo install --path /path/to/sentinel4rust/core --locked      # from the repository, until 0.1.0 is on crates.io
 mkdir -p ~/.config/sentinel4rust && cp deploy/roster.example.toml ~/.config/sentinel4rust/roster.toml
 ssh-keyscan github.com >> ~/.ssh/known_hosts                     # check against GitHub's published fingerprints
 ```

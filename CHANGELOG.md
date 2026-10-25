@@ -44,6 +44,10 @@ this repository uses it.
   captured output and on the clock adapter instead.
 - `docs/DESIGN.md` moved, unchanged, to `docs/history/[SUPERSEDED] DESIGN.md`.
 
+### Fixed
+- `deploy/SETUP.md` no longer offers `cargo install sentinel4rust`, which installs the 0.0.1 placeholder: it
+  installs from the repository with `--path` until 0.1.0 is published (open point 2).
+
 ### Removed
 - The stray `src/main.rs` at the repository root, the 0.0.1 placeholder's leftover.
 - The `forward_through_rc!` macro, made unneeded by `Rc<dyn _>`.
