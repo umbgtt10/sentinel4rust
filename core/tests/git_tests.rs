@@ -21,7 +21,7 @@ use sentinel4rust::model::skip_reason::SkipReason;
 use sentinel4rust::model::sync_error::SyncError;
 use sentinel4rust::model::timestamp::Timestamp;
 use sentinel4rust::model::work_dir::WorkDir;
-use sentinel4rust::system::SystemCommandRunner;
+use sentinel4rust::system::process::system_command_runner::SystemCommandRunner;
 use sentinel4rust::traits::repo_source::RepoSource;
 use sentinel4rust::traits::result_store::ResultStore;
 use std::fs;

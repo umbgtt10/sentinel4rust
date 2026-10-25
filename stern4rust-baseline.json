@@ -102,20 +102,6 @@
     "src/sentinel/tests.rs\u001ftest-free-source\u001fthe test function `the_first_run_publishes_and_everything_is_new`": 1,
     "src/sentinel/tests.rs\u001ftest-free-source\u001fthe test function `tool_failures_back_off_and_the_third_on_one_commit_publishes_tool_failed`": 1,
     "src/sentinel/tests.rs\u001ftest-free-source\u001fthe test function `transient_fetch_failures_checkout_failures_and_rejected_pushes_back_off`": 1,
-    "src/sentinel/tests.rs\u001ftest-free-source\u001fthe test function `unreachable_is_logged_once_until_it_recovers`": 1,
-    "src/system.rs\u001fimported-paths\u001fstd::env::temp_dir": 3,
-    "src/system.rs\u001fimported-paths\u001fstd::fs::remove_file": 1,
-    "src/system.rs\u001fimported-paths\u001fstd::process::Command::new": 2,
-    "src/system.rs\u001fleading-constants\u001fPOLL": 1,
-    "src/system.rs\u001fnamed-subject\u001fSystemCommandRunner": 1,
-    "src/system.rs\u001fowned-functions\u001fkill_group": 1,
-    "src/system.rs\u001fowned-functions\u001freader": 1,
-    "src/system.rs\u001freturned-mutations\u001fkill_group::child": 1,
-    "src/system.rs\u001fsingle-implemented-type\u001fStdoutJournal": 1,
-    "src/system.rs\u001fsingle-implemented-type\u001fSystemClock": 1,
-    "src/system.rs\u001fsingle-implemented-type\u001fThreadPause": 1,
-    "src/system.rs\u001ftest-free-source\u001fthe `#[cfg(test)]` module `tests`": 1,
-    "src/system.rs\u001ftimeless-tests\u001fa_command_past_its_deadline_is_killed_with_its_children": 1,
-    "src/system.rs\u001ftimeless-tests\u001fthe_clock_is_after_2026_and_pause_waits": 1
+    "src/sentinel/tests.rs\u001ftest-free-source\u001fthe test function `unreachable_is_logged_once_until_it_recovers`": 1
   }
 }

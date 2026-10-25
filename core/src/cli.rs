@@ -15,7 +15,10 @@ use crate::model::round_step::RoundStep;
 use crate::model::work_dir::WorkDir;
 use crate::mutants::CargoMutantsCli;
 use crate::sentinel::{Dependencies, Sentinel, startup_line};
-use crate::system::{StdoutJournal, SystemClock, SystemCommandRunner, ThreadPause};
+use crate::system::process::stdout_journal::StdoutJournal;
+use crate::system::process::system_clock::SystemClock;
+use crate::system::process::system_command_runner::SystemCommandRunner;
+use crate::system::process::thread_pause::ThreadPause;
 use crate::traits::clock::Clock;
 use crate::traits::command_runner::CommandRunner;
 
