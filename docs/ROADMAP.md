@@ -15,9 +15,12 @@ on both stages before it lands.
 | G0 | this plan |
 | G1 | the compiler pinned at 1.99.1, the `cargo xtask` alias (open point 6), the copyright header on every `.rs` file, `stern4rust.toml`, a `justfile` with `stage1` and `stage2` |
 | G2 | the xtask rebuilt from `Gate` implementations against a `CommandRunner`, with tests of its own; CI running the same two commands; stern4rust, cargo-shear and dry4rust switched on against baselines of today's offences |
+| pin | (landed after R6) the stern gate runs stern4rust pinned at commit `8b0e8e5` of its repository, installed under `target/stern4rust`; its baseline re-recorded with that binary |
 
-stern4rust's baseline is recorded with both the released rules and the ones its next release adds, so it holds under
-either. It only ever shrinks: each later slice may remove entries and never adds one.
+The stern gate runs stern4rust pinned at one pushed commit, the full rule set of its next release, installed under
+`target/stern4rust` rather than over the global `cargo-stern4rust`; when that release is out, the pin moves to its
+version. The baseline is recorded with the pinned binary. It only ever shrinks: each later slice may remove entries and
+never adds one.
 
 ### 2. Restructure to the family layout
 

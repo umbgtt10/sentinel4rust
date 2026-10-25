@@ -7,6 +7,7 @@ use std::path::Path;
 use std::path::PathBuf;
 use std::process::ExitCode;
 use xtask::crap::crap_report_parser::CrapReportParser;
+use xtask::files::system_file_store::SystemFileStore;
 use xtask::gates::crap_gate::CrapGate;
 use xtask::gates::dry_gate::DryGate;
 use xtask::gates::end_to_end_gate::EndToEndGate;
@@ -25,6 +26,7 @@ const DRY_PATH: &str = "core/src";
 const DRY_BASELINE: &str = "dry4rust-baseline.json";
 const DRY_MIN_NODES: &str = "25";
 const CARGO_MUTANTS_VERSION: &str = "27.1.0";
+const STERN_INSTALL_ROOT: &str = "target/stern4rust";
 
 // Reading the real process argv and wiring the concrete runner are the two
 // things no test can reach, so they are all this binary does.
@@ -40,6 +42,7 @@ fn main() -> ExitCode {
 fn run_stage2() -> ExitCode {
     let manifest_path = workspace_manifest_path();
     let runner = SystemCommandRunner::new();
+    let files = SystemFileStore::new();
     let parser = CrapReportParser::new();
 
     // Both members, so the crate that enforces the bar is held to it too.
@@ -47,8 +50,16 @@ fn run_stage2() -> ExitCode {
 
     // First: its corrections are renames, file moves and directory splits,
     // so a layout it is about to reject is a layout the rest would measure
-    // for nothing. It reads stern4rust-baseline.json beside the manifest.
-    let stern = SternGate::new(&runner, manifest_path.clone(), packages.clone());
+    // for nothing. It reads stern4rust-baseline.json beside the manifest, and
+    // runs the pinned stern4rust it installs under target/, never the global one.
+    let root = workspace_root();
+    let stern = SternGate::new(
+        &runner,
+        &files,
+        manifest_path.clone(),
+        packages.clone(),
+        root.join(STERN_INSTALL_ROOT).to_string_lossy().into_owned(),
+    );
 
     // Second: every declared dependency used, in the section that uses it. Its
     // corrections edit manifests only, so they move nothing the gates behind it
@@ -58,7 +69,6 @@ fn run_stage2() -> ExitCode {
     // Third, for the same reason stern4rust is first: removing a duplicate
     // moves code between files. The core's source only, with zero ceilings
     // against a baseline of what was already duplicated when the gate arrived.
-    let root = workspace_root();
     let dry = DryGate::new(
         &runner,
         root.join(DRY_PATH).to_string_lossy().into_owned(),

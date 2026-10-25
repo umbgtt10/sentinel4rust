@@ -5,29 +5,42 @@
 use std::fmt;
 
 use crate::crap::report_failure::ReportFailure;
+use crate::files::file_failure::FileFailure;
 use crate::process::launch_failure::LaunchFailure;
 
-// Why a gate failed, one variant per way it can: its tool is not installed or
-// could not be started, it exited with a code nobody expected, it could not
-// finish, it found what it exists to find, or it ran and reported nothing a
-// reader could parse. Each says itself exactly as the run has always said it.
+// Why a gate failed, one variant per way it can: its tool is not installed, could
+// not be installed or could not be started, its install could not be recorded,
+// it exited with a code nobody expected, it could not finish, it found what it
+// exists to find, or it ran and reported nothing a reader could parse. Each says
+// itself exactly as the run has always said it.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum GateFailure {
     CouldNotRun(Option<i32>),
     Exited(Option<i32>),
     Found(String),
+    InstallFailed {
+        command: String,
+        exit_code: Option<i32>,
+    },
     NotInstalled(String),
     NotInstalledAt {
         binary: String,
         version: String,
     },
     NotLaunched(LaunchFailure),
+    Unrecorded(FileFailure),
     Unreported {
         failure: ReportFailure,
         exit_code: Option<i32>,
         stderr: String,
         stdout_tail: String,
     },
+}
+
+impl From<FileFailure> for GateFailure {
+    fn from(failure: FileFailure) -> Self {
+        Self::Unrecorded(failure)
+    }
 }
 
 impl From<LaunchFailure> for GateFailure {
@@ -43,6 +56,10 @@ impl fmt::Display for GateFailure {
             Self::CouldNotRun(None) => write!(formatter, "could not run, terminated by signal"),
             Self::Exited(code) => write!(formatter, "exit code {code:?}"),
             Self::Found(finding) => write!(formatter, "{finding}"),
+            Self::InstallFailed { command, exit_code } => write!(
+                formatter,
+                "could not install, exit code {exit_code:?} -- run: {command}"
+            ),
             Self::NotInstalled(binary) => {
                 write!(
                     formatter,
@@ -54,6 +71,7 @@ impl fmt::Display for GateFailure {
                 "{binary} {version} is not installed -- run: cargo install {binary} --version {version} --locked"
             ),
             Self::NotLaunched(failure) => write!(formatter, "{failure}"),
+            Self::Unrecorded(failure) => write!(formatter, "{failure}"),
             Self::Unreported {
                 failure,
                 exit_code,

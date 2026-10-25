@@ -16,6 +16,7 @@ pub struct FakeCommandRunner {
     capturing_code: Option<i32>,
     stdout: String,
     calls: RefCell<Vec<Vec<String>>>,
+    programs: RefCell<Vec<String>>,
 }
 
 impl FakeCommandRunner {
@@ -26,6 +27,7 @@ impl FakeCommandRunner {
             capturing_code: Some(0),
             stdout: String::new(),
             calls: RefCell::new(Vec::new()),
+            programs: RefCell::new(Vec::new()),
         }
     }
 
@@ -55,6 +57,10 @@ impl FakeCommandRunner {
     pub fn calls(&self) -> Vec<Vec<String>> {
         self.calls.borrow().clone()
     }
+
+    pub fn programs(&self) -> Vec<String> {
+        self.programs.borrow().clone()
+    }
 }
 
 impl Default for FakeCommandRunner {
@@ -68,17 +74,19 @@ impl CommandRunner for FakeCommandRunner {
         self.available
     }
 
-    fn run_streaming(&self, _program: &str, args: &[String]) -> Result<Option<i32>, LaunchFailure> {
+    fn run_streaming(&self, program: &str, args: &[String]) -> Result<Option<i32>, LaunchFailure> {
         self.calls.borrow_mut().push(args.to_vec());
+        self.programs.borrow_mut().push(String::from(program));
         Ok(self.streaming_code)
     }
 
     fn run_capturing(
         &self,
-        _program: &str,
+        program: &str,
         args: &[String],
     ) -> Result<CommandOutcome, LaunchFailure> {
         self.calls.borrow_mut().push(args.to_vec());
+        self.programs.borrow_mut().push(String::from(program));
         Ok(CommandOutcome {
             exit_code: self.capturing_code,
             stdout: self.stdout.clone(),
@@ -138,6 +146,21 @@ fn run_streaming_records_the_arguments_it_was_called_with() {
 
     // Assert
     assert_eq!(runner.calls(), vec![args]);
+}
+
+#[test]
+fn run_streaming_records_the_program_it_was_called_with() {
+    // Arrange
+    let runner = FakeCommandRunner::new();
+
+    // Act
+    let _ = runner.run_streaming("target/stern4rust/bin/cargo-stern4rust", &[]);
+
+    // Assert
+    assert_eq!(
+        runner.programs(),
+        vec![String::from("target/stern4rust/bin/cargo-stern4rust")]
+    );
 }
 
 #[test]

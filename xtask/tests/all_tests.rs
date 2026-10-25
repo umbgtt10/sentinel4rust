@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: MIT
 
 mod crap;
+mod files;
 mod gates;
 mod process;
 mod shear;

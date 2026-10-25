@@ -44,11 +44,13 @@ jobs:
       # installing fresh keeps CI honest about which version it gates on.
       # cargo-llvm-cov is crap4rust's coverage backend; cargo-mutants is
       # pinned, because the end-to-end gate checks that version's exit codes
-      # and lists.
+      # and lists. stern4rust is not installed here: the stern gate installs
+      # the commit it pins into target/stern4rust itself, with the same
+      # `cargo install --git ... --rev ... --locked --root` on CI as on a
+      # laptop, so the pin is written down once, in the gate.
       - name: Install gate tools
         if: matrix.stage == 'stage2'
         run: |
-          cargo install cargo-stern4rust
           cargo install --locked cargo-dry4rust
           cargo install cargo-crap4rust
           cargo install cargo-twin4rust
