@@ -6,7 +6,8 @@
 
 use std::path::Path;
 
-use crate::model::branch::run_record::RunRecord;
+use crate::model::branch::record_error::RecordError;
+use crate::model::branch::record_state::RecordState;
 use crate::model::branch::summary_toml::SummaryToml;
 use crate::model::mutant_key::MutantKey;
 use crate::system::git::git_constants::{LOCAL_TIMEOUT, MUTANTS_REMOTE_REF};
@@ -36,10 +37,17 @@ impl RecordReader {
             .unwrap_or_default()
     }
 
-    /// The record, when `summary.toml` is there and parses.
-    pub fn record(&self, dir: &Path) -> Option<RunRecord> {
-        self.show(dir, "summary.toml")
-            .and_then(|text| SummaryToml.parse(&text).ok())
+    /// What `summary.toml` holds: absent when it is missing or in a newer schema, unreadable when it does not
+    /// parse.
+    pub fn record(&self, dir: &Path) -> RecordState {
+        let Some(text) = self.show(dir, "summary.toml") else {
+            return RecordState::Absent;
+        };
+        match SummaryToml.parse(&text) {
+            Ok(record) => RecordState::Present(Box::new(record)),
+            Err(RecordError::UnknownSchema(_)) => RecordState::Absent,
+            Err(error) => RecordState::Unreadable(error),
+        }
     }
 
     fn show(&self, dir: &Path, file: &str) -> Option<String> {

@@ -7,6 +7,8 @@
 use crate::support::world::World;
 use sentinel4rust::model::branch::branch_constants::KIND_FULL;
 use sentinel4rust::model::branch::branch_layout::BranchLayout;
+use sentinel4rust::model::branch::record_error::RecordError;
+use sentinel4rust::model::branch::record_state::RecordState;
 use sentinel4rust::model::branch::run_record::RunRecord;
 use sentinel4rust::model::checkout_error::CheckoutError;
 use sentinel4rust::model::commit_hash::CommitHash;
@@ -109,7 +111,7 @@ fn sentinel(names: &[&str]) -> (Sentinel, Rc<World>) {
 fn snapshot(head: &CommitHash, record: Option<RunRecord>, previous: &[&str]) -> Snapshot {
     Snapshot {
         head: head.clone(),
-        record,
+        record: record.map_or(RecordState::Absent, |r| RecordState::Present(Box::new(r))),
         previous_missed: previous.iter().map(|k| MutantKey::new(*k)).collect(),
         readiness: Ok(()),
     }
@@ -461,6 +463,42 @@ fn run_once_unreachable_is_logged_once_until_it_recovers() {
     );
 }
 
+// Never rerun over: the record may be one a newer schema or a hand edit
+// broke, and overwriting it would lose it. Logged once, it recovers by itself.
+#[test]
+fn run_once_unreadable_is_logged_once_never_run_and_recovers() {
+    // Arrange
+    let (mut s, w) = sentinel(&["a"]);
+    let head = hash('a');
+    let unreadable = || Snapshot {
+        record: RecordState::Unreadable(RecordError::Invalid("line 1: expected `=`".to_string())),
+        ..snapshot(&head, None, &[])
+    };
+    w.queue_sync(Ok(unreadable()));
+    w.queue_sync(Ok(unreadable()));
+    w.queue_sync(Ok(snapshot(&head, Some(record_for(&head, 1)), &[])));
+    w.queue_sync(Ok(unreadable()));
+
+    // Act
+    let steps: Vec<RoundStep> = (0..4).flat_map(|_| s.run_once()).collect();
+
+    // Assert
+    assert_eq!(
+        steps[0],
+        RoundStep::Unreadable {
+            reason: "invalid summary: line 1: expected `=`".to_string()
+        }
+    );
+    assert!(w.run_calls.borrow().is_empty());
+    assert!(w.publishes.borrow().is_empty());
+    let lines = w.lines.borrow();
+    let names: Vec<&str> = lines.iter().map(|l| l.split(' ').nth(1).unwrap()).collect();
+    assert_eq!(
+        names,
+        ["step=unreadable", "step=unchanged", "step=unreadable"]
+    );
+}
+
 #[test]
 fn step_follows_the_polling_interval() {
     // Arrange
@@ -506,6 +544,23 @@ fn step_waits_the_cap_after_unreachable() {
     // Arrange
     let (mut s, w) = sentinel(&["a"]);
     w.queue_sync(Err(SyncError::Unreachable("gone".to_string())));
+
+    // Act
+    s.step();
+    s.step();
+
+    // Assert
+    assert_eq!(w.pauses.borrow().as_slice(), [MAX_BACKOFF]);
+}
+
+#[test]
+fn step_waits_the_cap_after_unreadable() {
+    // Arrange
+    let (mut s, w) = sentinel(&["a"]);
+    w.queue_sync(Ok(Snapshot {
+        record: RecordState::Unreadable(RecordError::Invalid("line 1".to_string())),
+        ..snapshot(&hash('a'), None, &[])
+    }));
 
     // Act
     s.step();

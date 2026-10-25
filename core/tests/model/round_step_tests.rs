@@ -8,7 +8,7 @@ use sentinel4rust::model::outcome_kind::OutcomeKind;
 use sentinel4rust::model::round_step::RoundStep;
 use sentinel4rust::model::skip_reason::SkipReason;
 
-fn every_step() -> [RoundStep; 5] {
+fn every_step() -> [RoundStep; 6] {
     let head = CommitHash::parse(&"a".repeat(40)).unwrap();
     [
         RoundStep::Unchanged { head: head.clone() },
@@ -28,11 +28,14 @@ fn every_step() -> [RoundStep; 5] {
         RoundStep::Skipped {
             reason: SkipReason::NoFilters,
         },
+        RoundStep::Unreadable {
+            reason: String::from("invalid summary: line 1: unterminated array"),
+        },
     ]
 }
 
 #[test]
-fn is_failure_of_a_back_off_or_unreachable_alone_is_true() {
+fn is_failure_of_a_back_off_unreachable_or_unreadable_alone_is_true() {
     // Arrange
     let steps = every_step();
 
@@ -43,7 +46,7 @@ fn is_failure_of_a_back_off_or_unreachable_alone_is_true() {
     }
 
     // Assert
-    assert_eq!(failures, [false, false, true, true, false]);
+    assert_eq!(failures, [false, false, true, true, false, true]);
 }
 
 #[test]
@@ -57,6 +60,7 @@ fn name_of_each_step_is_its_journal_text() {
         "backed-off",
         "unreachable",
         "skipped",
+        "unreadable",
     ];
 
     // Act & Assert

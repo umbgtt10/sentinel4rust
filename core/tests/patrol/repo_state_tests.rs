@@ -88,6 +88,18 @@ fn is_unreachable_of_a_new_state_is_false() {
 }
 
 #[test]
+fn is_unreadable_of_a_new_state_is_false() {
+    // Arrange
+    let state = RepoState::default();
+
+    // Act
+    let unreadable = state.is_unreadable();
+
+    // Assert
+    assert!(!unreadable);
+}
+
+#[test]
 fn succeeded_clears_the_back_off_and_unreachable() {
     // Arrange
     let mut state = RepoState::default();
@@ -100,6 +112,20 @@ fn succeeded_clears_the_back_off_and_unreachable() {
     // Assert
     assert!(!state.is_unreachable());
     assert_eq!(state.due_at(PAUSE), Some(t(300)));
+}
+
+#[test]
+fn succeeded_clears_unreadable() {
+    // Arrange
+    let mut state = RepoState::default();
+    state.unreadable(t(0));
+
+    // Act
+    state.succeeded();
+
+    // Assert
+    assert!(!state.is_unreadable());
+    assert_eq!(state.due_at(PAUSE), None);
 }
 
 #[test]
@@ -129,6 +155,35 @@ fn unreachable_backs_off_to_the_cap_and_is_news_once() {
     // Assert
     assert_eq!(news, [true, false]);
     assert!(state.is_unreachable());
+    assert_eq!(state.due_at(PAUSE), Some(t(10).plus(MAX_BACKOFF)));
+}
+
+#[test]
+fn unreadable_after_unreachable_is_news_and_ends_unreachable() {
+    // Arrange
+    let mut state = RepoState::default();
+    state.unreachable(t(0));
+
+    // Act
+    let news = state.unreadable(t(10));
+
+    // Assert
+    assert!(news);
+    assert!(state.is_unreadable());
+    assert!(!state.is_unreachable());
+}
+
+#[test]
+fn unreadable_backs_off_to_the_cap_and_is_news_once() {
+    // Arrange
+    let mut state = RepoState::default();
+
+    // Act
+    let news = [state.unreadable(t(0)), state.unreadable(t(10))];
+
+    // Assert
+    assert_eq!(news, [true, false]);
+    assert!(state.is_unreadable());
     assert_eq!(state.due_at(PAUSE), Some(t(10).plus(MAX_BACKOFF)));
 }
 

@@ -46,6 +46,23 @@ fn startup_names_the_version_repositories_pause_and_config_version() {
 }
 
 #[test]
+fn visit_unreadable_quotes_the_record_error() {
+    // Arrange
+    let step = RoundStep::Unreadable {
+        reason: "invalid summary: line 3: expected `=`".to_string(),
+    };
+
+    // Act
+    let line = JournalLine.visit(&repo("a"), &step, Duration::from_secs(1));
+
+    // Assert
+    assert_eq!(
+        line,
+        r#"repo=a step=unreadable reason="invalid summary: line 3: expected `=`" duration_s=1"#
+    );
+}
+
+#[test]
 fn visit_with_a_reason_quotes_it() {
     // Arrange
     let step = RoundStep::BackedOff {

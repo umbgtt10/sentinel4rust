@@ -4,7 +4,7 @@
 
 //! What a fetch found.
 
-use crate::model::branch::run_record::RunRecord;
+use crate::model::branch::record_state::RecordState;
 use crate::model::commit_hash::CommitHash;
 use crate::model::mutant_key::MutantKey;
 use crate::model::skip_reason::SkipReason;
@@ -14,8 +14,8 @@ use crate::model::skip_reason::SkipReason;
 pub struct Snapshot {
     /// The configured branch's commit.
     pub head: CommitHash,
-    /// The record on `mutants`, if there is a usable one.
-    pub record: Option<RunRecord>,
+    /// What `summary.toml` on `mutants` holds.
+    pub record: RecordState,
     /// `missed.txt` on `mutants`, for new/gone.
     pub previous_missed: Vec<MutantKey>,
     /// Whether `head` can be tested.

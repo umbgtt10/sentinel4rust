@@ -52,7 +52,9 @@ impl JournalLine {
                     counts.unviable,
                 );
             }
-            RoundStep::BackedOff { reason } | RoundStep::Unreachable { reason } => {
+            RoundStep::BackedOff { reason }
+            | RoundStep::Unreachable { reason }
+            | RoundStep::Unreadable { reason } => {
                 let _ = write!(line, " reason={reason:?}");
             }
             RoundStep::Skipped { reason } => {

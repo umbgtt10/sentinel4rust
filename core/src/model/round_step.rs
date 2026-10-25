@@ -45,12 +45,21 @@ pub enum RoundStep {
         /// Why.
         reason: SkipReason,
     },
+    /// The record on `mutants` does not parse; the repository waits until it does.
+    Unreadable {
+        /// Why it does not parse.
+        reason: String,
+    },
 }
 
 impl RoundStep {
-    /// Whether a `--once` pass counts this visit as failed: it backed off or found the repository unreachable.
+    /// Whether a `--once` pass counts this visit as failed: it backed off, or found the repository unreachable or
+    /// its record unreadable.
     pub fn is_failure(&self) -> bool {
-        matches!(self, Self::BackedOff { .. } | Self::Unreachable { .. })
+        matches!(
+            self,
+            Self::BackedOff { .. } | Self::Unreachable { .. } | Self::Unreadable { .. }
+        )
     }
 
     /// The `step=` value in the journal.
@@ -61,6 +70,7 @@ impl RoundStep {
             Self::BackedOff { .. } => "backed-off",
             Self::Unreachable { .. } => "unreachable",
             Self::Skipped { .. } => "skipped",
+            Self::Unreadable { .. } => "unreadable",
         }
     }
 }

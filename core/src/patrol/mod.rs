@@ -9,6 +9,7 @@
 //! repositories, the one that has waited longest goes first (ties in roster order), so a repository whose
 //! `main` keeps moving cannot starve the rest. Losing this state on a restart costs at most an early visit.
 
+pub mod baseline_retry;
 pub mod dependencies;
 pub mod journal_line;
 pub mod next;

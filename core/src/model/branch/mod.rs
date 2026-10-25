@@ -10,5 +10,6 @@ pub mod branch_layout;
 pub mod publication;
 pub mod record_currency;
 pub mod record_error;
+pub mod record_state;
 pub mod run_record;
 pub mod summary_toml;

@@ -25,6 +25,8 @@ this repository uses it.
   `.github/rulesets/main.json`, the copy of record for `main`'s ruleset.
 
 ### Changed
+- The journal has a sixth step, `unreadable`, and `RoundStep` a sixth variant, `Unreadable { reason }`; the
+  snapshot's record is a `RecordState` (absent, present, unreadable) instead of an `Option`.
 - The library is laid out as the family's: `invocation/` (the command line and `EntryPoint`, the composition root),
   `traits/` (one contract per file), `model/` (with `branch/`, `onboarding/` and `toml/`), `patrol/` (the loop) and
   `system/` (`process/`, `git/`, `mutants/`), one object per file and records where their readers put them. For
@@ -45,6 +47,9 @@ this repository uses it.
 - `docs/DESIGN.md` moved, unchanged, to `docs/history/[SUPERSEDED] DESIGN.md`.
 
 ### Fixed
+- A `summary.toml` that does not parse no longer reruns the commit on every visit, silently: the visit logs
+  `step=unreadable` with the reason once, backs off to the 6-hour cap and never runs over the record; it recovers
+  when the record reads again. `--once` counts it as a failure (open point 4).
 - cargo-mutants' copies of the tree no longer go to the service's private `/tmp`, often RAM: each run gets
   `TMPDIR=<work_dir>/tmp/<name>`, removed after the run and, when a killed run left it, on start (open point 1).
 - `deploy/SETUP.md` no longer offers `cargo install sentinel4rust`, which installs the 0.0.1 placeholder: it

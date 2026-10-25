@@ -20,14 +20,17 @@ main.rs
 Sentinel::step                                 patrol/sentinel.rs
   Schedule::next(repos, now)
     SleepUntil(t) -> Pause::pause(t - now, at least a second)
-    Visit(i)      -> visit, then one JournalLine::visit on the Journal (an unreachable repeat stays quiet)
+    Visit(i)      -> visit, then one JournalLine::visit on the Journal (an unreachable or unreadable repeat stays
+                     quiet)
 
 Sentinel::visit(repo) -> RoundStep
   1. RepoSource::sync          -> Snapshot { head, record, previous_missed, readiness }
                                   Unreachable: back off to the cap; Transient: back off; NoBranch: skip
-  2. RecordCurrency            record names head and config_version -> Unchanged
+  2. RecordState               unreadable -> Unreadable, backed off to the cap, never run over
+     RecordCurrency            present, naming head and config_version -> Unchanged
   3. readiness                 not-a-crate / no-filters -> Skipped
-  4. RepoSource::checkout, MutationRunner::run (again once on a baseline failure), RepoSource::remove_checkout
+  4. BaselineRetry             RepoSource::checkout, MutationRunner::run (again once on a baseline failure),
+                               RepoSource::remove_checkout
   5. a tool failure below the third on this commit -> BackedOff
   6. PublicationBuilder::build -> Publication; ResultStore::publish -> Published, or BackedOff if rejected
 ```
@@ -62,7 +65,8 @@ One trait per file, no default bodies: `CommandRunner` (run a `Command` to compl
   `SkipReason` and `RoundStep` (what a visit did, with its journal name); `WorkDir`, which owns every path under the
   roster's `work_dir`: `repos/<name>.git`, `runs/<name>`, `stage/<name>`, `out/<name>`, `tmp/<name>`.
 - **`branch/`** -- what `mutants` holds ([ADR-OrphanMutantsBranch](ADRs/ADR-OrphanMutantsBranch.md)): the
-  `RunRecord` and `Publication` records, `SummaryToml` (render and parse, schema 1), `RecordCurrency`, `BranchLayout`
+  `RunRecord` and `Publication` records, `RecordState` (absent, present or unreadable), `SummaryToml` (render and
+  parse, schema 1), `RecordCurrency`, `BranchLayout`
   (the files, as `BranchFile`s, and the commit message), `RecordError`, and `KIND_FULL`.
 - **`onboarding/`** -- the roster: `Roster` and `OnboardedRepo` records, `TomlRoster` (parse and validate) and
   `RosterError`.
@@ -73,9 +77,10 @@ One trait per file, no default bodies: `CommandRunner` (run a `Command` to compl
 
 ## `patrol/` -- the loop
 
-`Sentinel` is the policy: the visit above, the baseline retry, the tool-failure count and the publication. `Schedule`
+`Sentinel` is the policy: the visit above, the tool-failure count and the publication; `BaselineRetry` runs a commit
+in its checkout, once more on a failing baseline, and always removes the checkout. `Schedule`
 keeps one `RepoState` per repository -- last visit, back-off deadline, consecutive failures, tool failures on one
-commit, unreachable -- and answers `Next`
+commit, unreachable, unreadable -- and answers `Next`
 ([ADR-PollingPerRepository](ADRs/ADR-PollingPerRepository.md),
 [ADR-ResultsFailuresAndBackOff](ADRs/ADR-ResultsFailuresAndBackOff.md)). `PublicationBuilder` turns a `MutationRun` into
 a `Publication`: keys, sorted located lists, new and gone against the previous record. `JournalLine` formats the

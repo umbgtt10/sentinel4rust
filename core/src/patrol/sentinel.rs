@@ -7,14 +7,17 @@
 use std::time::Duration;
 
 use crate::model::branch::record_currency::RecordCurrency;
+use crate::model::branch::record_state::RecordState;
 use crate::model::commit_hash::CommitHash;
-use crate::model::mutation_run::MutationRun;
+use crate::model::mutant_key::MutantKey;
 use crate::model::onboarding::onboarded_repo::OnboardedRepo;
 use crate::model::onboarding::roster::Roster;
 use crate::model::round_step::RoundStep;
 use crate::model::run_outcome::RunOutcome;
 use crate::model::skip_reason::SkipReason;
+use crate::model::snapshot::Snapshot;
 use crate::model::sync_error::SyncError;
+use crate::patrol::baseline_retry::BaselineRetry;
 use crate::patrol::dependencies::Dependencies;
 use crate::patrol::journal_line::JournalLine;
 use crate::patrol::next::Next;
@@ -31,16 +34,19 @@ pub struct Sentinel {
     roster: Roster,
     deps: Dependencies,
     schedule: Schedule,
+    retry: BaselineRetry,
 }
 
 impl Sentinel {
     /// The sentinel for `roster`.
     pub fn new(roster: Roster, deps: Dependencies) -> Self {
         let schedule = Schedule::new(roster.pause);
+        let retry = BaselineRetry::new(deps.source.clone(), deps.runner.clone());
         Self {
             roster,
             deps,
             schedule,
+            retry,
         }
     }
 
@@ -70,72 +76,21 @@ impl Sentinel {
         }
     }
 
-    /// Checks out `head`, runs, and on a baseline failure runs once more (flaky tests); always removes the
-    /// checkout.
-    fn run_with_baseline_retry(
-        &self,
+    fn run_and_publish(
+        &mut self,
         repo: &OnboardedRepo,
-        head: &CommitHash,
-    ) -> Result<MutationRun, String> {
-        let checkout = self.deps.source.checkout(repo, head);
-        let result = checkout.map(|dir| {
-            let run_once = || {
-                self.deps
-                    .runner
-                    .run(repo, &dir, repo.jobs, self.roster.run_timeout)
-            };
-            let first = run_once();
-            if matches!(first.outcome, RunOutcome::BaselineFailed { .. }) {
-                run_once()
-            } else {
-                first
-            }
-        });
-        self.deps.source.remove_checkout(repo);
-        result.map_err(|e| format!("checkout: {e}"))
-    }
-
-    fn visit(&mut self, repo: &OnboardedRepo) -> RoundStep {
+        head: CommitHash,
+        previous_missed: &[MutantKey],
+    ) -> RoundStep {
         let name = repo.name.as_str();
-        let now = self.deps.clock.now();
-        let snapshot = match self.deps.source.sync(repo) {
-            Ok(snapshot) => snapshot,
-            Err(SyncError::Unreachable(reason)) => {
-                self.schedule.unreachable(name, now);
-                return RoundStep::Unreachable { reason };
-            }
-            Err(SyncError::Transient(reason)) => {
-                self.schedule.failed(name, now);
-                return RoundStep::BackedOff { reason };
-            }
-            Err(SyncError::NoBranch) => {
-                self.schedule.succeeded(name);
-                return RoundStep::Skipped {
-                    reason: SkipReason::NoBranch,
-                };
-            }
-        };
-        let head = snapshot.head.clone();
-        if snapshot
-            .record
-            .as_ref()
-            .is_some_and(|r| RecordCurrency::new(self.roster.config_version).is_current(r, &head))
-        {
-            self.schedule.succeeded(name);
-            self.schedule.clear_tool_failures(name);
-            return RoundStep::Unchanged { head };
-        }
-        if let Err(reason) = snapshot.readiness {
-            self.schedule.succeeded(name);
-            return RoundStep::Skipped { reason };
-        }
-
         let started = self.deps.clock.now();
-        let run = match self.run_with_baseline_retry(repo, &head) {
+        let run = match self.retry.run(repo, &head, self.roster.run_timeout) {
             Ok(run) => run,
-            Err(reason) => {
+            Err(error) => {
                 self.schedule.failed(name, self.deps.clock.now());
-                return RoundStep::BackedOff { reason };
+                return RoundStep::BackedOff {
+                    reason: format!("checkout: {error}"),
+                };
             }
         };
         let finished = self.deps.clock.now();
@@ -153,7 +108,7 @@ impl Sentinel {
             &head,
             started,
             finished,
-            &snapshot.previous_missed,
+            previous_missed,
         );
         match self.deps.store.publish(repo, &publication) {
             Ok(()) => {
@@ -177,19 +132,78 @@ impl Sentinel {
         }
     }
 
+    fn visit(&mut self, repo: &OnboardedRepo) -> RoundStep {
+        let name = repo.name.as_str();
+        let now = self.deps.clock.now();
+        match self.deps.source.sync(repo) {
+            Ok(snapshot) => self.visit_snapshot(repo, snapshot),
+            Err(SyncError::Unreachable(reason)) => {
+                self.schedule.unreachable(name, now);
+                RoundStep::Unreachable { reason }
+            }
+            Err(SyncError::Transient(reason)) => {
+                self.schedule.failed(name, now);
+                RoundStep::BackedOff { reason }
+            }
+            Err(SyncError::NoBranch) => {
+                self.schedule.succeeded(name);
+                RoundStep::Skipped {
+                    reason: SkipReason::NoBranch,
+                }
+            }
+        }
+    }
+
     fn visit_and_log(&mut self, index: usize) -> RoundStep {
         let repo = self.roster.repos[index].clone();
         let started = self.deps.clock.now();
         let was_unreachable = self.schedule.is_unreachable(&repo.name);
+        let was_unreadable = self.schedule.is_unreadable(&repo.name);
         let step = self.visit(&repo);
         let finished = self.deps.clock.now();
         self.schedule.visited(&repo.name, finished);
-        let repeat = was_unreachable && matches!(step, RoundStep::Unreachable { .. });
+        let repeat = match step {
+            RoundStep::Unreachable { .. } => was_unreachable,
+            RoundStep::Unreadable { .. } => was_unreadable,
+            _ => false,
+        };
         if !repeat {
             self.deps
                 .journal
                 .line(&JournalLine.visit(&repo, &step, finished.since(started)));
         }
         step
+    }
+
+    fn visit_snapshot(&mut self, repo: &OnboardedRepo, snapshot: Snapshot) -> RoundStep {
+        let name = repo.name.as_str();
+        let Snapshot {
+            head,
+            record,
+            previous_missed,
+            readiness,
+        } = snapshot;
+        let current = match record {
+            RecordState::Unreadable(error) => {
+                self.schedule.unreadable(name, self.deps.clock.now());
+                return RoundStep::Unreadable {
+                    reason: error.to_string(),
+                };
+            }
+            RecordState::Present(record) => {
+                RecordCurrency::new(self.roster.config_version).is_current(&record, &head)
+            }
+            RecordState::Absent => false,
+        };
+        if current {
+            self.schedule.succeeded(name);
+            self.schedule.clear_tool_failures(name);
+            return RoundStep::Unchanged { head };
+        }
+        if let Err(reason) = readiness {
+            self.schedule.succeeded(name);
+            return RoundStep::Skipped { reason };
+        }
+        self.run_and_publish(repo, head, &previous_missed)
     }
 }

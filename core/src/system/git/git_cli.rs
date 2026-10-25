@@ -9,6 +9,7 @@ use std::path::{Path, PathBuf};
 use std::rc::Rc;
 
 use crate::model::branch::publication::Publication;
+use crate::model::branch::record_state::RecordState;
 use crate::model::checkout_error::CheckoutError;
 use crate::model::commit_hash::CommitHash;
 use crate::model::onboarding::onboarded_repo::OnboardedRepo;
@@ -143,7 +144,7 @@ impl RepoSource for GitCli {
                 self.records.previous_missed(&dir),
             )
         } else {
-            (None, Vec::new())
+            (RecordState::Absent, Vec::new())
         };
         let readiness = self.readiness.check(&dir, &head);
         Ok(Snapshot {

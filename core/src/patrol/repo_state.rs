@@ -10,14 +10,22 @@ use crate::model::commit_hash::CommitHash;
 use crate::model::timestamp::Timestamp;
 use crate::patrol::patrol_constants::MAX_BACKOFF;
 
-/// When one repository was last visited, how long it is backing off, and its tool failures on one commit.
+/// What the last visit found wrong that waits out the cap and is logged once.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Trouble {
+    Unreachable,
+    Unreadable,
+}
+
+/// When one repository was last visited, how long it is backing off, its tool failures on one commit, and
+/// whether it was last found unreachable or its record unreadable.
 #[derive(Debug, Default, Clone)]
 pub struct RepoState {
     last_visit: Option<Timestamp>,
     backoff_until: Option<Timestamp>,
     consecutive_failures: u32,
     tool_failures: Option<(CommitHash, u32)>,
-    unreachable: bool,
+    trouble: Option<Trouble>,
 }
 
 impl RepoState {
@@ -39,7 +47,7 @@ impl RepoState {
     /// Backs off after a failure: `pause × 2^(failures-1)`, capped at [`MAX_BACKOFF`].
     pub fn failed(&mut self, pause: Duration, now: Timestamp) {
         self.consecutive_failures = self.consecutive_failures.saturating_add(1);
-        self.unreachable = false;
+        self.trouble = None;
         let factor = 2u32.saturating_pow(self.consecutive_failures - 1);
         let wait = pause.saturating_mul(factor).min(MAX_BACKOFF);
         self.backoff_until = Some(now.plus(wait));
@@ -47,14 +55,19 @@ impl RepoState {
 
     /// Whether the last visit found the repository unreachable.
     pub fn is_unreachable(&self) -> bool {
-        self.unreachable
+        self.trouble == Some(Trouble::Unreachable)
+    }
+
+    /// Whether the last visit found the record on `mutants` unreadable.
+    pub fn is_unreadable(&self) -> bool {
+        self.trouble == Some(Trouble::Unreadable)
     }
 
     /// Clears the back-off after anything but a failure.
     pub fn succeeded(&mut self) {
         self.consecutive_failures = 0;
         self.backoff_until = None;
-        self.unreachable = false;
+        self.trouble = None;
     }
 
     /// Counts a tool failure on `head`; returns how many there have been on that commit.
@@ -69,14 +82,23 @@ impl RepoState {
 
     /// Backs off straight to the cap; returns whether this is news (it was reachable before).
     pub fn unreachable(&mut self, now: Timestamp) -> bool {
-        let news = !self.unreachable;
-        self.unreachable = true;
-        self.backoff_until = Some(now.plus(MAX_BACKOFF));
-        news
+        self.troubled(Trouble::Unreachable, now)
+    }
+
+    /// Backs off straight to the cap after an unreadable record; returns whether this is news.
+    pub fn unreadable(&mut self, now: Timestamp) -> bool {
+        self.troubled(Trouble::Unreadable, now)
     }
 
     /// Records the end of a visit.
     pub fn visited(&mut self, now: Timestamp) {
         self.last_visit = Some(now);
+    }
+
+    fn troubled(&mut self, trouble: Trouble, now: Timestamp) -> bool {
+        let news = self.trouble != Some(trouble);
+        self.trouble = Some(trouble);
+        self.backoff_until = Some(now.plus(MAX_BACKOFF));
+        news
     }
 }

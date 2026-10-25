@@ -45,6 +45,11 @@ impl Schedule {
         self.states.get(name).is_some_and(RepoState::is_unreachable)
     }
 
+    /// Whether the last visit found the repository's record unreadable.
+    pub fn is_unreadable(&self, name: &str) -> bool {
+        self.states.get(name).is_some_and(RepoState::is_unreadable)
+    }
+
     /// The next repository to visit, or how long to sleep.
     pub fn next(&self, repos: &[OnboardedRepo], now: Timestamp) -> Next {
         let due: Vec<(usize, Option<Timestamp>)> = repos
@@ -80,6 +85,11 @@ impl Schedule {
     /// Backs the repository off straight to the cap; returns whether this is news.
     pub fn unreachable(&mut self, name: &str, now: Timestamp) -> bool {
         self.update(name, |state| state.unreachable(now))
+    }
+
+    /// Backs the repository off straight to the cap after an unreadable record; returns whether this is news.
+    pub fn unreadable(&mut self, name: &str, now: Timestamp) -> bool {
+        self.update(name, |state| state.unreadable(now))
     }
 
     /// Records the end of a visit.

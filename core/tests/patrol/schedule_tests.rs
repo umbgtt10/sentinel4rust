@@ -118,3 +118,18 @@ fn unreachable_waits_the_cap_and_is_news_once() {
     s.succeeded("a");
     assert!(!s.is_unreachable("a"));
 }
+
+#[test]
+fn unreadable_waits_the_cap_and_is_news_once() {
+    // Arrange
+    let r = repos(&["a"]);
+    let mut s = Schedule::new(PAUSE);
+
+    // Act & Assert
+    assert!(s.unreadable("a", t(0)));
+    assert!(!s.unreadable("a", t(0)));
+    assert!(s.is_unreadable("a"));
+    assert_eq!(s.next(&r, t(0)), Next::SleepUntil(t(0).plus(MAX_BACKOFF)));
+    s.succeeded("a");
+    assert!(!s.is_unreadable("a"));
+}

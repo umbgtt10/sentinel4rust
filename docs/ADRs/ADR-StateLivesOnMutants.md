@@ -31,7 +31,9 @@ Everything a rerun needs is already published, so a second store adds nothing it
 A reboot loses only the schedule and back-off (`patrol/`), which costs at most an early visit. A run that dies half
 way publishes nothing and is simply rerun. Deleting `mutants` on the remote drops the record: the next visit reruns.
 Upgrading cargo-mutants without bumping `config_version` leaves old records current (`docs/OPEN_POINTS.md`, point
-13). A `summary.toml` that does not parse reads as no record (point 4).
+13). A `summary.toml` that does not parse is its own state, `unreadable`: the record may be one a hand edit or a newer
+tool broke, so it is never run over; the repository backs off to the cap, is logged once, and recovers when the record
+reads again. One in a schema this version does not know reads as no record, and the commit is run again.
 
 The fetch uses explicit refspecs for the configured branch and, when `git ls-remote` lists it, `mutants`; clones are
 full bare clones at `<work_dir>/repos/<name>.git`.
@@ -39,8 +41,9 @@ full bare clones at `<work_dir>/repos/<name>.git`.
 ## Enforcement
 
 `RecordCurrency::is_current` (`core/src/model/branch/record_currency.rs`) and its test; the sentinel tests for an
-unchanged `main` and a `config_version` bump; `GitCli::sync` reading the record through `RecordReader`, tested on real
-git, including a deleted `mutants` dropping the record.
+unchanged `main`, a `config_version` bump and an unreadable record; `GitCli::sync` reading the record through
+`RecordReader` into a `RecordState`, tested on real git, including a deleted `mutants` dropping the record and a
+garbage `summary.toml` read as unreadable.
 
 ## Related
 

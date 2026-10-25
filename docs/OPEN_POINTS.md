@@ -10,7 +10,7 @@ be observed yet, that it is to be verified on the machine. Recorded 2026-10-24. 
 | 1 | cargo-mutants builds in a private `/tmp`, which is usually RAM | closed: `TMPDIR` under `work_dir` |
 | 2 | `cargo install sentinel4rust` installs the placeholder that does nothing | closed: `deploy/SETUP.md` |
 | 3 | a large repository can hold the machine for 36 hours per commit and publish nothing | before onboarding a large repository |
-| 4 | an unreadable `summary.toml` silently reruns the same commit forever | before the machine runs |
+| 4 | an unreadable `summary.toml` silently reruns the same commit forever | closed: its own state |
 | 5 | every repository's code runs where every repository's key is | accepted in design 5.1; decide again |
 | 6 | `cargo xtask` does not exist | closed: `.cargo/config.toml` |
 | 7 | the family's gates and coding standards do not apply here yet | closed: `docs/ROADMAP.md` |
@@ -57,13 +57,13 @@ mutants, 3 min 20 s, `-j 1`, on the development laptop.
 
 ## 4. An unreadable `summary.toml` silently reruns the same commit
 
-`GitCli::sync` reads the record with `RunRecord::parse(&text).ok()` (`git.rs`): a `summary.toml` that does not parse
-reads as "no record", the commit is not current, and the full run starts again -- on every visit, for as long as the
-file stays unreadable -- with nothing in the journal saying why. The writer and the parser are tested to round-trip,
-so the likely trigger is a schema change, a hand edit, or a value the TOML subset does not cover.
-
-**To close:** treat an unparseable record as its own state: log it once, and either back off or rerun once and
-compare. Observed.
+**Closed.** `GitCli::sync` read the record with `.ok()`, so a `summary.toml` that did not parse read as no record and
+the full run started again on every visit, saying nothing. The snapshot now carries a `RecordState`: absent (no
+`mutants`, no `summary.toml`, or a schema this version does not know, which is run again as before), present, or
+unreadable with its `RecordError`. An unreadable record is never run over -- it may be one a hand edit or a newer
+tool broke, and overwriting it would lose it --: the visit is `step=unreadable` with the reason, logged once per
+change of state like `unreachable`, backed off straight to the 6-hour cap, and the repository recovers by itself
+when the record reads again.
 
 ## 5. Every repository's code runs where every repository's key is
 

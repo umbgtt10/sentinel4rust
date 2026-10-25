@@ -39,6 +39,8 @@ version. `baseline-failed` and `tool-failed` record the commit, so they wait for
   success, unchanged `main` or skip resets it. The tool-failure count is per commit: a new commit starts it again.
 - **Unreachable:** git saying the repository is gone or refuses the key backs off straight to 6 hours and is logged
   once per change of state; it recovers on its own. The messages are matched in English, with `LC_ALL=C`.
+- **Unreadable:** a `summary.toml` that does not parse is treated the same way, and the commit is never run over it
+  (`ADR-StateLivesOnMutants.md`).
 - **Timeouts:** every command has a deadline and is killed with its process group: git talking to the remote and
   creating a checkout 5 minutes, other git 1 minute, the cargo-mutants run `run_timeout_hours` (12 by default).
 - **Log tails** keep the last 200 lines and at most 16 KiB of a failing run's output; nothing is redacted.

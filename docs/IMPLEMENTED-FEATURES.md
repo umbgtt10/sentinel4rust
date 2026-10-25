@@ -49,6 +49,8 @@ for what changed, [CHANGELOG.md](../CHANGELOG.md); for what is known to be missi
 - Back-off after a failure: `pause_seconds × 2^(failures-1)`, capped at 6 hours, reset by any success, unchanged
   `main` or skip
 - A repository that is gone or refuses the key backs off to the cap at once and is logged once per change of state
+- A `summary.toml` that does not parse is never run over: `step=unreadable` with the reason, logged once per change
+  of state, backed off to the cap; the repository recovers when the record reads again
 - Schedule and back-off are kept in memory; a restart costs at most an early visit
 
 ### Start-up and the command line

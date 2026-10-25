@@ -11,6 +11,8 @@ use crate::support::temp_dir::TempDir;
 use sentinel4rust::model::branch::branch_constants::KIND_FULL;
 use sentinel4rust::model::branch::publication::Publication;
 use sentinel4rust::model::branch::record_currency::RecordCurrency;
+use sentinel4rust::model::branch::record_error::RecordError;
+use sentinel4rust::model::branch::record_state::RecordState;
 use sentinel4rust::model::branch::run_record::RunRecord;
 use sentinel4rust::model::commit_hash::CommitHash;
 use sentinel4rust::model::counts::MutantCounts;
@@ -31,6 +33,13 @@ use std::slice;
 
 fn cli(work: &TempDir) -> GitCli {
     GitCli::new(Rc::new(SystemCommandRunner), work_dir(work))
+}
+
+fn present(state: RecordState) -> RunRecord {
+    let RecordState::Present(record) = state else {
+        panic!("expected a record, found {state:?}");
+    };
+    *record
 }
 
 fn publication(commit: &CommitHash, missed: &[&str]) -> Publication {
@@ -211,7 +220,7 @@ fn publish_first_creates_an_orphan_branch_and_leaves_main_alone() {
     let snapshot = git_cli.sync(&repo).unwrap();
 
     // Assert
-    let record = snapshot.record.unwrap();
+    let record = present(snapshot.record);
     assert!(RecordCurrency::new(1).is_current(&record, &head));
     assert_eq!(
         snapshot.previous_missed,
@@ -239,7 +248,7 @@ fn publish_second_appends_to_mutants() {
 
     // Assert
     assert_eq!(snapshot.head, second);
-    assert!(!RecordCurrency::new(1).is_current(&snapshot.record.unwrap(), &second));
+    assert!(!RecordCurrency::new(1).is_current(&present(snapshot.record), &second));
 
     // Act
     git_cli
@@ -293,7 +302,7 @@ fn sync_changed_url_resets_origin_and_deleted_mutants_drops_the_record() {
     git(&origin.bare(), &["update-ref", "-d", "refs/heads/mutants"]);
 
     // Assert
-    assert_eq!(git_cli.sync(&repo).unwrap().record, None);
+    assert_eq!(git_cli.sync(&repo).unwrap().record, RecordState::Absent);
 }
 
 #[test]
@@ -314,6 +323,39 @@ fn sync_missing_branch_and_missing_repository_are_told_apart() {
 }
 
 #[test]
+fn sync_with_a_garbage_summary_reports_it_unreadable() {
+    // Arrange
+    let origin = Origin::new();
+    let head = origin.commit_crate();
+    let work = TempDir::new("work");
+    let git_cli = cli(&work);
+    let repo = origin.repo("x");
+    git_cli.sync(&repo).unwrap();
+    git_cli.publish(&repo, &publication(&head, &["a"])).unwrap();
+    let dev = origin.dev();
+    git(&dev, &["fetch", "--quiet", "origin", "mutants"]);
+    git(
+        &dev,
+        &["checkout", "--quiet", "-B", "mutants", "FETCH_HEAD"],
+    );
+    fs::write(dev.join("summary.toml"), "schema = [\n").unwrap();
+    git(&dev, &["commit", "--quiet", "-am", "a hand edit"]);
+    git(&dev, &["push", "--quiet", "origin", "mutants"]);
+    git(&dev, &["checkout", "--quiet", "main"]);
+
+    // Act
+    let snapshot = git_cli.sync(&repo).unwrap();
+
+    // Assert
+    assert_eq!(snapshot.head, head);
+    assert!(matches!(
+        snapshot.record,
+        RecordState::Unreadable(RecordError::Invalid(_))
+    ));
+    assert_eq!(snapshot.previous_missed, [MutantKey::new("src/lib.rs: a")]);
+}
+
+#[test]
 fn sync_without_a_mutants_branch_reports_no_record() {
     // Arrange
     let origin = Origin::new();
@@ -325,7 +367,7 @@ fn sync_without_a_mutants_branch_reports_no_record() {
 
     // Assert
     assert_eq!(snapshot.head, head);
-    assert_eq!(snapshot.record, None);
+    assert_eq!(snapshot.record, RecordState::Absent);
     assert_eq!(snapshot.previous_missed, Vec::<MutantKey>::new());
     assert_eq!(snapshot.readiness, Ok(()));
 }
