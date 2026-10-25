@@ -25,7 +25,7 @@ be observed yet, that it is to be verified on the machine. Recorded 2026-10-24. 
 | 16 | smaller things | closed: each fixed or recorded |
 | 17 | the automated set-up is proven only as far as the laptop allows | to prove on the machine |
 | 18 | a private repository on GitHub's free plan cannot be onboarded | open: the owner decides |
-| 19 | restarting the service leaves a run in the run unit running | open: a fix proposed |
+| 19 | restarting the service leaves a run in the run unit running | closed in the unit; prove on the machine |
 | 20 | the ruleset covers branches, not tags | open: the owner decides |
 | 21 | the deploy keys depend on the GitHub CLI's authorization | recorded |
 
@@ -84,8 +84,9 @@ give the run a mount namespace without `~/.ssh` (systemd `InaccessiblePaths=` on
 
 **Closed in the code; to prove on the machine.** With `run_unit = "sentinel4rust-mutants"` in the roster, every
 cargo-mutants command runs in `sentinel4rust-mutants@run.service`, a fixed system template unit (`deploy/`) with
-`InaccessiblePaths=/home/sentinel/.ssh`, which the service starts through a polkit rule allowing the `sentinel` user
-to start that unit's instances and nothing else; git, which needs the keys, stays in the service. The command goes
+`InaccessiblePaths=/home/sentinel/.ssh`, which the service starts and stops through a polkit rule allowing the
+`sentinel` user to start and stop that unit's instances and nothing else; git, which needs the keys, stays in the
+service. The command goes
 in as a job file and the result and output come back beside it (`core/src/system/unit/`). Tested here through a
 stand-in for systemd; the unit and the rule have not been installed on the machine, and `deploy/verify-isolation.sh`
 -- `~/.ssh` readable in the service, refused in the unit -- is the proof still to run there. `deploy/provision.sh`
@@ -233,10 +234,10 @@ changing GitHub. Proven there:
 **To prove on the machine**, the first time each runs. Everything that needs root: the packages, the
 unattended-upgrade settings and the reboot they schedule, the `sentinel` user, rustup and the toolchain installed
 for it, the units, the polkit rule and with them `verify-isolation.sh` (point 5), the first pass in its transient
-unit as `sentinel`, the service enabled. Everything that changes GitHub: the ruleset's body accepted as it is by
-`POST /repos/{owner}/{repo}/rulesets`, the deploy key added, `verify-access.sh` rejected by a real ruleset. And
-whether `sudo -n` sees the cache the owner's `sudo -v` left, which depends on sudo's `timestamp_type` and on how
-Claude Code runs commands: `PROVISION.md` stops and asks when it does not.
+unit as `sentinel`, the service enabled, a restart ending a run (point 19). Everything that changes GitHub: the
+ruleset's body accepted as it is by `POST /repos/{owner}/{repo}/rulesets`, the deploy key added, `verify-access.sh`
+rejected by a real ruleset. And whether `sudo -n` sees the cache the owner's `sudo -v` left, which depends on sudo's
+`timestamp_type` and on how Claude Code runs commands: `PROVISION.md` stops and asks when it does not.
 
 ## 18. A private repository on GitHub's free plan cannot be onboarded
 
@@ -259,9 +260,28 @@ waits for the old run and then reads the result the old run wrote as its own. Re
 (`UnitCommandRunner::run`, `GitCli::prune`), not seen on the machine. A reboot stops every unit, so it is not
 affected.
 
-**Until it is fixed:** restart only while `systemctl is-active sentinel4rust-mutants@run.service` says `inactive`
-(`deploy/PROVISION.md`, "Restarting the service"). **Proposed:** `PartOf=sentinel4rust.service` in the run unit, so
-that stopping or restarting the service stops the run first; to be decided, and proven on the machine.
+**Closed in the unit; to prove on the machine.** `deploy/sentinel4rust.service` stops every instance of the run unit
+before the service starts (`ExecStartPre=`) and after it stops (`ExecStopPost=`), as `sentinel`, through the polkit
+rule, which allows `stop` beside `start` on that unit's instances and nothing more. Both run under `flock --nonblock
+--conflict-exit-code 0` on the work directory's lock (`SENTINEL4RUST_LOCK`, which `provision.sh`'s drop-in sets for
+another `work_dir`), so they stop a run only while no pass holds the lock: a pass that does, such as `go-live.sh`'s
+first one or a `--once` by hand, keeps its run, and the service fails on the lock as it always has. Stopping the
+service ends its run; a restart, by hand or after a crash (`Restart=always`), ends the old run before the new service
+prunes, so its first run can never meet one. The stopped run leaves the unit `failed` and no record, and its
+repository runs again from the start on a later visit; `deploy/PROVISION.md` says to restart between runs to keep a
+long one. `verify-isolation.sh` also starts the unit on a job that waits and stops it as `sentinel`, so
+`provision.sh` proves the stop before it sets `run_unit`.
+
+Not taken: `PartOf=sentinel4rust.service` in the run unit, the proposal, passes a restart on as a restart, so systemd
+starts the run unit again by itself, on whatever job file is in `jobs/run/` at that moment; and stopping the run unit
+unconditionally, as root, would stop a pass's run at each of the service's restart attempts while the pass holds the
+lock. Tried here with user units of the same shape (a service starting a oneshot template instance with `systemctl
+start --wait`): with the two lines, a stop left no instance running and a restart stopped the old instance before the
+new service started its own; with a pass holding the lock, a service started beside it failed on the lock and the
+pass's instance ran on, through the service's stop as well; with `PartOf=`, systemd started the instance again
+itself, as part of the restart, before the new service asked for one. `verify-isolation.sh`, run through a
+`systemctl` stand-in on a user unit, passes, and fails when the stop is refused. The system units, the polkit rule
+and the stop as `sentinel` wait for the machine (point 17).
 
 ## 20. The ruleset covers branches, not tags
 

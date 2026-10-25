@@ -447,7 +447,8 @@ units() {
       fi
     done
   else
-    printf '[Service]\nReadWritePaths=%s\n' "$work_dir" > "$scratch/service-dropin"
+    printf '[Service]\nReadWritePaths=%s\nEnvironment=SENTINEL4RUST_LOCK=%s/sentinel4rust.lock\n' \
+      "$work_dir" "$work_dir" > "$scratch/service-dropin"
     printf '[Service]\nExecStart=\nExecStart=%s/sentinel4rust --run-job %s/jobs/%%i\nReadWritePaths=%s\n' \
       "$cargo_bin" "$work_dir" "$work_dir" > "$scratch/run-dropin"
     put_system_file "$service_dropin" < "$scratch/service-dropin"

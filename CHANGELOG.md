@@ -109,6 +109,12 @@ this repository uses it.
 - `docs/DESIGN.md` moved, unchanged, to `docs/history/[SUPERSEDED] DESIGN.md`.
 
 ### Fixed
+- Stopping or restarting the service now ends a run in progress in the run unit, which it used to leave running
+  for the new service to wait on and read as its own: `deploy/sentinel4rust.service` stops the unit's instances
+  before it starts and after it stops, while no other pass holds the work directory's lock (`flock`,
+  `SENTINEL4RUST_LOCK`). The polkit rule lets the `sentinel` user stop the run unit as well as start it, and
+  `deploy/verify-isolation.sh` proves the stop. The stopped run's repository runs again from the start (open point
+  19).
 - A cargo-mutants run no longer keeps its whole output in memory for as long as it runs: each stream keeps its last
   64 KiB, `Command::with_capture_limit`; git's output is kept whole. The roster example says the default `jobs` is 1
   (open point 16, which records the rest).

@@ -113,8 +113,9 @@ the lines printed and, with `--mail`, mailed. `PROVISION.md` has a roster, a cro
 
 Every repository's build scripts, tests and dependencies run where cargo-mutants runs. To keep them away from the
 deploy keys, cargo-mutants can run in a unit of its own, `sentinel4rust-mutants@.service`, with
-`InaccessiblePaths=/home/sentinel/.ssh`; git, which needs the keys, stays in the service. The service starts the unit
-through a polkit rule that lets the `sentinel` user start that unit's instances and nothing else.
+`InaccessiblePaths=/home/sentinel/.ssh`; git, which needs the keys, stays in the service. The service starts the unit,
+and stops it when the service stops, through a polkit rule that lets the `sentinel` user start and stop that unit's
+instances and nothing else.
 
 ```sh
 sudo cp deploy/sentinel4rust-mutants@.service /etc/systemd/system/
@@ -125,10 +126,11 @@ sudo -iu sentinel /path/to/sentinel4rust/deploy/verify-isolation.sh /home/sentin
 
 Then add `run_unit = "sentinel4rust-mutants"` to the roster and restart the service. Each cargo-mutants command is
 written to `<work_dir>/jobs/run/job.toml`, the unit runs it with `sentinel4rust --run-job` and writes the result and
-output beside it, and the service reads them back. The unit's paths assume `work_dir = /home/sentinel/sentinel4rust`;
-change `ExecStart=` if yours differs. This has not yet been proven on the machine: `verify-isolation.sh` is that
-proof. `deploy/provision.sh` installs the unit and the rule, with drop-ins when the work directory differs, runs
-the proof, and adds `run_unit` to the roster only if it passes.
+output beside it, and the service reads them back. The units' paths assume `work_dir = /home/sentinel/sentinel4rust`;
+change the run unit's `ExecStart=` and the service's `SENTINEL4RUST_LOCK` if yours differs. This has not yet been
+proven on the machine: `verify-isolation.sh` is that proof, of the stop as well. `deploy/provision.sh` installs the
+units and the rule, with drop-ins when the work directory differs, runs the proof, and adds `run_unit` to the roster
+only if it passes.
 
 ## 7. Deciding what a public repository publishes
 

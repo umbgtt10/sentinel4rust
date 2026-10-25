@@ -9,6 +9,14 @@ Type=simple
 User=sentinel
 Group=sentinel
 ExecStart=/home/sentinel/.cargo/bin/sentinel4rust --roster /home/sentinel/.config/sentinel4rust/roster.toml
+# A run in the run unit is this service's: stopping the service stops it, and the service never starts beside one
+# (docs/OPEN_POINTS.md point 19). Only while the work directory's lock is free: a pass holding it, such as
+# deploy/go-live.sh's, keeps its run, and the service fails on the lock. SENTINEL4RUST_LOCK follows work_dir.
+Environment=SENTINEL4RUST_LOCK=/home/sentinel/sentinel4rust/sentinel4rust.lock
+ExecStartPre=/usr/bin/flock --nonblock --conflict-exit-code 0 ${SENTINEL4RUST_LOCK} \
+    /usr/bin/systemctl stop 'sentinel4rust-mutants@*.service'
+ExecStopPost=/usr/bin/flock --nonblock --conflict-exit-code 0 ${SENTINEL4RUST_LOCK} \
+    /usr/bin/systemctl stop 'sentinel4rust-mutants@*.service'
 Restart=always
 RestartSec=30
 # cargo, rustup and cargo-mutants live in the user's cargo home.

@@ -224,12 +224,13 @@ says so once the service is live.
 
 ## Restarting the service
 
-The roster and the binary are read on start, so a new roster entry or an upgrade needs a restart. Restart only
-while no run is in progress -- a run in the run unit outlives a restart of the service (`docs/OPEN_POINTS.md`
-point 19):
+The roster and the binary are read on start, so a new roster entry or an upgrade needs a restart. A restart stops a
+run in progress in the run unit before the new service starts (`deploy/sentinel4rust.service`, `docs/OPEN_POINTS.md`
+point 19); the run leaves no record, so its repository runs again from the start on a later visit. To keep a long
+run, restart while none is in progress:
 
 ```sh
-systemctl is-active sentinel4rust-mutants@run.service    # inactive: no run in progress
+systemctl is-active sentinel4rust-mutants@run.service    # inactive or failed: no run in progress
 sudo systemctl restart sentinel4rust
 journalctl -u sentinel4rust -n 3 --no-pager               # the start-up line: N repositories
 ```
