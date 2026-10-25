@@ -6,7 +6,8 @@
 
 use std::fmt;
 
-use super::{CommitHash, MutantCounts};
+use crate::model::commit_hash::CommitHash;
+use crate::model::counts::MutantCounts;
 
 /// The result of one cargo-mutants run, as the runner reports it.
 #[derive(Debug, Clone, PartialEq, Eq)]

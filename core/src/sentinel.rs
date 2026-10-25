@@ -7,10 +7,20 @@
 use std::fmt::Write as _;
 use std::time::Duration;
 
-use crate::model::{
-    CommitHash, KIND_FULL, MutantCounts, MutantKey, MutationRun, OnboardedRepo, OutcomeKind,
-    Publication, Roster, RoundStep, RunOutcome, RunRecord, Timestamp, new_and_gone,
-};
+use crate::model::commit_hash::CommitHash;
+use crate::model::counts::MutantCounts;
+use crate::model::mutant_key::MutantKey;
+use crate::model::outcome::MutationRun;
+use crate::model::outcome::OutcomeKind;
+use crate::model::outcome::RoundStep;
+use crate::model::outcome::RunOutcome;
+use crate::model::outcome::SkipReason;
+use crate::model::record::KIND_FULL;
+use crate::model::record::Publication;
+use crate::model::record::RunRecord;
+use crate::model::roster::OnboardedRepo;
+use crate::model::roster::Roster;
+use crate::model::timestamp::Timestamp;
 use crate::schedule::{MAX_TOOL_FAILURES, Next, Schedule};
 use crate::traits::{Clock, Journal, MutationRunner, Pause, RepoSource, ResultStore, SyncError};
 
@@ -109,7 +119,7 @@ impl Sentinel {
             Err(SyncError::NoBranch) => {
                 self.schedule.succeeded(name);
                 return RoundStep::Skipped {
-                    reason: crate::model::SkipReason::NoBranch,
+                    reason: SkipReason::NoBranch,
                 };
             }
         };
@@ -233,7 +243,8 @@ fn publication_for(
             timed_out,
         } => {
             let missed_keys = MutantKey::from_located(missed);
-            let new_gone = new_and_gone(previous_missed, &missed_keys);
+            let changes = MutantKey::changes(previous_missed, &missed_keys);
+            let new_gone = (changes.new, changes.gone);
             Publication {
                 record: record(OutcomeKind::Completed, *counts, new_gone, None, None),
                 missed: missed_keys,

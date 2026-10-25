@@ -11,7 +11,8 @@ use std::rc::Rc;
 use std::time::Duration;
 
 use super::*;
-use crate::model::{CommitHash, SkipReason};
+use crate::model::commit_hash::CommitHash;
+use crate::model::outcome::SkipReason;
 use crate::schedule::MAX_BACKOFF;
 use crate::traits::Snapshot;
 

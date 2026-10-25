@@ -8,10 +8,14 @@
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 
-use crate::model::{
-    CommitHash, MutantKey, MutationRun, OnboardedRepo, Publication, RunRecord, SkipReason,
-    Timestamp,
-};
+use crate::model::commit_hash::CommitHash;
+use crate::model::mutant_key::MutantKey;
+use crate::model::outcome::MutationRun;
+use crate::model::outcome::SkipReason;
+use crate::model::record::Publication;
+use crate::model::record::RunRecord;
+use crate::model::roster::OnboardedRepo;
+use crate::model::timestamp::Timestamp;
 
 /// A program to run.
 #[derive(Debug, Clone, PartialEq, Eq)]

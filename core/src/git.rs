@@ -15,7 +15,12 @@ use std::path::{Path, PathBuf};
 use std::rc::Rc;
 use std::time::Duration;
 
-use crate::model::{CommitHash, MutantKey, OnboardedRepo, Publication, RunRecord, SkipReason};
+use crate::model::commit_hash::CommitHash;
+use crate::model::mutant_key::MutantKey;
+use crate::model::outcome::SkipReason;
+use crate::model::record::Publication;
+use crate::model::record::RunRecord;
+use crate::model::roster::OnboardedRepo;
 use crate::traits::{
     Command, CommandResult, CommandRunner, RepoSource, ResultStore, Snapshot, SyncError,
 };

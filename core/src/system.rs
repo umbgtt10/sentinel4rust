@@ -10,7 +10,7 @@ use std::process::{Child, Stdio};
 use std::thread::{self, JoinHandle};
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
-use crate::model::Timestamp;
+use crate::model::timestamp::Timestamp;
 use crate::traits::{Clock, Command, CommandResult, CommandRunner, Journal, Pause};
 
 /// Runs commands with `std::process`, each in its own process group so a timeout kills its children too.

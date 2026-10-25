@@ -11,7 +11,9 @@
 use std::collections::HashMap;
 use std::time::Duration;
 
-use crate::model::{CommitHash, OnboardedRepo, Timestamp};
+use crate::model::commit_hash::CommitHash;
+use crate::model::roster::OnboardedRepo;
+use crate::model::timestamp::Timestamp;
 
 /// Cap on the back-off, and the wait after "unreachable".
 pub const MAX_BACKOFF: Duration = Duration::from_secs(6 * 3600);

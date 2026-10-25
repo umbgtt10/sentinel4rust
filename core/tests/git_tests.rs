@@ -9,10 +9,15 @@ use crate::support::git_shell::git;
 use crate::support::origin::Origin;
 use crate::support::temp_dir::TempDir;
 use sentinel4rust::git::GitCli;
-use sentinel4rust::model::{
-    CommitHash, KIND_FULL, MutantCounts, MutantKey, OutcomeKind, Publication, RunRecord,
-    SkipReason, Timestamp,
-};
+use sentinel4rust::model::commit_hash::CommitHash;
+use sentinel4rust::model::counts::MutantCounts;
+use sentinel4rust::model::mutant_key::MutantKey;
+use sentinel4rust::model::outcome::OutcomeKind;
+use sentinel4rust::model::outcome::SkipReason;
+use sentinel4rust::model::record::KIND_FULL;
+use sentinel4rust::model::record::Publication;
+use sentinel4rust::model::record::RunRecord;
+use sentinel4rust::model::timestamp::Timestamp;
 use sentinel4rust::system::SystemCommandRunner;
 use sentinel4rust::traits::{RepoSource, ResultStore, SyncError};
 use std::fs;

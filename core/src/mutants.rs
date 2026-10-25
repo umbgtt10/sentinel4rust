@@ -13,7 +13,10 @@ use std::path::{Path, PathBuf};
 use std::rc::Rc;
 use std::time::Duration;
 
-use crate::model::{MutantCounts, MutationRun, OnboardedRepo, RunOutcome};
+use crate::model::counts::MutantCounts;
+use crate::model::outcome::MutationRun;
+use crate::model::outcome::RunOutcome;
+use crate::model::roster::OnboardedRepo;
 use crate::traits::{Command, CommandResult, CommandRunner, MutationRunner};
 
 /// Lines kept from a failing run's output.
