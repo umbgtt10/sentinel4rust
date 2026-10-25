@@ -13,6 +13,9 @@ files and commit messages on `mutants`. The library's paths all changed; it has 
 this repository uses it.
 
 ### Added
+- A repository whose manifests have a `path` dependency outside it is skipped with `path-outside-repo`, naming the
+  manifest, instead of failing its baseline in a checkout that has no sibling (open point 10, path dependencies).
+  `SkipReason` gains `PathOutsideRepo { manifest }` and is no longer `Copy`.
 - A commit with submodules has them initialised in the run's worktree, recursively, before cargo-mutants runs (open
   point 10, the submodule part).
 - Stage 2 runs the real cargo-mutants 27.1.0 on a crate with a failing baseline and on one with a mutant that loops,

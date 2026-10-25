@@ -8,6 +8,7 @@ pub mod detached_worktree_tests;
 pub mod git_cli_tests;
 pub mod git_failure_tests;
 pub mod git_runner_tests;
+pub mod outside_paths_tests;
 pub mod plumbing_commit_tests;
 pub mod record_reader_tests;
 pub mod remote_listing_tests;

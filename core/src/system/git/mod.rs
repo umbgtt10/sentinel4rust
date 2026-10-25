@@ -18,6 +18,7 @@ pub mod git_cli;
 pub mod git_constants;
 pub mod git_failure;
 pub mod git_runner;
+pub mod outside_paths;
 pub mod plumbing_commit;
 pub mod record_reader;
 pub mod remote_listing;

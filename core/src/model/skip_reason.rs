@@ -5,7 +5,7 @@
 //! Why a visit ran nothing although `main` had moved.
 
 /// Why a visit ran nothing although `main` had moved (`ADR-FiltersLiveInEachRepository`).
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum SkipReason {
     /// The configured branch does not exist on the remote.
     NoBranch,
@@ -13,15 +13,21 @@ pub enum SkipReason {
     NotACrate,
     /// No `.cargo/mutants.toml` at `head`.
     NoFilters,
+    /// A manifest at `head` has a `path` dependency outside the repository, which no checkout holds.
+    PathOutsideRepo {
+        /// The manifest, relative to the repository's root.
+        manifest: String,
+    },
 }
 
 impl SkipReason {
     /// The text used in the journal.
-    pub fn as_str(self) -> &'static str {
+    pub fn as_str(&self) -> &'static str {
         match self {
             Self::NoBranch => "no-branch",
             Self::NotACrate => "not-a-crate",
             Self::NoFilters => "no-filters",
+            Self::PathOutsideRepo { .. } => "path-outside-repo",
         }
     }
 }

@@ -29,7 +29,7 @@ Sentinel::visit(repo) -> RoundStep
                                   Unreachable: back off to the cap; Transient: back off; NoBranch: skip
   2. RecordState               unreadable -> Unreadable, backed off to the cap, never run over
      RecordCurrency            present, naming head, config_version and the installed cargo-mutants -> Unchanged
-  3. readiness                 not-a-crate / no-filters -> Skipped
+  3. readiness                 not-a-crate / no-filters / path-outside-repo -> Skipped
   4. BaselineRetry             RepoSource::checkout, MutationRunner::run (again once on a baseline failure),
                                RepoSource::remove_checkout
   5. a tool failure below the third on this commit -> BackedOff
@@ -96,7 +96,7 @@ start-up line and one `repo=… step=… …` line per visit. `Dependencies` is 
 - **`git/`** -- `GitCli` implements `RepoSource` and `ResultStore` over its parts: `GitRunner` (git without prompts,
   in the C locale; `local` failures are `GitFailure`s naming the command), `BareClone` (made once, origin kept on the
   roster's URL, stale worktree entries pruned), `RemoteListing` (what `ls-remote` listed), `RecordReader` (the
-  record and `missed.txt` off the fetched `mutants`), `CrateReadiness`, `DetachedWorktree` (the run's checkout, with its submodules),
+  record and `missed.txt` off the fetched `mutants`), `CrateReadiness` (with `OutsidePaths`, the manifests' `path` dependencies), `DetachedWorktree` (the run's checkout, with its submodules),
   `PlumbingCommit` (blobs, a temporary index and `commit-tree`) and `UnreachableClassifier`. The deadlines and the
   remote `mutants` ref are in `git_constants.rs`. Only `refs/heads/mutants` is ever pushed
   ([ADR-ExactCommitOnlyMutantsPushed](ADRs/ADR-ExactCommitOnlyMutantsPushed.md)).

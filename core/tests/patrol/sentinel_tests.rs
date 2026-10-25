@@ -336,7 +336,7 @@ fn run_once_not_ready_skips_without_running() {
     // Act & Assert
     for reason in [SkipReason::NotACrate, SkipReason::NoFilters] {
         let mut snap = snapshot(&hash('a'), None, &[]);
-        snap.readiness = Err(reason);
+        snap.readiness = Err(reason.clone());
         w.queue_sync(Ok(snap));
         assert_eq!(s.run_once(), [RoundStep::Skipped { reason }]);
     }

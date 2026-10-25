@@ -5,6 +5,7 @@
 use sentinel4rust::model::onboarding::onboarded_repo::OnboardedRepo;
 use sentinel4rust::model::onboarding::roster::Roster;
 use sentinel4rust::model::round_step::RoundStep;
+use sentinel4rust::model::skip_reason::SkipReason;
 use sentinel4rust::model::timestamp::Timestamp;
 use sentinel4rust::patrol::journal_line::JournalLine;
 use std::path::PathBuf;
@@ -43,6 +44,25 @@ fn startup_names_the_version_repositories_pause_and_config_version() {
             env!("CARGO_PKG_VERSION"),
             Timestamp::from_unix(1_792_800_000)
         )
+    );
+}
+
+#[test]
+fn visit_skipped_for_a_path_outside_names_the_manifest() {
+    // Arrange
+    let step = RoundStep::Skipped {
+        reason: SkipReason::PathOutsideRepo {
+            manifest: "crates/a/Cargo.toml".to_string(),
+        },
+    };
+
+    // Act
+    let line = JournalLine.visit(&repo("a"), &step, Duration::from_secs(1));
+
+    // Assert
+    assert_eq!(
+        line,
+        "repo=a step=skipped reason=path-outside-repo manifest=crates/a/Cargo.toml duration_s=1"
     );
 }
 

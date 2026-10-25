@@ -118,7 +118,9 @@ repository is onboarded:
 - **Submodules:** closed -- a commit with a `.gitmodules` has its submodules initialised in the run's worktree,
   recursively (`git submodule update --init --recursive`); a submodule git cannot fetch is a checkout failure that
   backs off, and private submodules meet the same keys problem as private git dependencies below.
-- **Path dependencies outside the repository** (`path = "../sibling"`): the run's checkout has no sibling.
+- **Path dependencies outside the repository** (`path = "../sibling"`): closed -- readiness reads every
+  `Cargo.toml` at `head` and skips the visit with `path-outside-repo`, naming the manifest, when a `path` leaves the
+  repository; the run's checkout would have no sibling.
 - **Private git dependencies:** the keys are reachable only through the per-repository host aliases
   (`github-<repo>`), and a dependency's URL names `github.com`. cargo's built-in git does not read `~/.ssh/config`
   at all (it authenticates through an SSH agent), and with `net.git-fetch-with-cli` the system git still finds no

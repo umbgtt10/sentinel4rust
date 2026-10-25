@@ -21,7 +21,8 @@ for what changed, [CHANGELOG.md](../CHANGELOG.md); for what is known to be missi
 - Explicit refspecs for the configured branch and, when the remote has it, `mutants`; a deleted `mutants` drops the
   record
 - Skips, publishing nothing: `no-branch` (the branch is not on the remote), `not-a-crate` (no root `Cargo.toml` at
-  `head`), `no-filters` (no `.cargo/mutants.toml` at `head`)
+  `head`), `no-filters` (no `.cargo/mutants.toml` at `head`), `path-outside-repo` (a manifest at `head` has a
+  `path` dependency outside the repository; the journal names the manifest)
 - Git runs without prompts, in the C locale, with the system's SSH configuration
 
 ### Runs

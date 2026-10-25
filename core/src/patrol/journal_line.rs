@@ -10,6 +10,7 @@ use std::time::Duration;
 use crate::model::onboarding::onboarded_repo::OnboardedRepo;
 use crate::model::onboarding::roster::Roster;
 use crate::model::round_step::RoundStep;
+use crate::model::skip_reason::SkipReason;
 use crate::model::timestamp::Timestamp;
 
 /// The journal's lines: one at start, one per visit (`docs/ARCHITECTURE.md`).
@@ -59,6 +60,9 @@ impl JournalLine {
             }
             RoundStep::Skipped { reason } => {
                 let _ = write!(line, " reason={}", reason.as_str());
+                if let SkipReason::PathOutsideRepo { manifest } = reason {
+                    let _ = write!(line, " manifest={manifest}");
+                }
             }
         }
         let _ = write!(line, " duration_s={}", duration.as_secs());

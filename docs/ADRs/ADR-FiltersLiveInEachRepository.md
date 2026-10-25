@@ -31,7 +31,8 @@ left out.
 
 Onboarding a repository needs a commit on its `main`. Before running, after the fetch, a visit is skipped with a
 reason and publishes nothing when `main` has no root `Cargo.toml` (`not-a-crate`) or no `.cargo/mutants.toml`
-(`no-filters`); a branch missing on the remote is `no-branch`.
+(`no-filters`); a branch missing on the remote is `no-branch`; a manifest at `head` with a `path` dependency outside
+the repository, which no checkout holds, is `path-outside-repo`, naming the manifest.
 
 ## Enforcement
 

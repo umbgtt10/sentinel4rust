@@ -395,6 +395,30 @@ fn sync_with_a_garbage_summary_reports_it_unreadable() {
 }
 
 #[test]
+fn sync_with_a_path_dependency_outside_the_repository_is_not_ready() {
+    // Arrange
+    let origin = Origin::new();
+    origin.commit_crate();
+    origin.commit(&[(
+        "crates/a/Cargo.toml",
+        "[package]\nname = \"a\"\n\n[dependencies]\nsibling = { path = \"../../../sibling\" }\n",
+    )]);
+    let work = TempDir::new("work");
+    let git_cli = cli(&work);
+
+    // Act
+    let snapshot = git_cli.sync(&origin.repo("x")).unwrap();
+
+    // Assert
+    assert_eq!(
+        snapshot.readiness,
+        Err(SkipReason::PathOutsideRepo {
+            manifest: String::from("crates/a/Cargo.toml")
+        })
+    );
+}
+
+#[test]
 fn sync_without_a_mutants_branch_reports_no_record() {
     // Arrange
     let origin = Origin::new();
