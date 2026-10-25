@@ -13,6 +13,12 @@ files and commit messages on `mutants`. The library's paths all changed; it has 
 this repository uses it.
 
 ### Added
+- `deploy/onboard.sh <repo>...`: onboards repositories as `deploy/SETUP.md` section 2 does by hand -- per
+  repository the sentinel's key and SSH host alias, on GitHub the ruleset (`deploy/rulesets/sentinel-only-mutants.json`,
+  section 2's ruleset as the API body) and then the deploy key with write access, the access proof, and the
+  `[[repo]]` entry with the date it was verified. Idempotent, with `--dry-run`, which reads GitHub and writes
+  nothing; it changes GitHub only with `--apply-github`, and blocks a repository on which GitHub offers no ruleset.
+  `--local <dir>` tests it against `file://` bare repositories, without sudo, GitHub or the access proof.
 - `.cargo/mutants.toml`, so sentinel4rust can be onboarded on itself: its core is mutated, `xtask/` left out.
   `deploy/SETUP.md` section 7 says how to decide what a public repository publishes, and the roster example records
   the decision per repository (open point 15).
