@@ -4,5 +4,6 @@
 
 mod main_tests;
 mod model;
+mod patrol;
 mod support;
 mod system;

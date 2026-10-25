@@ -17,7 +17,7 @@ use crate::model::commit_hash::CommitHash;
 use crate::model::publish_error::PublishError;
 use crate::model::skip_reason::SkipReason;
 use crate::model::snapshot::Snapshot;
-use crate::schedule::MAX_BACKOFF;
+use crate::patrol::patrol_constants::MAX_BACKOFF;
 
 const PAUSE: Duration = Duration::from_secs(300);
 const RUN_SECONDS: i64 = 60;

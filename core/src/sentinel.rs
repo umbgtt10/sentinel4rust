@@ -24,13 +24,17 @@ use crate::model::run_outcome::RunOutcome;
 use crate::model::skip_reason::SkipReason;
 use crate::model::sync_error::SyncError;
 use crate::model::timestamp::Timestamp;
-use crate::schedule::{MAX_TOOL_FAILURES, Next, Schedule};
+use crate::patrol::next::Next;
+use crate::patrol::schedule::Schedule;
 use crate::traits::clock::Clock;
 use crate::traits::journal::Journal;
 use crate::traits::mutation_runner::MutationRunner;
 use crate::traits::pause::Pause;
 use crate::traits::repo_source::RepoSource;
 use crate::traits::result_store::ResultStore;
+
+/// Tool failures on one commit before `tool-failed` is published.
+const MAX_TOOL_FAILURES: u32 = 3;
 
 /// Everything the sentinel talks to, injected once. Shared, so one implementation (`GitCli`, or a test's
 /// fake) can fill several roles.
