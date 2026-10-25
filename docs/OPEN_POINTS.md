@@ -115,7 +115,9 @@ lines as the others. The lists of those two runs are kept, unedited, in `core/te
 Each of these makes the run fail as `baseline-failed` or `tool-failed`, and each is to be verified before the
 repository is onboarded:
 
-- **Submodules:** `git worktree add` checks out no submodules.
+- **Submodules:** closed -- a commit with a `.gitmodules` has its submodules initialised in the run's worktree,
+  recursively (`git submodule update --init --recursive`); a submodule git cannot fetch is a checkout failure that
+  backs off, and private submodules meet the same keys problem as private git dependencies below.
 - **Path dependencies outside the repository** (`path = "../sibling"`): the run's checkout has no sibling.
 - **Private git dependencies:** the keys are reachable only through the per-repository host aliases
   (`github-<repo>`), and a dependency's URL names `github.com`. cargo's built-in git does not read `~/.ssh/config`

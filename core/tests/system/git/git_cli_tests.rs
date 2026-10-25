@@ -5,6 +5,7 @@
 // `GitCli` against real git: bare repositories in temporary directories,
 // `file://` remotes, no network.
 
+use crate::support::file_protocol_runner::FileProtocolRunner;
 use crate::support::git_shell::git;
 use crate::support::origin::Origin;
 use crate::support::temp_dir::TempDir;
@@ -112,6 +113,44 @@ fn checkout_is_detached_at_head_and_removed_completely() {
             .lines()
             .count(),
         1
+    );
+}
+
+#[test]
+fn checkout_of_a_commit_with_a_submodule_initialises_it() {
+    // Arrange
+    let sub = Origin::new();
+    sub.commit(&[("lib.txt", "from the submodule")]);
+    let origin = Origin::new();
+    origin.commit_crate();
+    let dev = origin.dev();
+    git(
+        &dev,
+        &[
+            "-c",
+            "protocol.file.allow=always",
+            "submodule",
+            "add",
+            "--quiet",
+            &sub.url(),
+            "vendor/sub",
+        ],
+    );
+    git(&dev, &["commit", "--quiet", "-m", "add a submodule"]);
+    git(&dev, &["push", "--quiet", "origin", "main"]);
+    let head = CommitHash::parse(&git(&dev, &["rev-parse", "HEAD"])).unwrap();
+    let work = TempDir::new("work");
+    let git_cli = GitCli::new(Rc::new(FileProtocolRunner), work_dir(&work));
+    let repo = origin.repo("x");
+    git_cli.sync(&repo).unwrap();
+
+    // Act
+    let checkout = git_cli.checkout(&repo, &head).unwrap();
+
+    // Assert
+    assert_eq!(
+        fs::read_to_string(checkout.join("vendor/sub/lib.txt")).unwrap(),
+        "from the submodule"
     );
 }
 

@@ -14,7 +14,8 @@ use crate::model::work_dir::WorkDir;
 use crate::system::git::git_constants::NETWORK_TIMEOUT;
 use crate::system::git::git_runner::GitRunner;
 
-/// A worktree of the bare clone, detached at the commit under test, that nobody works in.
+/// A worktree of the bare clone, detached at the commit under test, that nobody works in; a commit with
+/// submodules gets them initialised, recursively.
 #[derive(Clone)]
 pub struct DetachedWorktree {
     git: GitRunner,
@@ -27,7 +28,8 @@ impl DetachedWorktree {
         Self { git, work_dir }
     }
 
-    /// Checks `head` out, detached, where `work_dir` puts `repo`'s checkout; returns that path.
+    /// Checks `head` out, detached, where `work_dir` puts `repo`'s checkout, with its submodules when it has any;
+    /// returns that path.
     pub fn add(&self, repo: &OnboardedRepo, head: &CommitHash) -> Result<PathBuf, CheckoutError> {
         let dir = self.work_dir.bare_clone(repo);
         let run_dir = self.work_dir.checkout(repo);
@@ -51,6 +53,15 @@ impl DetachedWorktree {
                 NETWORK_TIMEOUT,
             )
             .map_err(|r| CheckoutError(format!("git worktree add: {}", r.describe())))?;
+        if run_dir.join(".gitmodules").is_file() {
+            self.git
+                .git(
+                    &run_dir,
+                    &["submodule", "update", "--init", "--recursive"],
+                    NETWORK_TIMEOUT,
+                )
+                .map_err(|r| CheckoutError(format!("git submodule update: {}", r.describe())))?;
+        }
         Ok(run_dir)
     }
 

@@ -26,7 +26,7 @@ for what changed, [CHANGELOG.md](../CHANGELOG.md); for what is known to be missi
 
 ### Runs
 
-- cargo-mutants in a detached worktree at `head` (`<work_dir>/runs/<name>`), output at `<work_dir>/out/<name>` and
+- cargo-mutants in a detached worktree at `head` (`<work_dir>/runs/<name>`), submodules initialised, output at `<work_dir>/out/<name>` and
   `TMPDIR` at `<work_dir>/tmp/<name>`, all removed after every run; `--jobs` and the run cap per repository or from
   the roster
 - `cargo mutants --version` and `rustc --version` recorded with every run

@@ -13,6 +13,8 @@ files and commit messages on `mutants`. The library's paths all changed; it has 
 this repository uses it.
 
 ### Added
+- A commit with submodules has them initialised in the run's worktree, recursively, before cargo-mutants runs (open
+  point 10, the submodule part).
 - Stage 2 runs the real cargo-mutants 27.1.0 on a crate with a failing baseline and on one with a mutant that loops,
   beside the survivors' fixture; the lists those runs wrote are kept in `core/tests/fixtures/mutants_out/` and read
   in stage 1 (open point 9).

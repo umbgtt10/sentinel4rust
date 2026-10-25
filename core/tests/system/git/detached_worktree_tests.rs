@@ -92,6 +92,56 @@ fn add_failing_is_a_checkout_error_naming_the_step() {
 }
 
 #[test]
+fn add_of_a_commit_with_submodules_initialises_them_in_the_checkout() {
+    // Arrange
+    let work = TempDir::new("worktree-submodules");
+    let checkout = work_dir(&work).checkout(&repo());
+    fs::create_dir_all(&checkout).unwrap();
+    fs::write(checkout.join(".gitmodules"), "[submodule \"sub\"]\n").unwrap();
+    let runner = Rc::new(ScriptedRunner::new(vec![ok(""), ok("")]));
+
+    // Act
+    let result = worktree(&runner, &work).add(&repo(), &head());
+
+    // Assert
+    assert_eq!(result, Ok(checkout.clone()));
+    let command = &runner.commands()[1];
+    assert_eq!(
+        command.args(),
+        ["submodule", "update", "--init", "--recursive"]
+    );
+    assert_eq!(command.dir(), checkout);
+    assert_eq!(command.timeout(), Duration::from_secs(300));
+}
+
+#[test]
+fn add_with_a_submodule_failing_is_a_checkout_error_naming_the_step() {
+    // Arrange
+    let work = TempDir::new("worktree-submodule-fails");
+    let checkout = work_dir(&work).checkout(&repo());
+    fs::create_dir_all(&checkout).unwrap();
+    fs::write(checkout.join(".gitmodules"), "[submodule \"sub\"]\n").unwrap();
+    let runner = Rc::new(ScriptedRunner::new(vec![
+        ok(""),
+        failed(
+            128,
+            "fatal: repository 'git@github.com:x/private.git' not found",
+        ),
+    ]));
+
+    // Act
+    let result = worktree(&runner, &work).add(&repo(), &head());
+
+    // Assert
+    assert_eq!(
+        result,
+        Err(CheckoutError(String::from(
+            "git submodule update: exited with 128: fatal: repository 'git@github.com:x/private.git' not found"
+        )))
+    );
+}
+
+#[test]
 fn remove_of_a_checkout_removes_the_worktree_and_its_directory() {
     // Arrange
     let work = TempDir::new("worktree-remove");

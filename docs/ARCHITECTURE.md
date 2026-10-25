@@ -96,7 +96,7 @@ start-up line and one `repo=… step=… …` line per visit. `Dependencies` is 
 - **`git/`** -- `GitCli` implements `RepoSource` and `ResultStore` over its parts: `GitRunner` (git without prompts,
   in the C locale; `local` failures are `GitFailure`s naming the command), `BareClone` (made once, origin kept on the
   roster's URL, stale worktree entries pruned), `RemoteListing` (what `ls-remote` listed), `RecordReader` (the
-  record and `missed.txt` off the fetched `mutants`), `CrateReadiness`, `DetachedWorktree` (the run's checkout),
+  record and `missed.txt` off the fetched `mutants`), `CrateReadiness`, `DetachedWorktree` (the run's checkout, with its submodules),
   `PlumbingCommit` (blobs, a temporary index and `commit-tree`) and `UnreachableClassifier`. The deadlines and the
   remote `mutants` ref are in `git_constants.rs`. Only `refs/heads/mutants` is ever pushed
   ([ADR-ExactCommitOnlyMutantsPushed](ADRs/ADR-ExactCommitOnlyMutantsPushed.md)).
