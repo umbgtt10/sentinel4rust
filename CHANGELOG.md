@@ -13,6 +13,15 @@ files and commit messages on `mutants`. The library's paths all changed; it has 
 this repository uses it.
 
 ### Added
+- `deploy/provision.sh`, run with sudo: `deploy/SETUP.md` sections 1, 3 and 6 as one idempotent script, with
+  `--dry-run`, which prints each file it would write or the change to it. It installs the packages, sets up
+  unattended security upgrades that reboot at 04:30 when one needs it, and checks the time sync. It creates the
+  `sentinel` user, with rustup, Rust 1.99.1 and cargo-mutants 27.1.0, and builds sentinel4rust from a `git archive`
+  of the checkout's HEAD (`cargo install --path core --locked`). It writes a roster skeleton that it never
+  overwrites, and adds GitHub's SSH host keys, refusing any whose fingerprint GitHub does not publish. It installs
+  the two units and the polkit rule (drop-ins for a work directory other than the default), and adds
+  `run_unit = "sentinel4rust-mutants"` to the roster only once `deploy/verify-isolation.sh` passes. It does not
+  enable the service.
 - `deploy/onboard.sh <repo>...`: onboards repositories as `deploy/SETUP.md` section 2 does by hand -- per
   repository the sentinel's key and SSH host alias, on GitHub the ruleset (`deploy/rulesets/sentinel-only-mutants.json`,
   section 2's ruleset as the API body) and then the deploy key with write access, the access proof, and the
