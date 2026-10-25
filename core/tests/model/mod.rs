@@ -6,6 +6,7 @@ pub mod branch;
 pub mod commit_hash_tests;
 pub mod located_tests;
 pub mod mutant_key_tests;
+pub mod onboarding;
 pub mod outcome_kind_tests;
 pub mod round_step_tests;
 pub mod skip_reason_tests;

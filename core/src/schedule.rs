@@ -12,7 +12,7 @@ use std::collections::HashMap;
 use std::time::Duration;
 
 use crate::model::commit_hash::CommitHash;
-use crate::model::roster::OnboardedRepo;
+use crate::model::onboarding::onboarded_repo::OnboardedRepo;
 use crate::model::timestamp::Timestamp;
 
 /// Cap on the back-off, and the wait after "unreachable".

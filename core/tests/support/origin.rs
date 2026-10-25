@@ -5,7 +5,7 @@
 use crate::support::git_shell::git;
 use crate::support::temp_dir::TempDir;
 use sentinel4rust::model::commit_hash::CommitHash;
-use sentinel4rust::model::roster::OnboardedRepo;
+use sentinel4rust::model::onboarding::onboarded_repo::OnboardedRepo;
 use std::fs;
 use std::path::PathBuf;
 use std::process::Command;

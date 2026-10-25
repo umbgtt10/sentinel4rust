@@ -9,7 +9,8 @@ use std::path::PathBuf;
 use std::rc::Rc;
 
 use crate::git::GitCli;
-use crate::model::roster::Roster;
+use crate::model::onboarding::roster::Roster;
+use crate::model::onboarding::toml_roster::TomlRoster;
 use crate::model::round_step::RoundStep;
 use crate::mutants::CargoMutantsCli;
 use crate::sentinel::{Dependencies, Sentinel, startup_line};
@@ -104,7 +105,7 @@ pub fn failed(step: &RoundStep) -> bool {
 pub fn run(roster_path: &PathBuf, once: bool) -> Result<i32, String> {
     let text = fs::read_to_string(roster_path)
         .map_err(|e| format!("read {}: {e}", roster_path.display()))?;
-    let roster = Roster::parse(&text).map_err(|e| e.to_string())?;
+    let roster = TomlRoster.parse(&text).map_err(|e| e.to_string())?;
     let _lock = WorkDirLock::acquire(&roster)?;
     let runner: Rc<dyn CommandRunner> = Rc::new(SystemCommandRunner);
     let git = Rc::new(GitCli::new(runner.clone(), roster.work_dir.clone()));
@@ -168,11 +169,12 @@ mod tests {
     #[test]
     fn a_second_lock_on_the_same_work_dir_fails() {
         let dir = std::env::temp_dir().join(format!("sentinel-lock-{}", std::process::id()));
-        let roster = Roster::parse(&format!(
-            "work_dir = \"{}\"\n[[repo]]\nname = \"a\"\nurl = \"u\"",
-            dir.display()
-        ))
-        .unwrap();
+        let roster = TomlRoster
+            .parse(&format!(
+                "work_dir = \"{}\"\n[[repo]]\nname = \"a\"\nurl = \"u\"",
+                dir.display()
+            ))
+            .unwrap();
         let first = WorkDirLock::acquire(&roster).unwrap();
         let error = WorkDirLock::acquire(&roster).err().unwrap();
         assert!(error.contains("another sentinel4rust"), "{error}");

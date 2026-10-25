@@ -13,7 +13,7 @@ use crate::model::branch::run_record::RunRecord;
 use crate::model::commit_hash::CommitHash;
 use crate::model::mutant_key::MutantKey;
 use crate::model::mutation_run::MutationRun;
-use crate::model::roster::OnboardedRepo;
+use crate::model::onboarding::onboarded_repo::OnboardedRepo;
 use crate::model::skip_reason::SkipReason;
 use crate::model::timestamp::Timestamp;
 
