@@ -21,7 +21,7 @@ be observed yet, that it is to be verified on the machine. Recorded 2026-10-24. 
 | 12 | a dead machine looks like a quiet repository | closed: `--status` |
 | 13 | `config_version` has to be bumped by hand after a cargo-mutants upgrade | closed: the version counts |
 | 14 | `verify-access.sh --include-main` force-pushes `main` | closed: `deploy/verify-access.sh` |
-| 15 | what public repositories publish | accepted in design 5.1; decide per repository |
+| 15 | what public repositories publish | closed: decided per repository |
 | 16 | smaller things | low |
 
 ---
@@ -183,13 +183,12 @@ repositories without and with a stand-in ruleset, and with a push landing on `ma
 
 ## 15. What public repositories publish
 
-On a public repository, `mutants` is public: the survivor lists -- a map of the code no test pins -- and, on
-failures, up to 200 lines of log tail with paths such as `/home/sentinel/...`. Design 5.1 accepts this. For
-etheram-ibft, whose untested paths sit close to what is kept private, onboarding is a decision of its own. Commits on
-`mutants` are unsigned, from `sentinel4rust@localhost`; a repository that requires signed commits on every branch
-rejects them (design 5.2 asks for that rule on `main` only).
-
-**To decide per repository.**
+**Closed.** On a public repository `mutants` is public: the survivor lists -- a map of the code no test pins -- and, on
+failures, up to 200 lines of log tail with paths such as `/home/sentinel/...`. It is decided per repository, as
+`deploy/SETUP.md` section 7 says, and recorded in `deploy/roster.example.toml`: twin4rust, etheram-raft and
+sentinel4rust publish theirs -- sentinel4rust is tested on itself, its `.cargo/mutants.toml` leaving `xtask/` out --;
+etheram-ibft stays off, by decision. Commits on `mutants` are unsigned, so signed commits are required on `main`
+only.
 
 ## 16. Smaller things
 

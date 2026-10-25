@@ -13,6 +13,9 @@ files and commit messages on `mutants`. The library's paths all changed; it has 
 this repository uses it.
 
 ### Added
+- `.cargo/mutants.toml`, so sentinel4rust can be onboarded on itself: its core is mutated, `xtask/` left out.
+  `deploy/SETUP.md` section 7 says how to decide what a public repository publishes, and the roster example records
+  the decision per repository (open point 15).
 - `run_unit` in the roster: cargo-mutants then runs in a systemd template unit of its own,
   `deploy/sentinel4rust-mutants@.service`, which cannot read `~/.ssh`, started through the polkit rule in `deploy/`;
   git and the deploy keys stay in the service. The command goes in as a job file and comes back as a result file and

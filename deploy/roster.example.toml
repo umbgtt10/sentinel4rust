@@ -1,5 +1,8 @@
 # ~sentinel/.config/sentinel4rust/roster.toml -- every key, with its default, in docs/ARCHITECTURE.md.
 # Edit, then: sudo systemctl restart sentinel4rust
+#
+# A public repository's mutants branch is public: decide per repository (deploy/SETUP.md section 7).
+# twin4rust, etheram-raft and sentinel4rust publish theirs; etheram-ibft stays off, by decision.
 
 work_dir = "/home/sentinel/sentinel4rust"   # clones, worktrees, cargo-mutants output
 pause_seconds = 300                          # polling interval per repository
@@ -22,5 +25,5 @@ jobs = 2                                     # per-repo override, e.g. tests not
 run_timeout_hours = 24                       # per-repo cap, sized as deploy/SETUP.md section 4 says
 
 [[repo]]
-name = "sentinel4rust"
+name = "sentinel4rust"                       # tested on itself; its .cargo/mutants.toml leaves xtask/ out
 url = "git@github-sentinel4rust:umbgtt10/sentinel4rust.git"

@@ -108,3 +108,13 @@ written to `<work_dir>/jobs/run/job.toml`, the unit runs it with `sentinel4rust 
 output beside it, and the service reads them back. The unit's paths assume `work_dir = /home/sentinel/sentinel4rust`;
 change `ExecStart=` if yours differs. This has not yet been proven on the machine: `verify-isolation.sh` is that
 proof.
+## 7. Deciding what a public repository publishes
+
+On a public repository, `mutants` is public too: the survivor lists -- a map of the code no test pins -- and, on
+failures, up to 200 lines of log tail, with paths such as `/home/sentinel/...`. Decide per repository, before adding
+it to the roster, whether that map may be public; a repository whose survivors should not be is left off the roster,
+and nothing about it is published. Record the decision beside its roster entry, or in the roster's comments when it
+is left off.
+
+Commits on `mutants` are unsigned, from `sentinel4rust@localhost`: a repository requiring signed commits on every
+branch rejects them, so require them on `main` only (section 2's ruleset leaves `mutants` without rules).

@@ -79,6 +79,10 @@ for what changed, [CHANGELOG.md](../CHANGELOG.md); for what is known to be missi
   `deploy/verify-access.sh`, checking that a repository's key reads and that its ruleset refuses every branch but
   `mutants`; `deploy/roster.example.toml`
 
+### Tested on itself
+
+- `.cargo/mutants.toml` makes sentinel4rust a repository the service can test: the core is mutated, `xtask/` left out
+
 ### No dependencies
 
 - The core uses the standard library alone, with its own TOML subset for the roster and `summary.toml`

@@ -1,0 +1,3 @@
+# What sentinel4rust's own runs mutate (docs/ADRs/ADR-FiltersLiveInEachRepository.md): the service's code, not
+# the gates that check it.
+exclude_globs = ["xtask/**"]
