@@ -38,8 +38,8 @@ impl CommandRunner for SystemCommandRunner {
             Err(error) => return CommandResult::FailedToStart(error.to_string()),
         };
         let group = ProcessGroup::new(child.id());
-        let stdout = StreamReader.spawn(child.stdout.take());
-        let stderr = StreamReader.spawn(child.stderr.take());
+        let stdout = StreamReader.spawn(child.stdout.take(), command.capture_limit());
+        let stderr = StreamReader.spawn(child.stderr.take(), command.capture_limit());
         let deadline = Instant::now() + command.timeout();
         let status = loop {
             match child.try_wait() {

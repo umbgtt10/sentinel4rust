@@ -7,19 +7,41 @@
 use std::io::Read;
 use std::thread::{self, JoinHandle};
 
-/// Drains a child's stream on a thread of its own, so a full pipe never blocks the child.
+/// Drains a child's stream on a thread of its own, so a full pipe never blocks the child, and keeps all of it or
+/// its tail.
 #[derive(Debug, Clone, Copy, Default)]
 pub struct StreamReader;
 
 impl StreamReader {
-    /// Reads `stream` to its end on a new thread; the text, lossily decoded, is what the thread returns.
-    pub fn spawn(&self, stream: Option<impl Read + Send + 'static>) -> JoinHandle<String> {
+    /// Reads `stream` to its end on a new thread, keeping only its last `limit` bytes when there is a limit; the
+    /// text, lossily decoded, is what the thread returns.
+    pub fn spawn(
+        &self,
+        stream: Option<impl Read + Send + 'static>,
+        limit: Option<usize>,
+    ) -> JoinHandle<String> {
         thread::spawn(move || {
-            let mut bytes = Vec::new();
+            let mut kept = Vec::new();
             if let Some(mut stream) = stream {
-                let _ = stream.read_to_end(&mut bytes);
+                let mut chunk = [0_u8; 8192];
+                while let Ok(read) = stream.read(&mut chunk) {
+                    if read == 0 {
+                        break;
+                    }
+                    kept.extend_from_slice(&chunk[..read]);
+                    if let Some(limit) = limit
+                        && kept.len() > limit.saturating_mul(2)
+                    {
+                        kept.drain(..kept.len() - limit);
+                    }
+                }
             }
-            String::from_utf8_lossy(&bytes).into_owned()
+            if let Some(limit) = limit
+                && kept.len() > limit
+            {
+                kept.drain(..kept.len() - limit);
+            }
+            String::from_utf8_lossy(&kept).into_owned()
         })
     }
 }

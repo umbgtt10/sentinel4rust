@@ -76,3 +76,28 @@ fn run_past_its_deadline_kills_the_whole_group() {
     // Assert
     assert!(matches!(&result, CommandResult::TimedOut { stdout, .. } if stdout == "started\n"));
 }
+
+#[test]
+fn run_with_a_capture_limit_keeps_the_tail_of_the_output() {
+    // Arrange
+    let command = Command::new(
+        "sh",
+        &["-c", "seq 1 20000; seq 1 20000 >&2"],
+        &temp_dir(),
+        Duration::from_secs(10),
+    )
+    .with_capture_limit(12);
+
+    // Act
+    let result = SystemCommandRunner.run(&command);
+
+    // Assert
+    assert_eq!(
+        result,
+        CommandResult::Exited {
+            code: Some(0),
+            stdout: "19999\n20000\n".to_string(),
+            stderr: "19999\n20000\n".to_string(),
+        }
+    );
+}

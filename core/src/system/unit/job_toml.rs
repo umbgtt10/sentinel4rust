@@ -13,9 +13,10 @@ use crate::model::toml::toml_parser::TomlParser;
 use crate::model::toml::toml_writer::TomlWriter;
 use crate::system::unit::job_error::JobError;
 
-const ROOT_KEYS: &[&str] = &["program", "dir", "timeout_seconds"];
+const ROOT_KEYS: &[&str] = &["program", "dir", "timeout_seconds", "capture_bytes"];
 
-/// `job.toml`: a command's program, directory, deadline, arguments (`[[arg]]`) and extra environment (`[[env]]`).
+/// `job.toml`: a command's program, directory, deadline, how much of its output to keep, arguments (`[[arg]]`)
+/// and extra environment (`[[env]]`).
 #[derive(Debug, Clone, Copy, Default)]
 pub struct JobToml;
 
@@ -55,6 +56,11 @@ impl JobToml {
                 &table.required_string("value")?,
             );
         }
+        if let Some(bytes) = doc.root.integer("capture_bytes")? {
+            let bytes = usize::try_from(bytes)
+                .map_err(|_| JobError("negative `capture_bytes`".to_string()))?;
+            command = command.with_capture_limit(bytes);
+        }
         Ok(command)
     }
 
@@ -66,6 +72,9 @@ impl JobToml {
             TomlWriter.quote(&command.dir().to_string_lossy()),
             command.timeout().as_secs()
         );
+        if let Some(bytes) = command.capture_limit() {
+            let _ = writeln!(out, "capture_bytes = {bytes}");
+        }
         for arg in command.args() {
             let _ = write!(out, "\n[[arg]]\nvalue = {}\n", TomlWriter.quote(arg));
         }

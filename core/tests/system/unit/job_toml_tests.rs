@@ -33,7 +33,8 @@ fn parse_of_a_rendered_command_round_trips_it() {
         Duration::from_secs(43_200),
     )
     .with_env("TMPDIR", "/w/tmp/r")
-    .with_env("NO_COLOR", "1");
+    .with_env("NO_COLOR", "1")
+    .with_capture_limit(65_536);
 
     // Act
     let parsed = JobToml.parse(&JobToml.render(&command));

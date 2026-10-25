@@ -249,6 +249,22 @@ fn run_exiting_three_reads_the_timeouts_too() {
     ));
 }
 
+// A 12-hour run's output is kept as a tail: only its end reaches the log tail.
+#[test]
+fn run_keeps_only_the_tail_of_cargo_mutants_output() {
+    // Arrange
+    let work = TempDir::new("mutants-capture");
+    let (cli, runner) = cli_with(&work, 2, &[("caught.txt", ""), ("missed.txt", "")]);
+
+    // Act
+    cli.run(&repo(), work.path(), 1, Duration::from_secs(9));
+
+    // Assert
+    let calls = runner.calls.borrow();
+    assert_eq!(calls[2].capture_limit(), Some(64 * 1024));
+    assert_eq!(calls[0].capture_limit(), None);
+}
+
 #[test]
 fn run_passes_jobs_output_and_deadline_then_cleans_up() {
     // Arrange

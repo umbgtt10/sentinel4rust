@@ -79,6 +79,9 @@ this repository uses it.
 - `docs/DESIGN.md` moved, unchanged, to `docs/history/[SUPERSEDED] DESIGN.md`.
 
 ### Fixed
+- A cargo-mutants run no longer keeps its whole output in memory for as long as it runs: each stream keeps its last
+  64 KiB, `Command::with_capture_limit`; git's output is kept whole. The roster example says the default `jobs` is 1
+  (open point 16, which records the rest).
 - The four statements of the original design that the code contradicted -- publishing, the exit codes' provenance,
   the parser's fixtures, stage 2 having run -- are stated as they hold in ARCHITECTURE and the ADRs, and the stub at
   `docs/DESIGN.md` names them (open point 8).

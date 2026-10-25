@@ -99,7 +99,8 @@ long `main`'s head has waited -- into a `StatusLine` that says whether it needs 
 ## `system/` -- the real implementations
 
 - **`process/`** -- `SystemCommandRunner` spawns each command in its own process group with piped output, drains
-  stdout and stderr on `StreamReader` threads, polls against the deadline and on expiry has `ProcessGroup` send the
+  stdout and stderr on `StreamReader` threads -- keeping only a tail when the command sets a capture limit, as
+  cargo-mutants' runs do (64 KiB) --, polls against the deadline and on expiry has `ProcessGroup` send the
   group `SIGKILL` through `kill`. `SystemClock`, `ThreadPause` and `StdoutJournal` implement the small contracts.
 - **`git/`** -- `GitCli` implements `RepoSource` and `ResultStore` over its parts: `GitRunner` (git without prompts,
   in the C locale; `local` failures are `GitFailure`s naming the command), `BareClone` (made once, origin kept on the

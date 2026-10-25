@@ -17,6 +17,7 @@ pub struct Command {
     dir: PathBuf,
     env: BTreeMap<String, String>,
     timeout: Duration,
+    capture_limit: Option<usize>,
 }
 
 impl Command {
@@ -28,12 +29,18 @@ impl Command {
             dir: dir.to_path_buf(),
             env: BTreeMap::new(),
             timeout,
+            capture_limit: None,
         }
     }
 
     /// Its arguments.
     pub fn args(&self) -> &[String] {
         &self.args
+    }
+
+    /// How many of the last bytes of each output stream are kept; `None`: all of it.
+    pub fn capture_limit(&self) -> Option<usize> {
+        self.capture_limit
     }
 
     /// The working directory.
@@ -62,6 +69,15 @@ impl Command {
     /// Killed, with its process group, after this long.
     pub fn timeout(&self) -> Duration {
         self.timeout
+    }
+
+    /// The same command, keeping only the last `bytes` of each output stream.
+    #[must_use]
+    pub fn with_capture_limit(self, bytes: usize) -> Self {
+        Self {
+            capture_limit: Some(bytes),
+            ..self
+        }
     }
 
     /// The same command with one more environment variable.

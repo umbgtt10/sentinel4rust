@@ -12,7 +12,7 @@ fn spawn_on_a_stream_returns_all_of_it_lossily() {
 
     // Act
     let text = StreamReader
-        .spawn(Some(stream))
+        .spawn(Some(stream), None)
         .join()
         .expect("the reader ends");
 
@@ -21,12 +21,36 @@ fn spawn_on_a_stream_returns_all_of_it_lossily() {
 }
 
 #[test]
+fn spawn_on_a_stream_with_a_limit_keeps_only_its_last_bytes() {
+    // Arrange
+    let all: Vec<u8> = b"abcdefghijklmnopqrstuvwxyz"
+        .iter()
+        .copied()
+        .cycle()
+        .take(100_000)
+        .collect();
+    let stream = Cursor::new(all.clone());
+
+    // Act
+    let text = StreamReader
+        .spawn(Some(stream), Some(1000))
+        .join()
+        .expect("the reader ends");
+
+    // Assert
+    assert_eq!(text.as_bytes(), &all[all.len() - 1000..]);
+}
+
+#[test]
 fn spawn_on_no_stream_returns_nothing() {
     // Arrange
     let stream: Option<Cursor<Vec<u8>>> = None;
 
     // Act
-    let text = StreamReader.spawn(stream).join().expect("the reader ends");
+    let text = StreamReader
+        .spawn(stream, None)
+        .join()
+        .expect("the reader ends");
 
     // Assert
     assert_eq!(text, "");

@@ -22,7 +22,7 @@ be observed yet, that it is to be verified on the machine. Recorded 2026-10-24. 
 | 13 | `config_version` has to be bumped by hand after a cargo-mutants upgrade | closed: the version counts |
 | 14 | `verify-access.sh --include-main` force-pushes `main` | closed: `deploy/verify-access.sh` |
 | 15 | what public repositories publish | closed: decided per repository |
-| 16 | smaller things | low |
+| 16 | smaller things | closed: each fixed or recorded |
 
 ---
 
@@ -192,14 +192,18 @@ only.
 
 ## 16. Smaller things
 
-- **Ordinals can shift.** Duplicate keys in a file are numbered in source order (2.3); removing the first of two
-  renumbers the second, which then reads as one gone and one new.
-- **Unbounded capture.** `SystemCommandRunner` keeps a run's whole stdout and stderr in memory until it ends, then takes
-  the tail. cargo-mutants writes little to stdout, so this is unlikely to matter, but a 12-hour run is not bounded.
-- **Unreachable is matched in English.** `UNREACHABLE_MARKERS` (`git.rs`) are substrings of git's and GitHub's
-  messages, with `LC_ALL=C`; if GitHub rewords them, an unreachable repository is treated as a transient failure and
-  backs off by doubling instead of going straight to 6 hours. A changed host key is transient too.
-- **`kill` is an external program.** `kill_group` shells out to `kill -KILL -- -<pgid>`; it is on every Linux, but the
-  tool is Linux-only for it, as for `process_group`.
-- **The default `jobs` is 1** in `roster.rs`; design section 3 and `deploy/roster.example.toml` show 6. Not wrong,
-  but a roster without `jobs` runs serially.
+**Closed: each fixed or recorded.**
+
+- **Ordinals can shift** -- recorded, inherent to position-free keys. Duplicate keys in a file are numbered in source
+  order; removing the first of two renumbers the second, which then reads as one gone and one new.
+- **Unbounded capture** -- fixed. A command can keep only the tail of each output stream; cargo-mutants' runs keep
+  their last 64 KiB, more than the 16 KiB log tail needs, so a 12-hour run no longer holds its whole output in
+  memory. git's output is kept whole: it is short, and parsed.
+- **Unreachable is matched in English** -- recorded. `UnreachableClassifier` matches substrings of git's and
+  GitHub's messages, with `LC_ALL=C`; if GitHub rewords them, an unreachable repository is treated as a transient
+  failure and backs off by doubling instead of going straight to 6 hours. A changed host key is transient too.
+- **`kill` is an external program** -- recorded. `ProcessGroup` sends `kill -KILL -- -<pgid>`: it is on every Linux,
+  and the tool is Linux-only for it, as for process groups; the alternative, `libc`, is a dependency
+  (`ADR-NoDependencies`).
+- **The default `jobs` is 1** -- fixed in the docs: `deploy/roster.example.toml` sets 6 and says so, and
+  `docs/ARCHITECTURE.md` gives 1 as the default.

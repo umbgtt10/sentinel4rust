@@ -26,6 +26,15 @@ fn args_of_a_new_command_are_the_ones_given_in_order() {
 }
 
 #[test]
+fn capture_limit_of_a_new_command_is_none() {
+    // Arrange & Act
+    let command = command();
+
+    // Assert
+    assert_eq!(command.capture_limit(), None);
+}
+
+#[test]
 fn dir_of_a_new_command_is_the_one_given() {
     // Arrange & Act
     let command = command();
@@ -71,6 +80,19 @@ fn timeout_of_a_new_command_is_the_one_given() {
 
     // Assert
     assert_eq!(command.timeout(), Duration::from_secs(60));
+}
+
+#[test]
+fn with_capture_limit_keeps_that_many_last_bytes_of_output() {
+    // Arrange
+    let command = command();
+
+    // Act
+    let limited = command.with_capture_limit(64 * 1024);
+
+    // Assert
+    assert_eq!(limited.capture_limit(), Some(64 * 1024));
+    assert_eq!(limited.display(), "git fetch --quiet");
 }
 
 #[test]

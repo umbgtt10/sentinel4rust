@@ -6,7 +6,7 @@
 
 work_dir = "/home/sentinel/sentinel4rust"   # clones, worktrees, cargo-mutants output
 pause_seconds = 300                          # polling interval per repository
-jobs = 6                                     # cargo-mutants --jobs (default for every repo)
+jobs = 6                                     # cargo-mutants --jobs, for every repo without its own (1 if unset)
 run_timeout_hours = 12                       # cap on one cargo-mutants run
 config_version = 1                           # bump to rerun every repository (upgrading cargo-mutants reruns them too)
 stale_after_hours = 24                       # --status exits 1 when main has waited longer than this

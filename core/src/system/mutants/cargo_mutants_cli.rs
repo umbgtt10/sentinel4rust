@@ -19,6 +19,8 @@ use crate::traits::command_runner::CommandRunner;
 use crate::traits::mutation_runner::MutationRunner;
 
 const VERSION_TIMEOUT: Duration = Duration::from_secs(60);
+/// What is kept of each output stream of a run, which can go on for hours: more than its log tail needs.
+const CAPTURE_BYTES: usize = 64 * 1024;
 
 /// cargo-mutants, run through a [`CommandRunner`].
 pub struct CargoMutantsCli {
@@ -109,7 +111,8 @@ impl CargoMutantsCli {
         let command = Command::new(&self.cargo, &args, checkout, timeout)
             .with_env("CARGO_TERM_COLOR", "never")
             .with_env("NO_COLOR", "1")
-            .with_env("TMPDIR", &tmp_text);
+            .with_env("TMPDIR", &tmp_text)
+            .with_capture_limit(CAPTURE_BYTES);
         self.interpreter
             .interpret(&self.runner.run(&command), &out.join("mutants.out"))
     }
