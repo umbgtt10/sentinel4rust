@@ -48,6 +48,11 @@ pub enum RoundStep {
 }
 
 impl RoundStep {
+    /// Whether a `--once` pass counts this visit as failed: it backed off or found the repository unreachable.
+    pub fn is_failure(&self) -> bool {
+        matches!(self, Self::BackedOff { .. } | Self::Unreachable { .. })
+    }
+
     /// The `step=` value in the journal.
     pub fn name(&self) -> &'static str {
         match self {

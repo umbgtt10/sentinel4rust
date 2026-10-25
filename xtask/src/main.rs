@@ -16,12 +16,13 @@ use xtask::gates::iceberg_gate::IcebergGate;
 use xtask::gates::shear_gate::ShearGate;
 use xtask::gates::stage2::Stage2;
 use xtask::gates::stern_gate::SternGate;
+use xtask::gates::twin_gate::TwinGate;
 use xtask::process::system_command_runner::SystemCommandRunner;
 
 const CORE_PACKAGE: &str = "sentinel4rust";
 const XTASK_PACKAGE: &str = "xtask";
 const CRAP_THRESHOLD: &str = "15";
-const ICEBERG_THRESHOLD: &str = "20";
+const ICEBERG_THRESHOLD: &str = "7";
 const DRY_PATH: &str = "core/src";
 const DRY_BASELINE: &str = "dry4rust-baseline.json";
 const DRY_MIN_NODES: &str = "25";
@@ -50,8 +51,8 @@ fn run_stage2() -> ExitCode {
 
     // First: its corrections are renames, file moves and directory splits,
     // so a layout it is about to reject is a layout the rest would measure
-    // for nothing. It reads stern4rust-baseline.json beside the manifest, and
-    // runs the pinned stern4rust it installs under target/, never the global one.
+    // for nothing. Every rule holds, so there is no baseline; it runs the pinned
+    // stern4rust it installs under target/, never the global one.
     let root = workspace_root();
     let stern = SternGate::new(
         &runner,
@@ -84,8 +85,11 @@ fn run_stage2() -> ExitCode {
         String::from(CRAP_THRESHOLD),
     );
 
-    // The shipped ceiling until the restructure ends; then a ratchet just
-    // above the worst file, lowered as it improves and never raised.
+    // Every source file has its mirrored test file.
+    let twin = TwinGate::new(&runner, manifest_path.clone(), packages.clone());
+
+    // A ratchet just above the worst file (6.78 when the restructure ended),
+    // lowered as it improves and never raised.
     let iceberg = IcebergGate::new(
         &runner,
         manifest_path.clone(),
@@ -96,7 +100,7 @@ fn run_stage2() -> ExitCode {
     // Last: the slowest, and a behaviour check rather than a measurement.
     let end_to_end = EndToEndGate::new(&runner, manifest_path, String::from(CARGO_MUTANTS_VERSION));
 
-    let gates: Vec<&dyn Gate> = vec![&stern, &shear, &dry, &crap, &iceberg, &end_to_end];
+    let gates: Vec<&dyn Gate> = vec![&stern, &shear, &dry, &crap, &twin, &iceberg, &end_to_end];
 
     match Stage2::new(gates).run() {
         Ok(()) => {

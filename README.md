@@ -46,7 +46,7 @@ repo=etheram-raft step=unchanged hash=9f8e7d6 duration_s=1
 
 ```sh
 just stage1   # fmt, clippy (pedantic, -D warnings), unit + git + end-to-end tests with a stub cargo-mutants
-just stage2   # stern4rust, cargo-shear, dry4rust, crap4rust, iceberg4rust, then the real cargo-mutants 27.1.0
+just stage2   # stern4rust, cargo-shear, dry4rust, crap4rust, twin4rust, iceberg4rust, then the real cargo-mutants 27.1.0
 ```
 
 The core has no dependencies. Layout: `core/` (library and binary), `xtask/` (the gates).

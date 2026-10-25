@@ -9,7 +9,7 @@
 
 #![warn(missing_docs)]
 
-pub mod cli;
+pub mod invocation;
 pub mod model;
 pub mod patrol;
 pub mod system;

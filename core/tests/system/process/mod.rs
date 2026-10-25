@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: MIT
 
 pub mod process_group_tests;
+pub mod stdout_journal_tests;
 pub mod stream_reader_tests;
 pub mod system_clock_tests;
 pub mod system_command_runner_tests;

@@ -2,6 +2,7 @@
 // Licensed under the MIT License
 // SPDX-License-Identifier: MIT
 
+mod invocation;
 mod main_tests;
 mod model;
 mod patrol;
