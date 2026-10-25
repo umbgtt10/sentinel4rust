@@ -1,3 +1,7 @@
+// Copyright 2026 Umberto Gotti <umberto.gotti@umbertogotti.dev>
+// Licensed under the MIT License
+// SPDX-License-Identifier: MIT
+
 //! Counts of mutants by outcome.
 
 /// How many mutants were caught, missed, timed out and unviable.

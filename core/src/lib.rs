@@ -1,3 +1,7 @@
+// Copyright 2026 Umberto Gotti <umberto.gotti@umbertogotti.dev>
+// Licensed under the MIT License
+// SPDX-License-Identifier: MIT
+
 //! sentinel4rust: mutation testing around the clock.
 //!
 //! Walks a roster of repositories; whenever a repository's `main` moves, runs cargo-mutants against that exact

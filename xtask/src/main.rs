@@ -1,3 +1,7 @@
+// Copyright 2026 Umberto Gotti <umberto.gotti@umbertogotti.dev>
+// Licensed under the MIT License
+// SPDX-License-Identifier: MIT
+
 //! The gates. `cargo xtask stage1` runs on every commit; `cargo xtask stage2` adds the tests that need
 //! cargo-mutants installed.
 

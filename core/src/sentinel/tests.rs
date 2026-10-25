@@ -1,3 +1,7 @@
+// Copyright 2026 Umberto Gotti <umberto.gotti@umbertogotti.dev>
+// Licensed under the MIT License
+// SPDX-License-Identifier: MIT
+
 //! The loop with a fake for every contract: no git, no cargo, no sleeping.
 
 use std::cell::{Cell, RefCell};
@@ -318,7 +322,7 @@ fn a_second_baseline_failure_publishes_baseline_failed_without_lists() {
         }
     ));
     let p = &w.publishes.borrow()[0];
-    assert!(p.missed.is_empty());
+    assert_eq!(p.missed, Vec::<MutantKey>::new());
     assert_eq!(p.record.log_tail.as_deref(), Some("test x ... FAILED"));
     assert_eq!(p.message(), "Mutants of aaaaaaa: baseline failed");
 }

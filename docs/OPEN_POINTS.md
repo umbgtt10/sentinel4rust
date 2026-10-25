@@ -11,7 +11,7 @@ be observed yet, that it is to be verified on the machine. Recorded 2026-10-24.
 | 3 | a large repository can hold the machine for 36 hours per commit and publish nothing | before onboarding a large repository |
 | 4 | an unreadable `summary.toml` silently reruns the same commit forever | before the machine runs |
 | 5 | every repository's code runs where every repository's key is | accepted in design 5.1; decide again |
-| 6 | `cargo xtask` does not exist | small fix |
+| 6 | `cargo xtask` does not exist | closed: `.cargo/config.toml` |
 | 7 | the family's gates and coding standards do not apply here yet | before the next feature |
 | 8 | the design and the code disagree in four places | small fix |
 | 9 | only the `completed` outcome has been seen against the real cargo-mutants | to verify on the machine |
@@ -88,10 +88,8 @@ give the run a mount namespace without `~/.ssh` (systemd `InaccessiblePaths=` on
 
 ## 6. `cargo xtask` does not exist
 
-The README and CLAUDE.md say `cargo xtask stage1`; the repository has no `.cargo/config.toml` defining the alias, so
-it fails with "no such command". The gates run with `cargo run -p xtask -- stage1`.
-
-**To close:** add `.cargo/config.toml` with `[alias] xtask = "run --quiet -p xtask --"`. Observed.
+**Closed.** `.cargo/config.toml` defines `[alias] xtask = "run --quiet --package xtask --"`, and the gates are run as
+`just stage1` and `just stage2`, which call it.
 
 ## 7. The family's gates and coding standards do not apply yet
 

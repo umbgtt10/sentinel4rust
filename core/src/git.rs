@@ -1,3 +1,7 @@
+// Copyright 2026 Umberto Gotti <umberto.gotti@umbertogotti.dev>
+// Licensed under the MIT License
+// SPDX-License-Identifier: MIT
+
 //! `RepoSource` and `ResultStore` by shelling out to `git` (design 2.1, 2.4). Credentials stay with the
 //! system's git and SSH configuration.
 //!

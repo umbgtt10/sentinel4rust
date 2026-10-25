@@ -1,3 +1,7 @@
+// Copyright 2026 Umberto Gotti <umberto.gotti@umbertogotti.dev>
+// Licensed under the MIT License
+// SPDX-License-Identifier: MIT
+
 //! Which repository to visit next, and the in-memory back-off (design 1, 2.6).
 //!
 //! A repository is due when `pause` has passed since its last visit and it is not backing off. Among the due

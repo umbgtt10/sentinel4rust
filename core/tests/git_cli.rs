@@ -1,3 +1,7 @@
+// Copyright 2026 Umberto Gotti <umberto.gotti@umbertogotti.dev>
+// Licensed under the MIT License
+// SPDX-License-Identifier: MIT
+
 //! `GitCli` against real git: bare repositories in temporary directories, `file://` remotes, no network.
 
 mod support;
@@ -61,7 +65,7 @@ fn fetching_without_a_mutants_branch_reports_no_record() {
     let snapshot = cli(&work).sync(&origin.repo("x")).unwrap();
     assert_eq!(snapshot.head, head);
     assert_eq!(snapshot.record, None);
-    assert!(snapshot.previous_missed.is_empty());
+    assert_eq!(snapshot.previous_missed, Vec::<MutantKey>::new());
     assert_eq!(snapshot.readiness, Ok(()));
 }
 
@@ -127,14 +131,14 @@ fn publishing_creates_an_orphan_branch_and_leaves_main_alone() {
     );
     // Orphan: no parent, no common history with main.
     assert_eq!(git(&bare, &["rev-list", "--count", "mutants"]), "1");
-    assert!(
+    assert_eq!(
         std::process::Command::new("git")
             .args(["merge-base", "main", "mutants"])
             .current_dir(&bare)
             .output()
             .unwrap()
-            .stdout
-            .is_empty()
+            .stdout,
+        Vec::<u8>::new()
     );
     assert_eq!(
         git(&bare, &["log", "-1", "--format=%s", "mutants"]),

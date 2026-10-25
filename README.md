@@ -45,8 +45,8 @@ repo=etheram-raft step=unchanged hash=9f8e7d6 duration_s=1
 ## Development
 
 ```sh
-cargo xtask stage1   # fmt, clippy (pedantic, -D warnings), unit + git + end-to-end tests with a stub cargo-mutants
-cargo xtask stage2   # adds the end-to-end test against the real cargo-mutants (needs it installed)
+just stage1   # fmt, clippy (pedantic, -D warnings), unit + git + end-to-end tests with a stub cargo-mutants
+just stage2   # the end-to-end test against the real cargo-mutants (needs it installed)
 ```
 
 No dependencies. Layout: `core/` (library and binary), `xtask/` (the gates).

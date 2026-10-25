@@ -1,3 +1,7 @@
+// Copyright 2026 Umberto Gotti <umberto.gotti@umbertogotti.dev>
+// Licensed under the MIT License
+// SPDX-License-Identifier: MIT
+
 //! A small subset of TOML: enough for the roster and `summary.toml`, so the tool needs no dependencies.
 //!
 //! Supported: comments, bare and quoted keys, basic and literal strings, integers, booleans, and arrays of

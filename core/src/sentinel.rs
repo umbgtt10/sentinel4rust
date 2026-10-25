@@ -1,3 +1,7 @@
+// Copyright 2026 Umberto Gotti <umberto.gotti@umbertogotti.dev>
+// Licensed under the MIT License
+// SPDX-License-Identifier: MIT
+
 //! The loop (design 1): visit one due repository at a time, run, publish, back off.
 
 use std::fmt::Write as _;

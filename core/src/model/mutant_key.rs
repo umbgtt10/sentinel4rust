@@ -1,3 +1,7 @@
+// Copyright 2026 Umberto Gotti <umberto.gotti@umbertogotti.dev>
+// Licensed under the MIT License
+// SPDX-License-Identifier: MIT
+
 //! Position-free mutant identities (design 2.3).
 //!
 //! cargo-mutants names a mutant `src/lib.rs:12:5: replace == with != in Parser::next`. The position changes

@@ -1,3 +1,7 @@
+// Copyright 2026 Umberto Gotti <umberto.gotti@umbertogotti.dev>
+// Licensed under the MIT License
+// SPDX-License-Identifier: MIT
+
 //! End to end: the real binary, real git, `file://` remotes.
 //!
 //! Stage 1 puts a stub `cargo` first on `PATH` that writes a `mutants.out` like cargo-mutants does. Stage 2

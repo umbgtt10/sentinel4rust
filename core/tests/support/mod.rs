@@ -1,3 +1,7 @@
+// Copyright 2026 Umberto Gotti <umberto.gotti@umbertogotti.dev>
+// Licensed under the MIT License
+// SPDX-License-Identifier: MIT
+
 //! Helpers shared by the integration tests: temporary directories and git fixtures.
 
 #![allow(dead_code)]
