@@ -93,3 +93,33 @@ fn parse_minimal_roster_applies_the_defaults() {
     assert_eq!(roster.run_timeout, Duration::from_secs(12 * 3600));
     assert_eq!(roster.config_version, 1);
 }
+
+#[test]
+fn parse_repo_run_timeout_overrides_the_global_cap() {
+    // Arrange
+    let text = "\
+        work_dir = \"/w\"
+        run_timeout_hours = 2
+
+        [[repo]]
+        name = \"small\"
+        url = \"u\"
+
+        [[repo]]
+        name = \"large\"
+        url = \"v\"
+        run_timeout_hours = 30
+    ";
+
+    // Act
+    let roster = TomlRoster.parse(text).unwrap();
+
+    // Assert
+    assert_eq!(roster.repos[0].run_timeout, Duration::from_secs(2 * 3600));
+    assert_eq!(roster.repos[1].run_timeout, Duration::from_secs(30 * 3600));
+    let zero = TomlRoster
+        .parse("work_dir = \"/w\"\n[[repo]]\nname = \"a\"\nurl = \"u\"\nrun_timeout_hours = 0")
+        .unwrap_err()
+        .0;
+    assert!(zero.contains("positive"), "{zero}");
+}

@@ -27,7 +27,8 @@ for what changed, [CHANGELOG.md](../CHANGELOG.md); for what is known to be missi
 ### Runs
 
 - cargo-mutants in a detached worktree at `head` (`<work_dir>/runs/<name>`), output at `<work_dir>/out/<name>` and
-  `TMPDIR` at `<work_dir>/tmp/<name>`, all removed after every run; `--jobs` per repository or from the roster
+  `TMPDIR` at `<work_dir>/tmp/<name>`, all removed after every run; `--jobs` and the run cap per repository or from
+  the roster
 - `cargo mutants --version` and `rustc --version` recorded with every run
 - Exit 0, 2 and 3 publish `completed`, with counts and lists read from `mutants.out`; exit 4 reruns once at once and,
   a second time, publishes `baseline-failed`; anything else backs off, and the third tool failure on one commit

@@ -9,6 +9,7 @@ use sentinel4rust::model::onboarding::onboarded_repo::OnboardedRepo;
 use std::fs;
 use std::path::PathBuf;
 use std::process::Command;
+use std::time::Duration;
 
 // A bare "remote" plus a working clone used to push commits to it.
 pub struct Origin {
@@ -81,6 +82,7 @@ impl Origin {
             url: self.url(),
             branch: "main".to_string(),
             jobs: 1,
+            run_timeout: Duration::from_secs(3600),
         }
     }
 

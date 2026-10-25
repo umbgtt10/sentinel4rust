@@ -4,6 +4,8 @@
 
 //! One onboarded repository.
 
+use std::time::Duration;
+
 /// One onboarded repository.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct OnboardedRepo {
@@ -15,4 +17,6 @@ pub struct OnboardedRepo {
     pub branch: String,
     /// cargo-mutants `--jobs` for this repository.
     pub jobs: u32,
+    /// Cap on one cargo-mutants run of this repository.
+    pub run_timeout: Duration,
 }

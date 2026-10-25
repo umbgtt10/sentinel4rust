@@ -6,6 +6,7 @@ use sentinel4rust::model::onboarding::onboarded_repo::OnboardedRepo;
 use sentinel4rust::model::work_dir::WorkDir;
 use std::path::Path;
 use std::path::PathBuf;
+use std::time::Duration;
 
 fn repo() -> OnboardedRepo {
     OnboardedRepo {
@@ -13,6 +14,7 @@ fn repo() -> OnboardedRepo {
         url: String::from("u"),
         branch: String::from("main"),
         jobs: 1,
+        run_timeout: Duration::from_secs(3600),
     }
 }
 

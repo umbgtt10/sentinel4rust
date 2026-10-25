@@ -11,6 +11,7 @@ use std::time::Duration;
 use crate::model::onboarding::onboarded_repo::OnboardedRepo;
 use crate::model::onboarding::roster::Roster;
 use crate::model::onboarding::roster_error::RosterError;
+use crate::model::toml::table::Table;
 use crate::model::toml::toml_parser::TomlParser;
 
 const ROOT_KEYS: &[&str] = &[
@@ -20,7 +21,7 @@ const ROOT_KEYS: &[&str] = &[
     "run_timeout_hours",
     "config_version",
 ];
-const REPO_KEYS: &[&str] = &["name", "url", "branch", "jobs"];
+const REPO_KEYS: &[&str] = &["name", "url", "branch", "jobs", "run_timeout_hours"];
 
 /// The roster file, read and validated.
 #[derive(Debug, Clone, Copy, Default)]
@@ -36,38 +37,14 @@ impl TomlRoster {
             return Err(RosterError(format!("unknown section `[[{name}]]`")));
         }
         let default_jobs = Self::jobs(root.integer("jobs")?, 1, 1)?;
+        let default_hours =
+            Self::positive(root.integer("run_timeout_hours")?, 12, "run_timeout_hours")?;
         let mut names = BTreeSet::new();
         let mut repos = Vec::new();
         for table in doc.arrays.get("repo").into_iter().flatten() {
-            table.only(REPO_KEYS)?;
-            let line = table.line();
-            let name = table.required_string("name")?;
-            if !Self::valid_name(&name) {
-                return Err(RosterError(format!(
-                    "line {line}: invalid name `{name}` (letters, digits, `-`, `_`, `.`)"
-                )));
-            }
-            if !names.insert(name.clone()) {
-                return Err(RosterError(format!("line {line}: duplicate name `{name}`")));
-            }
-            let url = table.required_string("url")?;
-            if url.trim().is_empty() {
-                return Err(RosterError(format!("line {line}: empty url")));
-            }
-            let branch = table
-                .string("branch")?
-                .unwrap_or_else(|| "main".to_string());
-            if !Self::valid_branch(&branch) || branch == "mutants" {
-                return Err(RosterError(format!(
-                    "line {line}: invalid branch `{branch}`"
-                )));
-            }
-            repos.push(OnboardedRepo {
-                name,
-                url,
-                branch,
-                jobs: Self::jobs(table.integer("jobs")?, default_jobs, line)?,
-            });
+            let repo = Self::repo(table, &names, default_jobs, default_hours)?;
+            names.insert(repo.name.clone());
+            repos.push(repo);
         }
         if repos.is_empty() {
             return Err(RosterError("no [[repo]] entries".to_string()));
@@ -80,12 +57,14 @@ impl TomlRoster {
                 "pause_seconds",
             )?),
             jobs: default_jobs,
-            run_timeout: Duration::from_secs(
-                Self::positive(root.integer("run_timeout_hours")?, 12, "run_timeout_hours")? * 3600,
-            ),
+            run_timeout: Self::hours(default_hours),
             config_version: root.integer("config_version")?.unwrap_or(1),
             repos,
         })
+    }
+
+    fn hours(hours: u64) -> Duration {
+        Duration::from_secs(hours.saturating_mul(3600))
     }
 
     fn jobs(value: Option<i64>, default: u32, line: usize) -> Result<u32, RosterError> {
@@ -99,6 +78,48 @@ impl TomlRoster {
             .ok()
             .filter(|v| *v > 0)
             .ok_or_else(|| RosterError(format!("`{what}` must be positive, got {value}")))
+    }
+
+    fn repo(
+        table: &Table,
+        names: &BTreeSet<String>,
+        default_jobs: u32,
+        default_hours: u64,
+    ) -> Result<OnboardedRepo, RosterError> {
+        table.only(REPO_KEYS)?;
+        let line = table.line();
+        let name = table.required_string("name")?;
+        if !Self::valid_name(&name) {
+            return Err(RosterError(format!(
+                "line {line}: invalid name `{name}` (letters, digits, `-`, `_`, `.`)"
+            )));
+        }
+        if names.contains(&name) {
+            return Err(RosterError(format!("line {line}: duplicate name `{name}`")));
+        }
+        let url = table.required_string("url")?;
+        if url.trim().is_empty() {
+            return Err(RosterError(format!("line {line}: empty url")));
+        }
+        let branch = table
+            .string("branch")?
+            .unwrap_or_else(|| "main".to_string());
+        if !Self::valid_branch(&branch) || branch == "mutants" {
+            return Err(RosterError(format!(
+                "line {line}: invalid branch `{branch}`"
+            )));
+        }
+        Ok(OnboardedRepo {
+            name,
+            url,
+            branch,
+            jobs: Self::jobs(table.integer("jobs")?, default_jobs, line)?,
+            run_timeout: Self::hours(Self::positive(
+                table.integer("run_timeout_hours")?,
+                i64::try_from(default_hours).unwrap_or(i64::MAX),
+                "run_timeout_hours",
+            )?),
+        })
     }
 
     fn valid_branch(branch: &str) -> bool {

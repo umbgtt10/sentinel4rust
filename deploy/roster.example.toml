@@ -17,6 +17,7 @@ name = "etheram-raft"
 url = "git@github-etheram-raft:umbgtt10/etheram-raft.git"
 branch = "main"                              # default
 jobs = 2                                     # per-repo override, e.g. tests not safe in parallel
+run_timeout_hours = 24                       # per-repo cap, sized as deploy/SETUP.md section 4 says
 
 [[repo]]
 name = "sentinel4rust"

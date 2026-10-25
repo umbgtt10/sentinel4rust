@@ -55,3 +55,21 @@ journalctl -u sentinel4rust -f
 ```
 
 The `--once` pass and the service share a lock: stop the service before a manual pass.
+
+## 4. Sizing a repository's run
+
+Before onboarding a large repository, measure one full run on the machine, as `sentinel`:
+
+```sh
+git clone <url> /tmp/measure && cd /tmp/measure
+cargo mutants --list | wc -l                                          # mutants, after .cargo/mutants.toml's filters
+/usr/bin/time -v cargo mutants --jobs 6 --output /tmp/measure-out     # "Elapsed (wall clock) time", "Maximum resident set size"
+```
+
+- **`jobs`:** every job builds its own copy of the tree under `TMPDIR` (for the service, `<work_dir>/tmp/<name>`, on
+  the work directory's disk). Raise it while cores, memory and disk allow; set it on the repository's `[[repo]]` when
+  its tests are not safe in parallel or its builds are heavier than the rest.
+- **`run_timeout_hours`:** the measured wall time with a margin, on the repository's `[[repo]]` when it differs from
+  the roster's. A run that hits the cap is a tool failure and the third on one commit publishes `tool-failed`, so a
+  cap too short costs three full runs per commit, during which nothing else is visited.
+- Note the mutant count, wall time and peak memory beside the repository's roster entry.

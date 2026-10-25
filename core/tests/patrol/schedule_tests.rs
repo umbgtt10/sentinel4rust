@@ -20,6 +20,7 @@ fn repos(names: &[&str]) -> Vec<OnboardedRepo> {
             url: String::new(),
             branch: "main".to_string(),
             jobs: 1,
+            run_timeout: Duration::from_secs(3600),
         })
         .collect()
 }

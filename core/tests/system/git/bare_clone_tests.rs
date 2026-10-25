@@ -13,6 +13,7 @@ use sentinel4rust::system::git::bare_clone::BareClone;
 use sentinel4rust::system::git::git_runner::GitRunner;
 use std::fs;
 use std::rc::Rc;
+use std::time::Duration;
 
 fn bare_clone(runner: &Rc<ScriptedRunner>, work: &TempDir) -> BareClone {
     BareClone::new(GitRunner::new(runner.clone()), work_dir(work))
@@ -30,6 +31,7 @@ fn repo() -> OnboardedRepo {
         url: String::from("file:///srv/x.git"),
         branch: String::from("main"),
         jobs: 1,
+        run_timeout: Duration::from_secs(3600),
     }
 }
 

@@ -28,6 +28,7 @@ fn unreachable_roster(dir: &TempDir) -> Roster {
             url: format!("file://{}/nowhere.git", dir.path().display()),
             branch: String::from("main"),
             jobs: 1,
+            run_timeout: Duration::from_secs(3600),
         }],
     }
 }

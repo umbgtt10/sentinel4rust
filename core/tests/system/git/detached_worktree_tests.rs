@@ -26,6 +26,7 @@ fn repo() -> OnboardedRepo {
         url: String::from("u"),
         branch: String::from("main"),
         jobs: 1,
+        run_timeout: Duration::from_secs(3600),
     }
 }
 

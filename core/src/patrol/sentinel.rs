@@ -88,7 +88,7 @@ impl Sentinel {
     ) -> RoundStep {
         let name = repo.name.as_str();
         let started = self.deps.clock.now();
-        let run = match self.retry.run(repo, &head, self.roster.run_timeout) {
+        let run = match self.retry.run(repo, &head, repo.run_timeout) {
             Ok(run) => run,
             Err(error) => {
                 self.schedule.failed(name, self.deps.clock.now());

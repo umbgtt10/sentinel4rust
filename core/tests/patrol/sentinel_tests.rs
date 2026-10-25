@@ -84,6 +84,7 @@ fn repo(name: &str) -> OnboardedRepo {
         url: format!("git@x:{name}.git"),
         branch: "main".to_string(),
         jobs: 4,
+        run_timeout: Duration::from_secs(3600),
     }
 }
 
@@ -91,7 +92,7 @@ fn sentinel(names: &[&str]) -> (Sentinel, Rc<World>) {
     sentinel_with(names, Some(INSTALLED))
 }
 
-fn sentinel_with(names: &[&str], installed: Option<&str>) -> (Sentinel, Rc<World>) {
+fn sentinel_for(repos: Vec<OnboardedRepo>, installed: Option<&str>) -> (Sentinel, Rc<World>) {
     let world = Rc::new(World::default());
     world.now.set(1_792_800_000);
     let roster = Roster {
@@ -100,7 +101,7 @@ fn sentinel_with(names: &[&str], installed: Option<&str>) -> (Sentinel, Rc<World
         jobs: 1,
         run_timeout: Duration::from_secs(3600),
         config_version: 1,
-        repos: names.iter().map(|n| repo(n)).collect(),
+        repos,
     };
     let deps = Dependencies {
         source: world.clone(),
@@ -114,6 +115,10 @@ fn sentinel_with(names: &[&str], installed: Option<&str>) -> (Sentinel, Rc<World
         Sentinel::new(roster, deps, installed.map(ToString::to_string)),
         world,
     )
+}
+
+fn sentinel_with(names: &[&str], installed: Option<&str>) -> (Sentinel, Rc<World>) {
+    sentinel_for(names.iter().map(|n| repo(n)).collect(), installed)
 }
 
 fn snapshot(head: &CommitHash, record: Option<RunRecord>, previous: &[&str]) -> Snapshot {
@@ -150,6 +155,29 @@ fn run_forever_steps_until_something_stops_it() {
     assert!(stopped.is_err());
     assert_eq!(w.pauses.borrow().as_slice(), [PAUSE, PAUSE]);
     assert_eq!(w.lines.borrow().len(), 2);
+}
+
+#[test]
+fn run_once_caps_the_run_at_the_repositorys_own_timeout() {
+    // Arrange
+    let mut large = repo("a");
+    large.run_timeout = Duration::from_secs(30 * 3600);
+    let (mut s, w) = sentinel_for(vec![large], Some(INSTALLED));
+    w.queue_sync(Ok(snapshot(&hash('a'), None, &[])));
+    w.queue_run(completed(&[]));
+
+    // Act
+    s.run_once();
+
+    // Assert
+    assert_eq!(
+        w.run_calls.borrow().as_slice(),
+        [(
+            PathBuf::from("/checkout"),
+            4,
+            Duration::from_secs(30 * 3600)
+        )]
+    );
 }
 
 #[test]

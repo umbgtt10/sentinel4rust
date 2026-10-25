@@ -9,7 +9,7 @@ be observed yet, that it is to be verified on the machine. Recorded 2026-10-24. 
 |---|---|---|
 | 1 | cargo-mutants builds in a private `/tmp`, which is usually RAM | closed: `TMPDIR` under `work_dir` |
 | 2 | `cargo install sentinel4rust` installs the placeholder that does nothing | closed: `deploy/SETUP.md` |
-| 3 | a large repository can hold the machine for 36 hours per commit and publish nothing | before onboarding a large repository |
+| 3 | a large repository can hold the machine for 36 hours per commit and publish nothing | to measure on the machine |
 | 4 | an unreadable `summary.toml` silently reruns the same commit forever | closed: its own state |
 | 5 | every repository's code runs where every repository's key is | accepted in design 5.1; decide again |
 | 6 | `cargo xtask` does not exist | closed: `.cargo/config.toml` |
@@ -52,8 +52,9 @@ Design section 7 asks for cargo-mutants to be run by hand on the two or three la
 `jobs` and the run cap. No measurement is recorded in the repository. The only measured run is twin4rust's: 215
 mutants, 3 min 20 s, `-j 1`, on the development laptop.
 
-**To close:** measure the largest repositories on the machine before onboarding them; size `run_timeout_hours` and
-`jobs` from that, or shard them (design 8, incremental runs). Observed: the code paths. Not measured: the run times.
+**Code side closed.** `run_timeout_hours` can be set per `[[repo]]`, defaulting to the roster's, beside the
+per-repository `jobs`, and `deploy/SETUP.md` section 4 says how to measure a repository and size both from it.
+**Still open:** the real run times, to be measured on the machine before each large repository is onboarded.
 
 ## 4. An unreadable `summary.toml` silently reruns the same commit
 

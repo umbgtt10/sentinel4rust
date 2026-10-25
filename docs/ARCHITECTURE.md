@@ -120,6 +120,7 @@ The roster is TOML, read once on start ([`deploy/roster.example.toml`](../deploy
 | `[[repo]]` `name`, `url` | required | a unique name (letters, digits, `-`, `_`, `.`) and what git fetches from |
 | `[[repo]]` `branch` | `main` | the branch tested; never `mutants` |
 | `[[repo]]` `jobs` | the global `jobs` | this repository's `--jobs` |
+| `[[repo]]` `run_timeout_hours` | the global `run_timeout_hours` | this repository's cap on one run |
 
 ## Testing
 

@@ -16,6 +16,7 @@ fn repo(name: &str) -> OnboardedRepo {
         url: format!("git@x:{name}.git"),
         branch: "main".to_string(),
         jobs: 4,
+        run_timeout: Duration::from_secs(3600),
     }
 }
 

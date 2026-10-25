@@ -18,7 +18,7 @@ pub struct Roster {
     pub pause: Duration,
     /// Default cargo-mutants `--jobs`.
     pub jobs: u32,
-    /// Cap on one cargo-mutants run.
+    /// Cap on one cargo-mutants run, for every repository without its own.
     pub run_timeout: Duration,
     /// Bump to rerun every repository.
     pub config_version: i64,
