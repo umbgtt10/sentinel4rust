@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "entries": [
+    {
+      "kind": "near",
+      "fingerprint": "d47be0d7f9071049",
+      "members": 2,
+      "names": [
+        "Table::string",
+        "Table::integer"
+      ]
+    }
+  ]
+}
