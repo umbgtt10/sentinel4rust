@@ -16,4 +16,3 @@ pub mod round_step_tests;
 pub mod skip_reason_tests;
 pub mod timestamp_tests;
 pub mod toml;
-pub mod work_dir_tests;

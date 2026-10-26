@@ -4,7 +4,7 @@
 
 //! What a cargo-mutants run left in `mutants.out`.
 
-use crate::system::mutants::unreadable_list::UnreadableList;
+use crate::protocol::mutants::unreadable_list::UnreadableList;
 
 /// Reads the lists one cargo-mutants run wrote.
 pub trait MutantsOut {

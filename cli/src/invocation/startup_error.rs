@@ -8,7 +8,7 @@ use std::fmt;
 use std::path::PathBuf;
 
 use sentinel4rust::model::onboarding::roster_error::RosterError;
-use sentinel4rust::system::unit::job_error::JobError;
+use sentinel4rust::protocol::unit::job_error::JobError;
 
 /// Why the service could not start.
 #[derive(Debug, Clone, PartialEq, Eq)]

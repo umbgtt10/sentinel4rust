@@ -2,7 +2,7 @@
 // Licensed under the MIT License
 // SPDX-License-Identifier: MIT
 
-use sentinel4rust::system::mutants::unreadable_list::UnreadableList;
+use sentinel4rust::protocol::mutants::unreadable_list::UnreadableList;
 use sentinel4rust::traits::mutants_out::MutantsOut;
 use std::collections::BTreeMap;
 

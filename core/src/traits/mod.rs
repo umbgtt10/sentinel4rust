@@ -2,8 +2,8 @@
 // Licensed under the MIT License
 // SPDX-License-Identifier: MIT
 
-//! The contracts every part of the tool talks through (`docs/ARCHITECTURE.md`). Each has a system implementation and, in
-//! tests, a fake.
+//! The contracts every part of the tool talks through (`docs/ARCHITECTURE.md`). Each has a real implementation in the
+//! `sentinel4rust` package and, in tests, a fake.
 
 pub mod clock;
 pub mod command_runner;

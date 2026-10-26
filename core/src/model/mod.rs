@@ -24,4 +24,3 @@ pub mod snapshot;
 pub mod sync_error;
 pub mod timestamp;
 pub mod toml;
-pub mod work_dir;

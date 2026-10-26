@@ -5,9 +5,11 @@
 use crate::support::git_shell::git;
 use crate::support::temp_dir::TempDir;
 use sentinel4rust::model::commit_hash::CommitHash;
+use sentinel4rust::model::onboarding::onboarded_repo::OnboardedRepo;
 use std::fs;
 use std::path::PathBuf;
 use std::process::Command;
+use std::time::Duration;
 
 // A bare "remote" plus a working clone used to push commits to it.
 pub struct Origin {
@@ -72,6 +74,16 @@ impl Origin {
             .output()
             .map(|o| String::from_utf8_lossy(&o.stdout).trim().to_string())
             .unwrap_or_default()
+    }
+
+    pub fn repo(&self, name: &str) -> OnboardedRepo {
+        OnboardedRepo {
+            name: name.to_string(),
+            url: self.url(),
+            branch: "main".to_string(),
+            jobs: 1,
+            run_timeout: Duration::from_secs(3600),
+        }
     }
 
     pub fn url(&self) -> String {

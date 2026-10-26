@@ -106,6 +106,12 @@ behaviour, checked after each step against the tree before the split.
   `traits::mutants_out::MutantsOut` (`list`, failing with `UnreadableList`), where they took the directory: a
   required list that cannot be read fails as before, an optional one counts as empty as before.
   `system::mutants::mutants_out_dir::MutantsOutDir` reads it on disk, for `CargoMutantsCli`.
+- The library keeps what needs no technology, and the implementations move to `sentinel4rust_cli`:
+  `system::{git, mutants, process, unit}::*` become `sentinel4rust_cli::system::*`, and `model::work_dir::WorkDir`
+  becomes `sentinel4rust_cli::system::work_dir::WorkDir`. Ten files that only read text stay in the library, as
+  `protocol::git::{outside_paths, remote_listing, unreachable_classifier}`,
+  `protocol::mutants::{log_tail, mutants_out_lists, outcome_interpreter, unreadable_list}` and
+  `protocol::unit::{job_error, job_toml, result_toml}`.
 - Stage 2 runs dry4rust once, from the workspace root, with `xtask/` and `core/tests/` excluded by full path, so a
   copy from one crate into another will be seen; what it judges is unchanged. `DryGate::new` takes the exclusions.
 - `BaselineRetry::run` takes the previous record's survivors, to tell the new ones.
