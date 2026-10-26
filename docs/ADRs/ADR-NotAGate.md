@@ -39,7 +39,7 @@ that stopped looks like a repository that did not move, which `--status`, run fr
 ## Enforcement
 
 `GitCli` pushes `refs/heads/mutants` and nothing else (`ADR-ExactCommitOnlyMutantsPushed`), and the real-git tests in
-`core/tests/system/git/git_cli_tests.rs` assert `main` is byte-identical after every publish.
+`cli/tests/system/git/git_cli_tests.rs` assert `main` is byte-identical after every publish.
 
 ## Related
 

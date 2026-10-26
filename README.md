@@ -61,10 +61,13 @@ repo=etheram-raft step=unchanged hash=9f8e7d6 duration_s=1
 
 ```sh
 just stage1   # fmt, clippy (pedantic, -D warnings), the tests: unit, git and end to end with a stub cargo-mutants
-just stage2   # stern4rust (pinned), cargo-shear, dry4rust, crap4rust, twin4rust, iceberg4rust, then the real cargo-mutants 27.1.0
+just stage2   # the technology-free core, stern4rust (pinned), cargo-shear, dry4rust, crap4rust, twin4rust, iceberg4rust,
+              # then the real cargo-mutants 27.1.0
 ```
 
-The core has no dependencies. Layout: `core/` (library and binary), `xtask/` (the gates, with tests of their own).
+Layout: `core/` (`sentinel4rust-core`: the logic, `no_std`, with no dependency and no technology), `cli/`
+(`sentinel4rust`: the binary and every implementation, installed with `cargo install --path cli --locked`), `xtask/`
+(the gates, with tests of their own). cargo-mutants mutates the core only (`.cargo/mutants.toml`).
 CI (`.github/workflows/ci.yml`) runs both stages on Linux. The ruleset for `main` -- a pull request with both jobs
 green -- is kept in [`.github/rulesets/main.json`](.github/rulesets/main.json), as GitHub holds it server-side.
 

@@ -18,3 +18,4 @@ before citing it.
 | file | what it was |
 |---|---|
 | [`[SUPERSEDED] DESIGN.md`](%5BSUPERSEDED%5D%20DESIGN.md) | The design the implementation was built from, revision 3.1, moved here unchanged. Its decisions are now `docs/ADRs/`, its structure `docs/ARCHITECTURE.md`; `docs/DESIGN.md` says where each section went. |
+| [`[IMPLEMENTED] CORE_CLI_SPLIT.md`](%5BIMPLEMENTED%5D%20CORE_CLI_SPLIT.md) | The plan that split a technology-free `no_std` core from a cli crate, ten slices, as it landed; `docs/CORE_CLI_SPLIT.md` points here. |

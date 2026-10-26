@@ -51,7 +51,7 @@ version. `baseline-failed` and `tool-failed` record the commit, so they wait for
 
 ## Enforcement
 
-`OutcomeInterpreter` (`core/src/system/mutants/outcome_interpreter.rs`) and its exit-code-table test;
+`OutcomeInterpreter` (`core/src/protocol/mutants/outcome_interpreter.rs`) and its exit-code-table test;
 `RepoState`'s back-off tests; the sentinel tests for a flaky baseline, a second baseline failure, the third tool
 failure, a new commit, unreachable logged once, and transient failures; `UnreachableClassifier`'s tests;
 `SystemCommandRunner`'s deadline test. Stage 2 runs the real cargo-mutants 27.1.0 on fixture crates for exit 2, 4

@@ -12,8 +12,9 @@ unchanged: the same command line and exit codes, the same roster format, the sam
 files and commit messages on `mutants`. The library's paths all changed; it has never been published, and nothing outside
 this repository uses it.
 
-The repository then splits into a technology-free core and a cli crate (`docs/CORE_CLI_SPLIT.md`), with the same
-behaviour, checked after each step against the tree before the split.
+The repository then splits into a technology-free core and a cli crate
+(`docs/history/[IMPLEMENTED] CORE_CLI_SPLIT.md`), with the same behaviour, checked after each step against the tree
+before the split.
 
 ### Added
 - Stage 2 gains a first gate, "Technology-free core": the core's manifest may name no crate, in any section; its

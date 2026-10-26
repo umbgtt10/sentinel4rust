@@ -33,7 +33,7 @@ costs one second, and the deadline test asserts on captured output rather than o
 ## Enforcement
 
 The stern gate (`injected-time`, `timeless-tests`); `core/tests/support/world.rs`; the tests in
-`core/tests/system/process/`.
+`cli/tests/system/process/`.
 
 ## Related
 

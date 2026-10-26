@@ -11,7 +11,8 @@ service manager, pointed at a list of repositories it clones itself.
 
 ## Decision
 
-The package builds a plain binary, `sentinel4rust`, taking `--roster <file>` and optionally `--once`.
+The `sentinel4rust` package (`cli/`) builds a plain binary, `sentinel4rust`, taking `--roster <file>` and optionally
+`--once`; its logic is the library of `sentinel4rust-core` (`core/`).
 
 ## Forcing constraints / Evidence
 

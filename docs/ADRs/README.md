@@ -19,7 +19,8 @@ sufficient. Most began as sections of the original design, kept unchanged in `do
 | [ADR-InjectedTime](ADR-InjectedTime.md) | Every clock read and wait goes through `Clock` and `Pause`, deadlines inside the `CommandRunner`, so the loop is tested without sleeping. |
 | [ADR-PlainBinaryPackaging](ADR-PlainBinaryPackaging.md) | A plain binary pointed at a roster, not a cargo subcommand. |
 | [ADR-DeployKeyAndRuleset](ADR-DeployKeyAndRuleset.md) | A write deploy key and rulesets blocking every branch but `mutants`, and every tag, per repository. |
-| [ADR-NoDependencies](ADR-NoDependencies.md) | The core depends on the standard library alone, because it runs beside every repository's key. |
+| [ADR-NoDependencies](ADR-NoDependencies.md) | The service depends on nothing outside the repository, because it runs beside every repository's key. |
+| [ADR-TechnologyFreeCore](ADR-TechnologyFreeCore.md) | The logic is a `no_std` core with no dependency and no technology; the binary and every implementation are `cli`, and cargo-mutants mutates the core alone. |
 
 ## Template
 

@@ -87,7 +87,8 @@ cargo-mutants command runs in `sentinel4rust-mutants@run.service`, a fixed syste
 `InaccessiblePaths=/home/sentinel/.ssh`, which the service starts and stops through a polkit rule allowing the
 `sentinel` user to start and stop that unit's instances and nothing else; git, which needs the keys, stays in the
 service. The command goes
-in as a job file and the result and output come back beside it (`core/src/system/unit/`). Tested here through a
+in as a job file and the result and output come back beside it (`cli/src/system/unit/`, the files' format in
+`core/src/protocol/unit/`). Tested here through a
 stand-in for systemd; the unit and the rule have not been installed on the machine, and `deploy/verify-isolation.sh`
 -- `~/.ssh` readable in the service, refused in the unit -- is the proof still to run there. `deploy/provision.sh`
 runs it after installing the unit and the rule, and sets `run_unit` only when it passes (point 17).

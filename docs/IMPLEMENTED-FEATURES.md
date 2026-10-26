@@ -88,8 +88,10 @@ for what changed, [CHANGELOG.md](../CHANGELOG.md); for what is known to be missi
 
 ### Tested on itself
 
-- `.cargo/mutants.toml` makes sentinel4rust a repository the service can test: the core is mutated, `xtask/` left out
+- `.cargo/mutants.toml` makes sentinel4rust a repository the service can test: `sentinel4rust-core` is mutated, against
+  its own tests only; `cli/` and `xtask/` are left out
 
 ### No dependencies
 
-- The core uses the standard library alone, with its own TOML subset for the roster and `summary.toml`
+- The core depends on nothing, not even the standard library (`#![no_std]`), with its own TOML subset for the roster
+  and `summary.toml`; `cli` depends on the core alone

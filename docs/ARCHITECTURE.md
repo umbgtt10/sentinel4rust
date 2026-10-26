@@ -3,11 +3,17 @@
 How a `sentinel4rust` process flows through the code, module by module. The decisions behind it are in
 [`ADRs/`](ADRs/README.md).
 
+Two crates hold it. `core/` -- package `sentinel4rust-core`, library `sentinel4rust` -- is the logic: `traits/`,
+`model/`, `patrol/` and `protocol/`, `#![no_std]`, with no dependency and no technology
+([ADR-TechnologyFreeCore](ADRs/ADR-TechnologyFreeCore.md)). `cli/` -- package `sentinel4rust`, library
+`sentinel4rust_cli` -- is the binary: `invocation/` and `system/`, every implementation of the core's contracts.
+`cli` depends on the core, never the reverse.
+
 ## The pipeline
 
 ```text
-main.rs
-  └─ EntryPoint::run(args)                     invocation/entry_point.rs
+cli/src/main.rs
+  └─ EntryPoint::run(args)                     cli/src/invocation/entry_point.rs
       ├─ CommandLine::parse                    --roster <file> [--once | --status], --run-job <dir>, --help,
       │                                        --version; else
       │                                        UsageError, exit 2
@@ -23,7 +29,7 @@ main.rs
           5. Sentinel::run_once                --once: each repository once; exit 1 if a visit failed
              Sentinel::run_forever             otherwise: step, forever
 
-Sentinel::step                                 patrol/sentinel.rs
+Sentinel::step                                 core/src/patrol/sentinel.rs
   Schedule::next(repos, now)
     SleepUntil(t) -> Pause::pause(t - now, at least a second)
     Visit(i)      -> visit, then one JournalLine::visit on the Journal (an unreachable or unreadable repeat stays
@@ -46,42 +52,42 @@ Sentinel::visit(repo) -> RoundStep
 `SystemClock`, `ThreadPause` and a `StdoutJournal` over stdout complete `Dependencies`, which `Sentinel::new` takes
 whole.
 
-## `invocation/` -- the command line and the composition root
+## cli: `invocation/` -- the command line and the composition root
 
 `CommandLine` is what the arguments asked for; `UsageError` and `StartupError` say what went wrong, each in the words
 the service has always printed. `WorkDirLock` holds an exclusive `File::try_lock` on the work directory's lock file,
 so a `--once` beside the running service exits at once. `EntryPoint` turns all of it into an `ExitCode`: 0, 1 for a
 start-up failure or a failed `--once` visit, 2 for a bad command line. The usage text and the log-tail sizes (200
-lines, 16 KiB) are its constants.
+lines, 16 KiB) are its constants. It is where the core's text paths -- the roster's `work_dir` -- become `Path`s.
 
-## `traits/` -- the contracts
+## core: `traits/` -- the contracts
 
 One trait per file, no default bodies: `CommandRunner` (run a `Command` to completion or its deadline), `Clock`,
-`Pause`, `Journal`, `RepoSource` (`sync`, `checkout`, `remove_checkout`, `committed_at`), `MutationRunner` (`run`) and `ResultStore`
-(`publish`). Every external effect goes through one of them, so the loop is tested with fakes and no clock
-([ADR-InjectedTime](ADRs/ADR-InjectedTime.md)).
+`Pause`, `Journal`, `RepoSource` (`sync`, `checkout`, `remove_checkout`, `committed_at`), `MutationRunner` (`run`,
+`recheck`), `ResultStore` (`publish`) and `MutantsOut` (the text of one list a cargo-mutants run left in `mutants.out`).
+The checkout `RepoSource` hands `MutationRunner` is its path, as text. Every external effect goes through one of them,
+so the loop is tested with fakes and no clock ([ADR-InjectedTime](ADRs/ADR-InjectedTime.md)).
 
-## `model/` -- the data the contracts carry
+## core: `model/` -- the data the contracts carry
 
 - **Values:** `CommitHash` (40 hex digits, trimmed, lowercased), `Timestamp` (seconds since the epoch, RFC 3339
   without a time-zone library), `MutantKey` and `Located` (a mutant without and with its position,
   [ADR-PositionFreeMutantKeys](ADRs/ADR-PositionFreeMutantKeys.md)), `KeyChanges` (new and gone), `MutantCounts`.
-- **Contract data:** `Command` and `CommandResult`; `Snapshot` and `SyncError` (what a fetch found, or why it did
-  not); `CheckoutError`, `PublishError`; `MutationRun` and `RunOutcome` (what a run produced); `OutcomeKind`,
-  `SkipReason` and `RoundStep` (what a visit did, with its journal name); `WorkDir`, which owns every path under the
-  roster's `work_dir`: `repos/<name>.git`, `runs/<name>`, `stage/<name>`, `out/<name>`, `tmp/<name>`, `jobs/`.
+- **Contract data:** `Command` (its directory as text) and `CommandResult`; `Snapshot` and `SyncError` (what a
+  fetch found, or why it did not); `CheckoutError`, `PublishError`; `MutationRun` and `RunOutcome` (what a run
+  produced); `OutcomeKind`, `SkipReason` and `RoundStep` (what a visit did, with its journal name).
 - **`branch/`** -- what `mutants` holds ([ADR-OrphanMutantsBranch](ADRs/ADR-OrphanMutantsBranch.md)): the
   `RunRecord` and `Publication` records, `RecordState` (absent, present or unreadable), `SummaryToml` (render and
   parse, schema 1), `RecordCurrency`, `BranchLayout`
   (the files, as `BranchFile`s, and the commit message), `RecordError`, and `KIND_FULL`.
-- **`onboarding/`** -- the roster: `Roster` and `OnboardedRepo` records, `TomlRoster` (parse and validate) and
-  `RosterError`.
+- **`onboarding/`** -- the roster: `Roster` (its `work_dir` as text) and `OnboardedRepo` records, `TomlRoster` (parse
+  and validate) and `RosterError`.
 - **`toml/`** -- the dependency-free TOML subset ([ADR-NoDependencies](ADRs/ADR-NoDependencies.md)): `TomlParser`
   builds a `Document` (a root `Table` and arrays of tables) with `DocumentBuilder`, after `CommentStripper` (a
   `QuoteState` machine) has removed comments; `BasicString` reads escapes; `TomlWriter` quotes; `TomlError` names the
   line.
 
-## `patrol/` -- the loop
+## core: `patrol/` -- the loop
 
 `Sentinel` is the policy: the visit above, the tool-failure count and the publication; `BaselineRetry` runs a commit
 in its checkout, once more on a failing baseline, has `SurvivorRecheck` pick the survivors the previous record did not
@@ -96,7 +102,21 @@ start-up line and one `repo=… step=… …` line per visit. `Dependencies` is 
 each repository, runs and publishes nothing, and turns what it finds -- and, through `RepoSource::committed_at`, how
 long `main`'s head has waited -- into a `StatusLine` that says whether it needs attention.
 
-## `system/` -- the real implementations
+## core: `protocol/` -- what the tools answer, and what it means
+
+Text in, the core's data out; no tool is run here.
+
+- **`git/`** -- `RemoteListing` (the refs `ls-remote` listed), `UnreachableClassifier` (the failures that mean the
+  repository is gone or refuses the key) and `OutsidePaths` (a manifest's `path` dependencies that leave the
+  repository, for `path-outside-repo`).
+- **`mutants/`** -- `OutcomeInterpreter` (the exit-code table), which reads the lists with `MutantsOutLists`
+  through `MutantsOut` (`UnreadableList` when a required one cannot be read) and keeps a failing run's `LogTail`.
+- **`unit/`** -- `JobToml` and `ResultToml`, the files the service and its run unit hand each other, and `JobError`.
+
+## cli: `system/` -- the real implementations
+
+`WorkDir` owns every path under the roster's `work_dir`: `repos/<name>.git`, `runs/<name>`, `stage/<name>`,
+`out/<name>`, `tmp/<name>`, `jobs/`.
 
 - **`process/`** -- `SystemCommandRunner` spawns each command in its own process group with piped output, drains
   stdout and stderr on `StreamReader` threads -- keeping only a tail when the command sets a capture limit, as
@@ -106,17 +126,17 @@ long `main`'s head has waited -- into a `StatusLine` that says whether it needs 
   in the C locale; `local` failures are `GitFailure`s naming the command), `BareClone` (made once, origin kept on the
   roster's URL, stale worktree entries pruned), `RemoteListing` (what `ls-remote` listed), `RecordReader` (the
   record and `missed.txt` off the fetched `mutants`), `CrateReadiness` (with `OutsidePaths`, the manifests' `path` dependencies), `DetachedWorktree` (the run's checkout, with its submodules),
-  `PlumbingCommit` (blobs, a temporary index and `commit-tree`) and `UnreachableClassifier`. The deadlines and the
+  `PlumbingCommit` (blobs, a temporary index and `commit-tree`), with the core's `RemoteListing`, `OutsidePaths`
+  and `UnreachableClassifier`. The deadlines and the
   remote `mutants` ref are in `git_constants.rs`. Only `refs/heads/mutants` is ever pushed
   ([ADR-ExactCommitOnlyMutantsPushed](ADRs/ADR-ExactCommitOnlyMutantsPushed.md)).
 - **`mutants/`** -- `CargoMutantsCli` re-checks named mutants with an anchored `--re`, and records `cargo mutants --version` and `rustc --version`, runs
   `cargo mutants --jobs <n> --output <out>` in the checkout with the run cap and `TMPDIR` under the work directory
-  (its `prune` empties `tmp/` on start), and hands the result to
-  `OutcomeInterpreter` (the exit-code table), which reads the lists with `MutantsOutLists` (`UnreadableList` when a
-  required one is missing) and keeps a failing run's `LogTail`.
+  (its `prune` empties `tmp/` on start), and hands the result to the core's
+  `OutcomeInterpreter`, with a `MutantsOutDir` reading the run's `mutants.out` on disk.
 
 - **`unit/`** -- when the roster names a `run_unit`, `CargoMutantsCli` runs its commands through
-  `UnitCommandRunner`: each is written as `jobs/run/job.toml` (`JobToml`), the template unit started with
+  `UnitCommandRunner`: each is written as `jobs/run/job.toml` (the core's `JobToml`), the template unit started with
   `systemctl start --wait <unit>@run.service`, and the `result.toml` (`ResultToml`), `stdout` and `stderr` the unit
   left are read back into a `CommandResult`. The unit's `ExecStart` is `sentinel4rust --run-job <dir>`: `JobRunner`
   runs the job with the `SystemCommandRunner` and writes those files. Git never runs there
@@ -142,20 +162,25 @@ The roster is TOML, read once on start ([`deploy/roster.example.toml`](../deploy
 
 ## Testing
 
-`core/tests/` mirrors `core/src/` file by file (`<source>_tests.rs`, one `all_tests.rs` registry), every test in
-Arrange/Act/Assert. Its `support/` holds what several test files share: `World`, a fake for all six of the sentinel's
-contracts on a fake clock; `ScriptedRunner`, a `CommandRunner` answering from a script, which the git parts are
-tested against; `Origin`, a bare repository with a working clone, for `GitCli` on real git through `file://` remotes,
-with no network; `TempDir`, `git_shell` and `run_records`.
+Each crate's `tests/` mirrors its `src/` file by file (`<source>_tests.rs`, one `all_tests.rs` registry), every test
+in Arrange/Act/Assert.
 
-`main_tests.rs` drives the binary end to end against a stub `cargo` in stage 1; its `#[ignore]`d tests run the real
-cargo-mutants 27.1.0 on three fixture crates -- survivors, a failing baseline, a mutant that loops -- and stage 2's
-end-to-end gate runs them. `fixtures/mutants_out/` keeps the lists two of those real runs wrote, which the stage-1
-tests of `MutantsOutLists` read.
+`core/tests/` touches no disk and starts no process: its 174 tests run in a hundredth of a second, and they are what
+each mutant is tested against. Its `support/` holds `World`, a fake for all six of the sentinel's contracts on a fake
+clock; `InMemoryMutantsOut`, the lists of one run held in memory; `run_records` and `command_results`.
+`fixtures/mutants_out/` keeps the lists two real cargo-mutants runs wrote, which the tests of `MutantsOutLists`
+include at compile time.
+
+`cli/tests/` holds the tests of the real implementations. Its `support/` holds `ScriptedRunner`, a `CommandRunner`
+answering from a script, which the git parts are tested against; `Origin`, a bare repository with a working clone, for
+`GitCli` on real git through `file://` remotes, with no network; `TempDir`, `git_shell`, `run_records` and a runner
+allowing `file://` submodules. `main_tests.rs` drives the binary end to end against a stub `cargo` in stage 1; its
+`#[ignore]`d tests run the real cargo-mutants 27.1.0 on three fixture crates -- survivors, a failing baseline, a
+mutant that loops -- and stage 2's end-to-end gate runs them.
 
 ## Gates
 
-`just stage1`: `cargo fmt`, clippy (pedantic, `-D warnings`, all targets), the tests. `just stage2` is
-`cargo xtask stage2`: the pinned stern4rust, cargo-shear, dry4rust, crap4rust, twin4rust, iceberg4rust, then the
-end-to-end gate. The `xtask` is a crate of `Gate` implementations against a `CommandRunner`, with tests of its own;
-CLAUDE.md lists the gates' settings.
+`just stage1`: `cargo fmt`, clippy (pedantic, `-D warnings`, all targets), the tests. `just stage2` is `cargo xtask
+stage2`: the technology-free core, the pinned stern4rust, cargo-shear, dry4rust, crap4rust, twin4rust, iceberg4rust,
+then the end-to-end gate. The `xtask` is a crate of `Gate` implementations against a `CommandRunner`, with tests of its
+own; CLAUDE.md lists the gates' settings.

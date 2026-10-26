@@ -36,7 +36,7 @@ the repository, which no checkout holds, is `path-outside-repo`, naming the mani
 
 ## Enforcement
 
-`CrateReadiness::check` (`core/src/system/git/crate_readiness.rs`) and its tests; the real-git test
+`CrateReadiness::check` (`cli/src/system/git/crate_readiness.rs`) and its tests; the real-git test
 `sync_without_cargo_toml_or_mutants_config_is_not_ready`; the sentinel test that not-ready repositories are skipped
 without running.
 

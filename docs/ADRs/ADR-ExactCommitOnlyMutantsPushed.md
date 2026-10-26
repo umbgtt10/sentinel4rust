@@ -38,7 +38,7 @@ logged and backed off, and the next visit reruns. Rulesets make "only `mutants`"
 
 ## Enforcement
 
-`GitCli` (`core/src/system/git/git_cli.rs`) names the branch in one private constant and pushes in one place;
+`GitCli` (`cli/src/system/git/git_cli.rs`) names the branch in one private constant and pushes in one place;
 `DetachedWorktree` and `PlumbingCommit` are tested against a scripted runner, and the real-git tests assert `main` is
 byte-identical after every publish, worktrees are gone after a run, and a push after `mutants` moved is rejected.
 

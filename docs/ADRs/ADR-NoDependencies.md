@@ -11,7 +11,8 @@ runs there too, and an update to any of them is a change nobody reviewed.
 
 ## Decision
 
-The `sentinel4rust` package depends on the standard library alone; a dependency comes in only if it removes real
+The service depends on nothing outside this repository: `sentinel4rust-core` on no crate at all, `#![no_std]`, and the
+`sentinel4rust` package on the core and the standard library alone; a dependency comes in only if it removes real
 code. The development-only `xtask` may use the family's crates.
 
 ## Forcing constraints / Evidence
@@ -29,14 +30,15 @@ The build machine had no crates.io access when it was written, which forced the 
 ## Consequences
 
 The TOML subset parses only what the tool writes and reads; a roster using anything else fails with the line it
-failed on. `rust-version` is 1.89, for `File::try_lock`. `xtask` uses `serde` and `serde_json`, from
-`[workspace.dependencies]`.
+failed on. `rust-version` is 1.89, for `File::try_lock`. `xtask` uses `serde`, `serde_json` and `syn`, and `tempfile`
+for its tests, from `[workspace.dependencies]`.
 
 ## Enforcement
 
-`core/Cargo.toml`'s `[dependencies]` is empty; cargo-shear in stage 2 flags any dependency declared and unused; CLAUDE.md
-states the rule.
+`core/Cargo.toml`'s `[dependencies]` is empty, and stage 2's technology-free gate fails on any crate its manifest
+names, in any section; `cli/Cargo.toml` names the core alone; cargo-shear in stage 2 flags any dependency declared and
+unused; CLAUDE.md states the rule.
 
 ## Related
 
-- `ADR-PlainBinaryPackaging.md`.
+- `ADR-PlainBinaryPackaging.md`, `ADR-TechnologyFreeCore.md`.

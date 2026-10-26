@@ -29,16 +29,19 @@ The repository is public: nothing private about the repositories it watches belo
 
 ## Layout
 
-A workspace of two members, with a virtual root that holds no package:
+A workspace of three members, with a virtual root that holds no package:
 
 | member | what it is |
 |---|---|
-| `core/` | package `sentinel4rust`: the library and the `sentinel4rust` binary. No dependencies. |
+| `core/` | package `sentinel4rust-core`, library `sentinel4rust`: the patrol, the roster, the record on `mutants`, and what git, cargo-mutants and the run unit answer. `#![no_std]`, no dependency, no technology. |
+| `cli/` | package `sentinel4rust`: the `sentinel4rust` binary and a library, `sentinel4rust_cli` -- the command line, `EntryPoint` and every implementation of the core's contracts. Depends on the core only. |
 | `xtask/` | gate orchestration, run as `cargo xtask`. `publish = false`. |
 
-`core/src/` is `invocation/` (the command line, `EntryPoint`), `traits/`, `model/` (`branch/`, `onboarding/`,
-`toml/`), `patrol/` (the loop) and `system/` (`process/`, `git/`, `mutants/`); `core/tests/` mirrors it. `deploy/`
-holds the systemd unit, the set-up notes, the access check and the example roster.
+`core/src/` is `traits/`, `model/` (`branch/`, `onboarding/`, `toml/`), `patrol/` (the loop) and `protocol/`
+(`git/`, `mutants/`, `unit/`: what the tools answer, read as text); `cli/src/` is `invocation/` (the command line,
+`EntryPoint`) and `system/` (`process/`, `git/`, `mutants/`, `unit/` and `work_dir.rs`); each `tests/` mirrors its
+`src/`. The binary is installed with `cargo install --path cli --locked`. `deploy/` holds the systemd unit, the set-up
+notes, the access check and the example roster.
 
 ## Quality Gates
 
@@ -54,13 +57,22 @@ Stage 2 is `cargo xtask stage2`, the gates in this order, all on, nothing baseli
 
 | gate | asks |
 |---|---|
-| stern4rust | do the house coding rules hold (both packages) |
+| technology-free core | does the core stay `no_std`, dependency-free and free of technology |
+| stern4rust | do the house coding rules hold (every member) |
 | `cargo shear` | is every declared dependency used, in the section that uses it |
-| `cargo dry4rust` | did this change add duplicated code to `core/src` (floor 25) |
+| `cargo dry4rust` | did this change add duplicated code to `core/src` or `cli/src` (floor 25) |
 | `cargo crap4rust` | is any function complex and untested (threshold 15) |
 | `cargo twin4rust` | does every source file have a mirrored test file |
 | `cargo iceberg4rust` | is any file's private implementation risk at or above 7 |
 | end to end | do the `#[ignore]`d tests pass against the real cargo-mutants 27.1.0 |
+
+The technology-free gate runs first, because its fix -- moving code into `cli` -- changes what every gate behind it
+measures, and it needs no installed tool: `sentinel4rust-core`'s manifest may name no crate in any section (read from
+`cargo metadata`), `core/src/lib.rs` must carry `#![no_std]` and `#![forbid(unsafe_code)]`, and no file under
+`core/src` or `core/tests` may reach `std::{env,fs,io,net,os,process,thread}`, a printing macro, a file-system method
+of `Path` or `extern crate std` (read with syn, so string literals are data). It is iceberg4rust's gate, in
+`xtask/src/gates/boundary/`. It cannot see a use inside a macro's arguments, and a method of the core's own named like
+a file-system one would be reported.
 
 The stern gate runs stern4rust pinned at commit `8b0e8e5` of `https://github.com/umbgtt10/stern4rust` (a constant
 in `xtask/src/gates/stern_gate.rs`), installed repo-locally under `target/stern4rust`, never over the global
@@ -68,8 +80,11 @@ in `xtask/src/gates/stern_gate.rs`), installed repo-locally under `target/stern4
 `target/stern4rust/REV` does not name the pin, locally and on CI alike. All its rules hold, so there is no stern
 baseline. `docs/header.txt` holds the header every `.rs` file carries, and `stern4rust.toml` names it.
 
-`dry4rust-baseline.json` records no group and may never gain one. Re-record it only to drop a group that is gone, at
-the same floor: `cargo dry4rust --path core/src --min-nodes 25 --baseline "$PWD/dry4rust-baseline.json" baseline`.
+dry4rust makes one run from the workspace root, with `xtask/`, `core/tests/` and `cli/tests/` excluded by full path,
+so a copy from one crate into the other is seen. `dry4rust-baseline.json` records no group and may never gain one.
+Re-record it only to drop a group that is gone, at the same floor: `cargo dry4rust --path "$PWD" --exclude
+"$PWD/xtask" --exclude "$PWD/core/tests" --exclude "$PWD/cli/tests" --min-nodes 25 --baseline
+"$PWD/dry4rust-baseline.json" baseline`.
 
 The iceberg ceiling is a ratchet just above the worst file: lower it when the score improves, never raise it to turn
 a red build green.
@@ -90,12 +105,19 @@ after that is a `PUT` to the ruleset's id.
 
 - `GitCli` pushes `refs/heads/mutants` and nothing else. Tests assert `main` is byte-identical after every publish.
 - The core has no dependencies: keep it that way unless a dependency removes real code. TOML goes through
-  `core/src/model/toml/`. The dev-only `xtask` uses `serde` and `serde_json`, from `[workspace.dependencies]`.
-- Every external effect goes through a trait in `core/src/traits/`; `Sentinel` gets them all through
-  `Dependencies`, and `EntryPoint::compose` builds the real ones. New behaviour in the loop is tested with the fake
-  in `core/tests/support/world.rs`; git parts against `core/tests/support/scripted_runner.rs`.
-- Git tests use bare repositories and `file://` remotes under a temporary directory (`core/tests/support`); no
+  `core/src/model/toml/`. `cli` depends on the core alone. The dev-only `xtask` uses `serde`, `serde_json` and `syn`,
+  and `tempfile` for its tests, from `[workspace.dependencies]`.
+- The core is technology-free: `#![no_std]`, and nothing under `core/` touches the file system, a process, a thread,
+  the environment or stdout. Every external effect goes through a trait in `core/src/traits/`; `Sentinel` gets them
+  all through `Dependencies`, and `EntryPoint::compose`, in `cli`, builds the real ones. A new effect is a trait in
+  `core/src/traits/`, a fake in `core/tests/support/` and an implementation in `cli/src/system/`, composed in
+  `EntryPoint`; paths in the core are text, turned into `Path`s in `cli`.
+- New behaviour in the loop is tested with the fake in `core/tests/support/world.rs`; git parts against
+  `cli/tests/support/scripted_runner.rs`.
+- Git tests use bare repositories and `file://` remotes under a temporary directory (`cli/tests/support`); no
   network.
+- `.cargo/mutants.toml` mutates `core/src` only, each mutant against the core's own tests (`test_workspace = false`):
+  what cargo-mutants and sentinel4rust's own runs test here.
 - Time goes through `Clock` and `Pause`; no test reads the clock or sleeps.
 
 ## Strict Rules

@@ -17,7 +17,7 @@ jobs:
       fail-fast: false
       matrix:
         # Linux only: the tool is Unix-only by design (process groups, `kill`,
-        # systemd), and the core does not compile on Windows.
+        # systemd), and the cli does not compile on Windows.
         os: [ubuntu-latest]
         stage: [stage1, stage2]
     steps:
