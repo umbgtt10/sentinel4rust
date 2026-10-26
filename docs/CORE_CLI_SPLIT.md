@@ -58,7 +58,7 @@ reach `std::{env,fs,io,net,os,process,thread}`, the printing macros, the file-sy
 | S5 | the move: ten files that only read text become the core's `protocol/`; the rest of `system/` and `WorkDir` go to cli | done |
 | S6 | `#![no_std]`: `alloc` and `core` imports; `Schedule` on a `BTreeMap` | done |
 | S7 | the technology-free gate, first in stage 2 | done |
-| S8 | `.cargo/mutants.toml` | |
+| S8 | `.cargo/mutants.toml` | done |
 | S9 | docs, and this record moves to `docs/history/` | |
 
 ## Tests that move

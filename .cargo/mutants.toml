@@ -1,3 +1,6 @@
-# What sentinel4rust's own runs mutate (docs/ADRs/ADR-FiltersLiveInEachRepository.md): the service's code, not
-# the gates that check it.
-exclude_globs = ["xtask/**"]
+# What cargo-mutants mutates here, for a hand run and for sentinel4rust's own runs alike
+# (docs/ADRs/ADR-FiltersLiveInEachRepository.md): sentinel4rust-core -- the patrol, the roster, the record on
+# `mutants` and what git and cargo-mutants answer -- against core's own tests only. cli (processes, git, the file
+# system, the clock, systemd, stdout) and xtask (the gates) are not mutated.
+examine_globs = ["core/src/**/*.rs"]
+test_workspace = false

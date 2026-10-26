@@ -56,7 +56,9 @@ behaviour, checked after each step against the tree before the split.
   `[[repo]]` entry with the date it was verified. Idempotent, with `--dry-run`, which reads GitHub and writes
   nothing; it changes GitHub only with `--apply-github`, and blocks a repository on which GitHub offers no ruleset.
   `--local <dir>` tests it against `file://` bare repositories, without sudo, GitHub or the access proof.
-- `.cargo/mutants.toml`, so sentinel4rust can be onboarded on itself: its core is mutated, `xtask/` left out.
+- `.cargo/mutants.toml`, so sentinel4rust can be onboarded on itself: `sentinel4rust-core` is mutated, against its
+  own tests only (`examine_globs = ["core/src/**/*.rs"]`, `test_workspace = false`); `cli/` and `xtask/` are not.
+  550 mutants, where the package before the split had 685.
   `deploy/SETUP.md` section 7 says how to decide what a public repository publishes, and the roster example records
   the decision per repository (open point 15).
 - `run_unit` in the roster: cargo-mutants then runs in a systemd template unit of its own,
