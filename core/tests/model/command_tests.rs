@@ -4,14 +4,13 @@
 
 use sentinel4rust::model::command::Command;
 use std::collections::BTreeMap;
-use std::path::Path;
 use std::time::Duration;
 
 fn command() -> Command {
     Command::new(
         "git",
         &["fetch", "--quiet"],
-        Path::new("/w/repos/a.git"),
+        "/w/repos/a.git",
         Duration::from_secs(60),
     )
 }
@@ -40,7 +39,7 @@ fn dir_of_a_new_command_is_the_one_given() {
     let command = command();
 
     // Assert
-    assert_eq!(command.dir(), Path::new("/w/repos/a.git"));
+    assert_eq!(command.dir(), "/w/repos/a.git");
 }
 
 #[test]

@@ -6,7 +6,7 @@
 
 use std::fs;
 use std::io;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 use std::rc::Rc;
 
@@ -62,7 +62,7 @@ impl EntryPoint {
     /// first.
     pub fn compose(&self, roster: Roster) -> Sentinel {
         let runner: Rc<dyn CommandRunner> = Rc::new(SystemCommandRunner);
-        let work_dir = WorkDir::new(roster.work_dir.clone());
+        let work_dir = WorkDir::new(PathBuf::from(&roster.work_dir));
         let git = Rc::new(GitCli::new(runner.clone(), work_dir.clone()));
         git.prune(&roster.repos);
         let mutants_runner: Rc<dyn CommandRunner> = match &roster.run_unit {
@@ -142,7 +142,7 @@ impl EntryPoint {
 
     fn start(&self, roster_path: &Path, once: bool) -> Result<u8, StartupError> {
         let roster = Self::roster(roster_path)?;
-        let _lock = WorkDirLock::acquire(&roster.work_dir)?;
+        let _lock = WorkDirLock::acquire(Path::new(&roster.work_dir))?;
         println!("{}", JournalLine.startup(&roster, SystemClock.now()));
         let mut sentinel = self.compose(roster);
         if once {
@@ -156,7 +156,7 @@ impl EntryPoint {
     // Its own clones and lock under `<work_dir>/status`, so it can run beside the service.
     fn status(roster_path: &Path) -> Result<u8, StartupError> {
         let roster = Self::roster(roster_path)?;
-        let status_dir = roster.work_dir.join("status");
+        let status_dir = Path::new(&roster.work_dir).join("status");
         let _lock = WorkDirLock::acquire(&status_dir)?;
         let runner: Rc<dyn CommandRunner> = Rc::new(SystemCommandRunner);
         let report = StatusReport::new(

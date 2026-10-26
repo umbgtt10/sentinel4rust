@@ -13,6 +13,7 @@ use sentinel4rust::model::work_dir::WorkDir;
 use sentinel4rust::system::git::detached_worktree::DetachedWorktree;
 use sentinel4rust::system::git::git_runner::GitRunner;
 use std::fs;
+use std::path::Path;
 use std::rc::Rc;
 use std::time::Duration;
 
@@ -65,7 +66,10 @@ fn add_creates_a_detached_worktree_at_head() {
         ]]
     );
     let command = &runner.commands()[0];
-    assert_eq!(command.dir(), work_dir(&work).bare_clone(&repo()));
+    assert_eq!(
+        Path::new(command.dir()),
+        work_dir(&work).bare_clone(&repo())
+    );
     assert_eq!(command.timeout(), Duration::from_secs(300));
     assert!(work_dir(&work).runs().is_dir());
 }
@@ -110,7 +114,7 @@ fn add_of_a_commit_with_submodules_initialises_them_in_the_checkout() {
         command.args(),
         ["submodule", "update", "--init", "--recursive"]
     );
-    assert_eq!(command.dir(), checkout);
+    assert_eq!(Path::new(command.dir()), checkout);
     assert_eq!(command.timeout(), Duration::from_secs(300));
 }
 

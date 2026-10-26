@@ -8,7 +8,6 @@ use sentinel4rust::model::round_step::RoundStep;
 use sentinel4rust::model::skip_reason::SkipReason;
 use sentinel4rust::model::timestamp::Timestamp;
 use sentinel4rust::patrol::journal_line::JournalLine;
-use std::path::PathBuf;
 use std::time::Duration;
 
 fn repo(name: &str) -> OnboardedRepo {
@@ -25,7 +24,7 @@ fn repo(name: &str) -> OnboardedRepo {
 fn startup_names_the_version_repositories_pause_and_config_version() {
     // Arrange
     let roster = Roster {
-        work_dir: PathBuf::from("/w"),
+        work_dir: String::from("/w"),
         pause: Duration::from_secs(300),
         jobs: 1,
         run_timeout: Duration::from_secs(3600),

@@ -10,8 +10,13 @@ use std::env::temp_dir;
 use std::time::Duration;
 
 fn sh(script: &str, timeout: Duration) -> CommandResult {
-    let command =
-        Command::new("sh", &["-c", script], &temp_dir(), timeout).with_env("SENTINEL_TEST", "yes");
+    let command = Command::new(
+        "sh",
+        &["-c", script],
+        &temp_dir().to_string_lossy(),
+        timeout,
+    )
+    .with_env("SENTINEL_TEST", "yes");
     SystemCommandRunner.run(&command)
 }
 
@@ -51,7 +56,7 @@ fn run_missing_program_fails_to_start() {
     let command = Command::new(
         "/nonexistent/program",
         &[],
-        &temp_dir(),
+        &temp_dir().to_string_lossy(),
         Duration::from_secs(1),
     );
 
@@ -83,7 +88,7 @@ fn run_with_a_capture_limit_keeps_the_tail_of_the_output() {
     let command = Command::new(
         "sh",
         &["-c", "seq 1 20000; seq 1 20000 >&2"],
-        &temp_dir(),
+        &temp_dir().to_string_lossy(),
         Duration::from_secs(10),
     )
     .with_capture_limit(12);

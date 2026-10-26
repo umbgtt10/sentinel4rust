@@ -5,7 +5,6 @@
 //! The roster file, read and validated (`deploy/roster.example.toml`).
 
 use std::collections::BTreeSet;
-use std::path::PathBuf;
 use std::time::Duration;
 
 use crate::model::onboarding::onboarded_repo::OnboardedRepo;
@@ -52,7 +51,7 @@ impl TomlRoster {
             return Err(RosterError("no [[repo]] entries".to_string()));
         }
         Ok(Roster {
-            work_dir: PathBuf::from(root.required_string("work_dir")?),
+            work_dir: root.required_string("work_dir")?,
             pause: Duration::from_secs(Self::positive(
                 root.integer("pause_seconds")?,
                 300,

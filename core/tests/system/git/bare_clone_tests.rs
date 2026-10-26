@@ -12,6 +12,7 @@ use sentinel4rust::model::work_dir::WorkDir;
 use sentinel4rust::system::git::bare_clone::BareClone;
 use sentinel4rust::system::git::git_runner::GitRunner;
 use std::fs;
+use std::path::Path;
 use std::rc::Rc;
 use std::time::Duration;
 
@@ -115,8 +116,11 @@ fn ensure_of_no_clone_inits_a_bare_repository_with_origin() {
             vec!["remote", "add", "origin", "file:///srv/x.git"],
         ]
     );
-    assert_eq!(runner.commands()[0].dir(), work.path().join("repos"));
-    assert_eq!(runner.commands()[1].dir(), dir);
+    assert_eq!(
+        Path::new(runner.commands()[0].dir()),
+        work.path().join("repos")
+    );
+    assert_eq!(Path::new(runner.commands()[1].dir()), dir);
 }
 
 #[test]

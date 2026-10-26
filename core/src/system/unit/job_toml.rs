@@ -5,7 +5,6 @@
 //! A command, written for the run unit and read back inside it.
 
 use std::fmt::Write as _;
-use std::path::Path;
 use std::time::Duration;
 
 use crate::model::command::Command;
@@ -44,12 +43,7 @@ impl JobToml {
             .map(|table| table.required_string("value"))
             .collect::<Result<Vec<String>, _>>()?;
         let arg_refs: Vec<&str> = args.iter().map(String::as_str).collect();
-        let mut command = Command::new(
-            &program,
-            &arg_refs,
-            Path::new(&dir),
-            Duration::from_secs(timeout),
-        );
+        let mut command = Command::new(&program, &arg_refs, &dir, Duration::from_secs(timeout));
         for table in doc.arrays.get("env").into_iter().flatten() {
             command = command.with_env(
                 &table.required_string("name")?,
@@ -69,7 +63,7 @@ impl JobToml {
         let mut out = format!(
             "program = {}\ndir = {}\ntimeout_seconds = {}\n",
             TomlWriter.quote(command.program()),
-            TomlWriter.quote(&command.dir().to_string_lossy()),
+            TomlWriter.quote(command.dir()),
             command.timeout().as_secs()
         );
         if let Some(bytes) = command.capture_limit() {

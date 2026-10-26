@@ -4,7 +4,6 @@
 
 //! One run of a commit, retried once on a failing baseline (`ADR-ResultsFailuresAndBackOff`).
 
-use std::path::Path;
 use std::rc::Rc;
 use std::time::Duration;
 
@@ -57,7 +56,7 @@ impl BaselineRetry {
     fn rechecked(
         &self,
         repo: &OnboardedRepo,
-        dir: &Path,
+        dir: &str,
         timeout: Duration,
         run: MutationRun,
         previous_missed: &[MutantKey],

@@ -18,7 +18,7 @@ fn args(list: &[&str]) -> Vec<String> {
 // A roster whose one repository does not exist: real git says so at once.
 fn unreachable_roster(dir: &TempDir) -> Roster {
     Roster {
-        work_dir: dir.path().join("work"),
+        work_dir: dir.path().join("work").to_string_lossy().into_owned(),
         pause: Duration::from_secs(300),
         jobs: 1,
         run_timeout: Duration::from_secs(60),

@@ -32,7 +32,7 @@ impl CommandRunner for FakeSystemd {
                     .to_string(),
             };
         }
-        let ran = JobRunner::new(Rc::new(SystemCommandRunner)).run(command.dir());
+        let ran = JobRunner::new(Rc::new(SystemCommandRunner)).run(Path::new(command.dir()));
         CommandResult::Exited {
             code: Some(i32::from(ran.is_err())),
             stdout: String::new(),
@@ -62,7 +62,7 @@ fn run_starts_the_unit_and_answers_with_what_the_job_did() {
     let command = Command::new(
         "sh",
         &["-c", "echo in the unit; exit 2"],
-        jobs.path(),
+        &jobs.path().to_string_lossy(),
         Duration::from_secs(10),
     );
 
@@ -84,7 +84,7 @@ fn run_starts_the_unit_and_answers_with_what_the_job_did() {
         ["start", "--wait", "sentinel4rust-mutants@run.service"]
     );
     assert_eq!(started[0].program(), "systemctl");
-    assert_eq!(started[0].dir(), jobs.path().join("run"));
+    assert_eq!(Path::new(started[0].dir()), jobs.path().join("run"));
     assert!(started[0].timeout() > Duration::from_secs(10));
 }
 
@@ -93,7 +93,12 @@ fn run_with_the_unit_refused_fails_to_start_naming_systemctl() {
     // Arrange
     let jobs = TempDir::new("jobs-refused");
     let (runner, _) = runner(jobs.path(), true);
-    let command = Command::new("true", &[], jobs.path(), Duration::from_secs(10));
+    let command = Command::new(
+        "true",
+        &[],
+        &jobs.path().to_string_lossy(),
+        Duration::from_secs(10),
+    );
 
     // Act
     let result = runner.run(&command);

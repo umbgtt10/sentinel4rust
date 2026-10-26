@@ -28,7 +28,7 @@ impl GitRunner {
 
     /// The git command line `args` in `dir`, killed after `timeout`.
     pub fn command(&self, dir: &Path, args: &[&str], timeout: Duration) -> Command {
-        Command::new("git", args, dir, timeout)
+        Command::new("git", args, &dir.to_string_lossy(), timeout)
             .with_env("GIT_TERMINAL_PROMPT", "0")
             .with_env("LC_ALL", "C")
     }

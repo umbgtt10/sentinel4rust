@@ -134,7 +134,7 @@ fn installed_version_reads_cargo_mutants_version_in_the_work_dir() {
     assert_eq!(version, Some(String::from("cargo 9.9")));
     let calls = runner.calls.borrow();
     assert_eq!(calls[0].args(), ["mutants", "--version"]);
-    assert_eq!(calls[0].dir(), work.path());
+    assert_eq!(Path::new(calls[0].dir()), work.path());
 }
 
 #[test]
@@ -173,7 +173,13 @@ fn recheck_runs_only_those_mutants_and_reads_their_lists() {
     ];
 
     // Act
-    let outcome = cli.recheck(&repo(), &checkout, 2, Duration::from_secs(99), &names);
+    let outcome = cli.recheck(
+        &repo(),
+        &checkout.to_string_lossy(),
+        2,
+        Duration::from_secs(99),
+        &names,
+    );
 
     // Assert
     let calls = runner.calls.borrow();
@@ -191,7 +197,7 @@ fn recheck_runs_only_those_mutants_and_reads_their_lists() {
             &out.to_string_lossy()
         ]
     );
-    assert_eq!(calls[0].dir(), checkout);
+    assert_eq!(Path::new(calls[0].dir()), checkout);
     assert_eq!(calls[0].timeout(), Duration::from_secs(99));
     assert_eq!(
         outcome,
@@ -216,7 +222,12 @@ fn run_completed_without_lists_is_a_tool_failure() {
     let (cli, _) = cli_with(&work, 0, &[]);
 
     // Act
-    let run = cli.run(&repo(), work.path(), 1, Duration::from_secs(1));
+    let run = cli.run(
+        &repo(),
+        &work.path().to_string_lossy(),
+        1,
+        Duration::from_secs(1),
+    );
 
     // Assert
     assert!(
@@ -239,7 +250,12 @@ fn run_exiting_three_reads_the_timeouts_too() {
     );
 
     // Act
-    let run = cli.run(&repo(), work.path(), 1, Duration::from_secs(1));
+    let run = cli.run(
+        &repo(),
+        &work.path().to_string_lossy(),
+        1,
+        Duration::from_secs(1),
+    );
 
     // Assert
     assert!(matches!(
@@ -257,7 +273,12 @@ fn run_keeps_only_the_tail_of_cargo_mutants_output() {
     let (cli, runner) = cli_with(&work, 2, &[("caught.txt", ""), ("missed.txt", "")]);
 
     // Act
-    cli.run(&repo(), work.path(), 1, Duration::from_secs(9));
+    cli.run(
+        &repo(),
+        &work.path().to_string_lossy(),
+        1,
+        Duration::from_secs(9),
+    );
 
     // Assert
     let calls = runner.calls.borrow();
@@ -282,7 +303,12 @@ fn run_passes_jobs_output_and_deadline_then_cleans_up() {
     let checkout = root.join("checkout");
 
     // Act
-    let run = cli.run(&repo(), &checkout, 3, Duration::from_secs(99));
+    let run = cli.run(
+        &repo(),
+        &checkout.to_string_lossy(),
+        3,
+        Duration::from_secs(99),
+    );
 
     // Assert
     let calls = runner.calls.borrow();
@@ -290,7 +316,7 @@ fn run_passes_jobs_output_and_deadline_then_cleans_up() {
     assert_eq!(calls[0].args(), ["mutants", "--version"]);
     assert_eq!(calls[1].program(), "rustc");
     let main = &calls[2];
-    assert_eq!(main.dir(), checkout);
+    assert_eq!(Path::new(main.dir()), checkout);
     assert_eq!(main.timeout(), Duration::from_secs(99));
     let out = root.join("out").join("r");
     assert_eq!(
@@ -326,7 +352,12 @@ fn run_points_tmpdir_into_the_work_dir_and_removes_it_after() {
     let checkout = work.path().join("checkout");
 
     // Act
-    cli.run(&repo(), &checkout, 1, Duration::from_secs(9));
+    cli.run(
+        &repo(),
+        &checkout.to_string_lossy(),
+        1,
+        Duration::from_secs(9),
+    );
 
     // Assert
     let tmp = work.path().join("tmp").join("r");
@@ -369,7 +400,12 @@ fn run_without_the_checkouts_toolchain_is_toolchain_missing_and_runs_nothing() {
     );
 
     // Act
-    let run = cli.run(&repo(), work.path(), 1, Duration::from_secs(9));
+    let run = cli.run(
+        &repo(),
+        &work.path().to_string_lossy(),
+        1,
+        Duration::from_secs(9),
+    );
 
     // Assert
     assert_eq!(

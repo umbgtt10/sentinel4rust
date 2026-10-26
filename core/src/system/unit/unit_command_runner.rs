@@ -61,7 +61,7 @@ impl CommandRunner for UnitCommandRunner {
         let start = Command::new(
             "systemctl",
             &["start", "--wait", &unit],
-            &dir,
+            &dir.to_string_lossy(),
             command.timeout().saturating_add(MARGIN),
         );
         let started = self.inner.run(&start);

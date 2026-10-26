@@ -20,7 +20,7 @@ fn run_executes_the_job_and_writes_its_result_and_output() {
     let command = Command::new(
         "sh",
         &["-c", "echo out $JOB_ENV; echo err >&2; exit 3"],
-        job.path(),
+        &job.path().to_string_lossy(),
         Duration::from_secs(10),
     )
     .with_env("JOB_ENV", "set");

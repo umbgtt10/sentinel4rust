@@ -4,7 +4,6 @@
 
 //! Running mutation testing.
 
-use std::path::Path;
 use std::time::Duration;
 
 use crate::model::mutation_run::MutationRun;
@@ -17,7 +16,7 @@ pub trait MutationRunner {
     fn run(
         &self,
         repo: &OnboardedRepo,
-        checkout: &Path,
+        checkout: &str,
         jobs: u32,
         timeout: Duration,
     ) -> MutationRun;
@@ -26,7 +25,7 @@ pub trait MutationRunner {
     fn recheck(
         &self,
         repo: &OnboardedRepo,
-        checkout: &Path,
+        checkout: &str,
         jobs: u32,
         timeout: Duration,
         mutants: &[String],

@@ -97,6 +97,11 @@ behaviour, checked after each step against the tree before the split.
   `invocation::*` moves to `sentinel4rust_cli::invocation::*`. The binary is installed with `cargo install --path cli
   --locked`, as `deploy/provision.sh`, `deploy/status-check.sh`, `deploy/SETUP.md` and `deploy/PROVISION.md` now say.
   The core's crate root forbids unsafe code, as the workspace's lints already did.
+- Paths are text in the library's model and contracts, which carry them and never treat them as paths: `Command::new`
+  takes the directory as `&str` and `Command::dir` returns one; `Roster::work_dir` is a `String`;
+  `RepoSource::checkout` returns the checkout as a `String`, and `MutationRunner::run` and `recheck` take it as
+  `&str`. Each comes from UTF-8 text -- the command line, the roster, `job.toml` -- and the implementations turn
+  it into a `Path` where they touch the disk.
 - Stage 2 runs dry4rust once, from the workspace root, with `xtask/` and `core/tests/` excluded by full path, so a
   copy from one crate into another will be seen; what it judges is unchanged. `DryGate::new` takes the exclusions.
 - `BaselineRetry::run` takes the previous record's survivors, to tell the new ones.

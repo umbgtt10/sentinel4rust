@@ -3,7 +3,6 @@
 // SPDX-License-Identifier: MIT
 
 use sentinel4rust::model::onboarding::toml_roster::TomlRoster;
-use std::path::PathBuf;
 use std::time::Duration;
 
 const FULL: &str = r#"
@@ -30,7 +29,7 @@ fn parse_full_roster_reads_settings_and_repos_in_order() {
     let roster = TomlRoster.parse(FULL).unwrap();
 
     // Assert
-    assert_eq!(roster.work_dir, PathBuf::from("/srv/s"));
+    assert_eq!(roster.work_dir, "/srv/s");
     assert_eq!(roster.pause, Duration::from_secs(60));
     assert_eq!(roster.run_timeout, Duration::from_secs(7200));
     assert_eq!(roster.config_version, 3);

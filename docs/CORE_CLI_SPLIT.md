@@ -53,7 +53,7 @@ reach `std::{env,fs,io,net,os,process,thread}`, the printing macros, the file-sy
 | S0 | this record | done |
 | S1 | `DryGate`: one run over the workspace, with the trees it must not judge excluded by full path | done |
 | S2 | the split: `cli` takes `main.rs` and all of `invocation/`; core is renamed; one workspace version; the core's root forbids unsafe code; `deploy/` installs from `cli` | done |
-| S3 | paths as text in the core: `Command`, `Roster`, `RepoSource::checkout`, `MutationRunner` | |
+| S3 | paths as text in the core: `Command`, `Roster`, `RepoSource::checkout`, `MutationRunner` | done |
 | S4 | the `MutantsOut` port: `MutantsOutLists` and `OutcomeInterpreter` read through it; `MutantsOutDir` reads the disk | |
 | S5 | the move: ten files that only read text become the core's `protocol/`; the rest of `system/` and `WorkDir` go to cli | |
 | S6 | `#![no_std]`: `alloc` and `core` imports; `Schedule` on a `BTreeMap` | |

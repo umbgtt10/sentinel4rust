@@ -5,7 +5,7 @@
 //! `RepoSource` and `ResultStore` over git.
 
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::rc::Rc;
 
 use crate::model::branch::publication::Publication;
@@ -156,9 +156,11 @@ impl RepoSource for GitCli {
         })
     }
 
-    fn checkout(&self, repo: &OnboardedRepo, head: &CommitHash) -> Result<PathBuf, CheckoutError> {
+    fn checkout(&self, repo: &OnboardedRepo, head: &CommitHash) -> Result<String, CheckoutError> {
         self.remove_checkout(repo);
-        self.worktree.add(repo, head)
+        self.worktree
+            .add(repo, head)
+            .map(|dir| dir.to_string_lossy().into_owned())
     }
 
     fn remove_checkout(&self, repo: &OnboardedRepo) {

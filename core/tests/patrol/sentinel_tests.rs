@@ -29,7 +29,6 @@ use sentinel4rust::patrol::patrol_constants::MAX_BACKOFF;
 use sentinel4rust::patrol::sentinel::Sentinel;
 use std::panic::AssertUnwindSafe;
 use std::panic::catch_unwind;
-use std::path::PathBuf;
 use std::rc::Rc;
 use std::time::Duration;
 
@@ -96,7 +95,7 @@ fn sentinel_for(repos: Vec<OnboardedRepo>, installed: Option<&str>) -> (Sentinel
     let world = Rc::new(World::default());
     world.now.set(1_792_800_000);
     let roster = Roster {
-        work_dir: PathBuf::from("/w"),
+        work_dir: String::from("/w"),
         pause: PAUSE,
         jobs: 1,
         run_timeout: Duration::from_secs(3600),
@@ -174,11 +173,7 @@ fn run_once_caps_the_run_at_the_repositorys_own_timeout() {
     // Assert
     assert_eq!(
         w.run_calls.borrow().as_slice(),
-        [(
-            PathBuf::from("/checkout"),
-            4,
-            Duration::from_secs(30 * 3600)
-        )]
+        [(String::from("/checkout"), 4, Duration::from_secs(30 * 3600))]
     );
 }
 
@@ -275,7 +270,7 @@ fn run_once_moved_main_publishes_keys_new_and_gone() {
     );
     assert_eq!(
         w.run_calls.borrow().as_slice(),
-        [(PathBuf::from("/checkout"), 4, Duration::from_secs(3600))]
+        [(String::from("/checkout"), 4, Duration::from_secs(3600))]
     );
     assert_eq!((w.checkouts.get(), w.removals.get()), (1, 1));
     let p = &w.publishes.borrow()[0];

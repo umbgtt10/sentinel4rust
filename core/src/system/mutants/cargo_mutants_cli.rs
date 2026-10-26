@@ -58,7 +58,11 @@ impl CargoMutantsCli {
 
     /// `cargo mutants --version` as installed, read in the work directory; `None` when it cannot be read.
     pub fn installed_version(&self) -> Option<String> {
-        self.version(&self.cargo, &["mutants", "--version"], self.work_dir.root())
+        self.version(
+            &self.cargo,
+            &["mutants", "--version"],
+            &self.work_dir.root().to_string_lossy(),
+        )
     }
 
     /// Removes the temporary files a killed run left behind.
@@ -92,7 +96,7 @@ impl CargoMutantsCli {
 
     fn mutate(
         &self,
-        checkout: &Path,
+        checkout: &str,
         arguments: &[String],
         timeout: Duration,
         out: &Path,
@@ -117,7 +121,7 @@ impl CargoMutantsCli {
             .interpret(&self.runner.run(&command), &out.join("mutants.out"))
     }
 
-    fn version(&self, program: &str, args: &[&str], dir: &Path) -> Option<String> {
+    fn version(&self, program: &str, args: &[&str], dir: &str) -> Option<String> {
         self.runner
             .run(&Command::new(program, args, dir, VERSION_TIMEOUT))
             .success()
@@ -129,7 +133,7 @@ impl MutationRunner for CargoMutantsCli {
     fn run(
         &self,
         repo: &OnboardedRepo,
-        checkout: &Path,
+        checkout: &str,
         jobs: u32,
         timeout: Duration,
     ) -> MutationRun {
@@ -172,7 +176,7 @@ impl MutationRunner for CargoMutantsCli {
     fn recheck(
         &self,
         repo: &OnboardedRepo,
-        checkout: &Path,
+        checkout: &str,
         jobs: u32,
         timeout: Duration,
         mutants: &[String],

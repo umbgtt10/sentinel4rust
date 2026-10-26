@@ -6,7 +6,6 @@
 
 use std::collections::BTreeMap;
 use std::iter::once;
-use std::path::{Path, PathBuf};
 use std::time::Duration;
 
 /// A program to run: what, with which arguments, where, with which extra environment, for how long.
@@ -14,7 +13,7 @@ use std::time::Duration;
 pub struct Command {
     program: String,
     args: Vec<String>,
-    dir: PathBuf,
+    dir: String,
     env: BTreeMap<String, String>,
     timeout: Duration,
     capture_limit: Option<usize>,
@@ -22,11 +21,11 @@ pub struct Command {
 
 impl Command {
     /// A command with no extra environment.
-    pub fn new(program: &str, args: &[&str], dir: &Path, timeout: Duration) -> Self {
+    pub fn new(program: &str, args: &[&str], dir: &str, timeout: Duration) -> Self {
         Self {
             program: program.to_string(),
             args: args.iter().map(ToString::to_string).collect(),
-            dir: dir.to_path_buf(),
+            dir: dir.to_string(),
             env: BTreeMap::new(),
             timeout,
             capture_limit: None,
@@ -44,7 +43,7 @@ impl Command {
     }
 
     /// The working directory.
-    pub fn dir(&self) -> &Path {
+    pub fn dir(&self) -> &str {
         &self.dir
     }
 

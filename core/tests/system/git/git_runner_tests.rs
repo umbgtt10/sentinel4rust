@@ -24,7 +24,7 @@ fn command_runs_git_without_prompts_in_the_c_locale() {
     // Assert
     assert_eq!(command.program(), "git");
     assert_eq!(command.args(), ["fetch"]);
-    assert_eq!(command.dir(), Path::new("/w"));
+    assert_eq!(Path::new(command.dir()), Path::new("/w"));
     assert_eq!(command.timeout(), Duration::from_secs(5));
     assert_eq!(
         command.env(),
@@ -91,13 +91,8 @@ fn run_passes_the_command_through_unchanged() {
     // Arrange
     let runner = Rc::new(ScriptedRunner::new(vec![ok("tree\n")]));
     let git = GitRunner::new(runner.clone());
-    let command = Command::new(
-        "git",
-        &["write-tree"],
-        Path::new("/w"),
-        Duration::from_secs(1),
-    )
-    .with_env("GIT_INDEX_FILE", "/s/index");
+    let command = Command::new("git", &["write-tree"], "/w", Duration::from_secs(1))
+        .with_env("GIT_INDEX_FILE", "/s/index");
 
     // Act
     let result = git.run(&command);

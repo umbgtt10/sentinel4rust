@@ -4,7 +4,6 @@
 
 //! Global settings and the onboarded repositories.
 
-use std::path::PathBuf;
 use std::time::Duration;
 
 use crate::model::onboarding::onboarded_repo::OnboardedRepo;
@@ -13,7 +12,7 @@ use crate::model::onboarding::onboarded_repo::OnboardedRepo;
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Roster {
     /// Clones, worktrees and cargo-mutants output live here.
-    pub work_dir: PathBuf,
+    pub work_dir: String,
     /// Polling interval per repository.
     pub pause: Duration,
     /// Default cargo-mutants `--jobs`.

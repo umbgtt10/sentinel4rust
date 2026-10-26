@@ -4,7 +4,6 @@
 
 use sentinel4rust::model::command::Command;
 use sentinel4rust::system::unit::job_toml::JobToml;
-use std::path::Path;
 use std::time::Duration;
 
 #[test]
@@ -29,7 +28,7 @@ fn parse_of_a_rendered_command_round_trips_it() {
             "--re",
             r#"^(?:src/a\.rs:1:1: replace "x" with y)$"#,
         ],
-        Path::new("/w/runs/r"),
+        "/w/runs/r",
         Duration::from_secs(43_200),
     )
     .with_env("TMPDIR", "/w/tmp/r")

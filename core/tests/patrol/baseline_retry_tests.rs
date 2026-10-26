@@ -10,7 +10,6 @@ use sentinel4rust::model::mutant_key::MutantKey;
 use sentinel4rust::model::onboarding::onboarded_repo::OnboardedRepo;
 use sentinel4rust::model::run_outcome::RunOutcome;
 use sentinel4rust::patrol::baseline_retry::BaselineRetry;
-use std::path::PathBuf;
 use std::rc::Rc;
 use std::time::Duration;
 
@@ -84,7 +83,7 @@ fn run_of_a_passing_baseline_runs_once_in_the_checkout_and_removes_it() {
     assert!(run.is_ok());
     assert_eq!(
         world.run_calls.borrow().as_slice(),
-        [(PathBuf::from("/checkout"), 3, Duration::from_secs(60))]
+        [(String::from("/checkout"), 3, Duration::from_secs(60))]
     );
     assert_eq!((world.checkouts.get(), world.removals.get()), (1, 1));
 }

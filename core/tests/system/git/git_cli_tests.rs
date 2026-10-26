@@ -28,6 +28,7 @@ use sentinel4rust::system::process::system_command_runner::SystemCommandRunner;
 use sentinel4rust::traits::repo_source::RepoSource;
 use sentinel4rust::traits::result_store::ResultStore;
 use std::fs;
+use std::path::PathBuf;
 use std::process::Command;
 use std::rc::Rc;
 use std::slice;
@@ -95,7 +96,7 @@ fn checkout_is_detached_at_head_and_removed_completely() {
     git_cli.sync(&repo).unwrap();
 
     // Act
-    let checkout = git_cli.checkout(&repo, &head).unwrap();
+    let checkout = PathBuf::from(git_cli.checkout(&repo, &head).unwrap());
 
     // Assert
     assert!(checkout.join("src/lib.rs").exists());
@@ -145,7 +146,7 @@ fn checkout_of_a_commit_with_a_submodule_initialises_it() {
     git_cli.sync(&repo).unwrap();
 
     // Act
-    let checkout = git_cli.checkout(&repo, &head).unwrap();
+    let checkout = PathBuf::from(git_cli.checkout(&repo, &head).unwrap());
 
     // Assert
     assert_eq!(

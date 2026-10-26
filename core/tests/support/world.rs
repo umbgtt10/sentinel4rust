@@ -22,8 +22,6 @@ use sentinel4rust::traits::result_store::ResultStore;
 use std::cell::Cell;
 use std::cell::RefCell;
 use std::collections::VecDeque;
-use std::path::Path;
-use std::path::PathBuf;
 use std::time::Duration;
 
 // Every run takes this long on the fake clock.
@@ -44,7 +42,7 @@ pub struct World {
     pub committed: Cell<Option<i64>>,
     pub removals: Cell<usize>,
     pub runs: RefCell<VecDeque<RunOutcome>>,
-    pub run_calls: RefCell<Vec<(PathBuf, u32, Duration)>>,
+    pub run_calls: RefCell<Vec<(String, u32, Duration)>>,
     pub rechecks: RefCell<VecDeque<RunOutcome>>,
     pub recheck_calls: RefCell<Vec<Vec<String>>>,
     pub publishes: RefCell<Vec<Publication>>,
@@ -76,11 +74,11 @@ impl RepoSource for World {
             .unwrap_or_else(|| panic!("unexpected sync of {}", repo.name))
     }
 
-    fn checkout(&self, _: &OnboardedRepo, _: &CommitHash) -> Result<PathBuf, CheckoutError> {
+    fn checkout(&self, _: &OnboardedRepo, _: &CommitHash) -> Result<String, CheckoutError> {
         self.checkouts.set(self.checkouts.get() + 1);
         match self.checkout_error.borrow().clone() {
             Some(error) => Err(error),
-            None => Ok(PathBuf::from("/checkout")),
+            None => Ok(String::from("/checkout")),
         }
     }
 
@@ -94,10 +92,10 @@ impl RepoSource for World {
 }
 
 impl MutationRunner for World {
-    fn run(&self, _: &OnboardedRepo, checkout: &Path, jobs: u32, timeout: Duration) -> MutationRun {
+    fn run(&self, _: &OnboardedRepo, checkout: &str, jobs: u32, timeout: Duration) -> MutationRun {
         self.run_calls
             .borrow_mut()
-            .push((checkout.to_path_buf(), jobs, timeout));
+            .push((checkout.to_string(), jobs, timeout));
         self.now.set(self.now.get() + RUN_SECONDS);
         MutationRun {
             outcome: self.runs.borrow_mut().pop_front().expect("unexpected run"),
@@ -110,7 +108,7 @@ impl MutationRunner for World {
     fn recheck(
         &self,
         _: &OnboardedRepo,
-        _: &Path,
+        _: &str,
         _: u32,
         _: Duration,
         mutants: &[String],
