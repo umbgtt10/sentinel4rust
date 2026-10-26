@@ -16,6 +16,11 @@ The repository then splits into a technology-free core and a cli crate (`docs/CO
 behaviour, checked after each step against the tree before the split.
 
 ### Added
+- Stage 2 gains a first gate, "Technology-free core": the core's manifest may name no crate, in any section; its
+  crate root must carry `#![no_std]` and `#![forbid(unsafe_code)]`; and no file under `core/src` or `core/tests` may
+  reach `std::{env,fs,io,net,os,process,thread}`, the printing macros, the file-system methods of `Path` or
+  `extern crate std`. It is iceberg4rust's gate, under `xtask/src/gates/boundary/`; the xtask gains `syn`, and
+  `tempfile` for its tests.
 - A second ruleset per repository, `sentinel: no tags` (`deploy/rulesets/sentinel-no-tags.json`): every tag's
   creation, update and deletion restricted to the repository admin role, since a write key can write every ref and
   the branch ruleset covers no tag. `deploy/onboard.sh` creates it after the branch ruleset, before the deploy key;
