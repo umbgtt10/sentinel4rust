@@ -35,6 +35,13 @@ dependencies = [
 [[package]]
 name = "sentinel4rust"
 version = "0.1.0"
+dependencies = [
+ "sentinel4rust-core",
+]
+
+[[package]]
+name = "sentinel4rust-core"
+version = "0.1.0"
 
 [[package]]
 name = "serde"

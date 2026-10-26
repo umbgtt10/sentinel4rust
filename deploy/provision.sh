@@ -322,7 +322,7 @@ sentinel4rust_binary() {
     ok "$(probe "$cargo_bin/sentinel4rust" --version), built from $short"
     return
   fi
-  step "build sentinel4rust from $short: git archive into $src_dir, cargo install --path core --locked" \
+  step "build sentinel4rust from $short: git archive into $src_dir, cargo install --path cli --locked" \
     install_sentinel4rust
   sentinel4rust_installed=1
 }
@@ -331,7 +331,7 @@ install_sentinel4rust() {
   as_sentinel rm -rf "$src_dir"
   as_sentinel mkdir -p "$src_dir"
   git_head archive --format=tar HEAD | as_sentinel tar -x -C "$src_dir"
-  as_sentinel env --chdir="$src_dir" cargo install --path core --locked --force
+  as_sentinel env --chdir="$src_dir" cargo install --path cli --locked --force
   printf '%s\n' "$head" | sentinel_write "$installed_marker"
   ok "$(as_sentinel "$cargo_bin/sentinel4rust" --version), built from $short"
 }

@@ -2,9 +2,9 @@
 // Licensed under the MIT License
 // SPDX-License-Identifier: MIT
 
-use sentinel4rust::invocation::startup_error::StartupError;
 use sentinel4rust::model::onboarding::roster_error::RosterError;
 use sentinel4rust::system::unit::job_error::JobError;
+use sentinel4rust_cli::invocation::startup_error::StartupError;
 use std::path::PathBuf;
 
 #[test]

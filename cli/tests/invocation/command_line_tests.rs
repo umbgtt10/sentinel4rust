@@ -2,8 +2,8 @@
 // Licensed under the MIT License
 // SPDX-License-Identifier: MIT
 
-use sentinel4rust::invocation::command_line::CommandLine;
-use sentinel4rust::invocation::usage_error::UsageError;
+use sentinel4rust_cli::invocation::command_line::CommandLine;
+use sentinel4rust_cli::invocation::usage_error::UsageError;
 use std::path::PathBuf;
 
 fn args(list: &[&str]) -> Vec<String> {

@@ -2,7 +2,7 @@
 // Licensed under the MIT License
 // SPDX-License-Identifier: MIT
 
-use sentinel4rust::invocation::usage_error::UsageError;
+use sentinel4rust_cli::invocation::usage_error::UsageError;
 
 #[test]
 fn to_string_of_each_names_the_problem() {

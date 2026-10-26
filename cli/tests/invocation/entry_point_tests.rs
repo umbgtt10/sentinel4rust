@@ -3,10 +3,10 @@
 // SPDX-License-Identifier: MIT
 
 use crate::support::temp_dir::TempDir;
-use sentinel4rust::invocation::entry_point::EntryPoint;
 use sentinel4rust::model::onboarding::onboarded_repo::OnboardedRepo;
 use sentinel4rust::model::onboarding::roster::Roster;
 use sentinel4rust::model::round_step::RoundStep;
+use sentinel4rust_cli::invocation::entry_point::EntryPoint;
 use std::fs;
 use std::process::ExitCode;
 use std::time::Duration;

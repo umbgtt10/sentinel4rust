@@ -42,7 +42,7 @@ longer matters.
 ## 2. `cargo install sentinel4rust` installs the placeholder
 
 **Closed.** crates.io has only `0.0.1`, the placeholder that prints "under construction" and exits `0`.
-`deploy/SETUP.md` now installs from the repository only, with `cargo install --path core --locked`, until `0.1.0`
+`deploy/SETUP.md` now installs from the repository only, with `cargo install --path cli --locked`, until `0.1.0`
 is published; nothing is published from here.
 
 ## 3. A large repository can hold the machine for 36 hours per commit

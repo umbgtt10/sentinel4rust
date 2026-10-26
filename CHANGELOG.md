@@ -12,6 +12,9 @@ unchanged: the same command line and exit codes, the same roster format, the sam
 files and commit messages on `mutants`. The library's paths all changed; it has never been published, and nothing outside
 this repository uses it.
 
+The repository then splits into a technology-free core and a cli crate (`docs/CORE_CLI_SPLIT.md`), with the same
+behaviour, checked after each step against the tree before the split.
+
 ### Added
 - A second ruleset per repository, `sentinel: no tags` (`deploy/rulesets/sentinel-no-tags.json`): every tag's
   creation, update and deletion restricted to the repository admin role, since a write key can write every ref and
@@ -89,6 +92,11 @@ this repository uses it.
   `.github/rulesets/main.json`, the copy of record for `main`'s ruleset.
 
 ### Changed
+- Packages: `sentinel4rust` is now the binary's package (`cli/`), with a library, `sentinel4rust_cli`; the library
+  `sentinel4rust` is published by a new package, `sentinel4rust-core` (`core/`). Both share the workspace's version.
+  `invocation::*` moves to `sentinel4rust_cli::invocation::*`. The binary is installed with `cargo install --path cli
+  --locked`, as `deploy/provision.sh`, `deploy/status-check.sh`, `deploy/SETUP.md` and `deploy/PROVISION.md` now say.
+  The core's crate root forbids unsafe code, as the workspace's lints already did.
 - Stage 2 runs dry4rust once, from the workspace root, with `xtask/` and `core/tests/` excluded by full path, so a
   copy from one crate into another will be seen; what it judges is unchanged. `DryGate::new` takes the exclusions.
 - `BaselineRetry::run` takes the previous record's survivors, to tell the new ones.

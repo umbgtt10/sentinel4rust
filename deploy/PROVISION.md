@@ -262,7 +262,7 @@ otherwise prefix it with `sudo -n`.
 
 A dead sentinel looks like quiet repositories, so the owner's laptop, say, runs `--status` on a timer through
 `deploy/status-check.sh`, with its own access -- https, or the owner's SSH key -- never the sentinel's keys. On that
-machine, from a checkout -- at `~/sentinel4rust` below --: `cargo install --path core --locked`, then a roster of
+machine, from a checkout -- at `~/sentinel4rust` below --: `cargo install --path cli --locked`, then a roster of
 its own, e.g. `~/.config/sentinel4rust/status.toml`:
 
 ```toml

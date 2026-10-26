@@ -23,15 +23,15 @@ Nothing about a run depends on the directory it is started in; a `cargo sentinel
 
 ## Consequences
 
-It is installed from the repository with `cargo install --path core --locked` and run by the systemd unit in
+It is installed from the repository with `cargo install --path cli --locked` and run by the systemd unit in
 `deploy/`. It takes a lock on `<work_dir>/sentinel4rust.lock`, so a manual `--once` beside the service exits at once
 with a message. Exit codes: 0 on success, 1 when it cannot start or a `--once` visit backed off or found a repository
 unreachable, 2 for a bad command line.
 
 ## Enforcement
 
-`core/src/main.rs` is the binary, one line handing the arguments to `EntryPoint`; `core/tests/main_tests.rs` drives it end to end, and
-`core/tests/invocation/entry_point_tests.rs` pins each exit code.
+`cli/src/main.rs` is the binary, one line handing the arguments to `EntryPoint`; `cli/tests/main_tests.rs` drives it end to end, and
+`cli/tests/invocation/entry_point_tests.rs` pins each exit code.
 
 ## Related
 

@@ -7,7 +7,7 @@
 use std::env::args;
 use std::process::ExitCode;
 
-use sentinel4rust::invocation::entry_point::EntryPoint;
+use sentinel4rust_cli::invocation::entry_point::EntryPoint;
 
 fn main() -> ExitCode {
     EntryPoint.run(&args().skip(1).collect::<Vec<String>>())

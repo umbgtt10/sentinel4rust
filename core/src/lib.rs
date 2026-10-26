@@ -7,9 +7,9 @@
 //! Walks a roster of repositories; whenever a repository's `main` moves, runs cargo-mutants against that exact
 //! commit and publishes the surviving mutants on the repository's own `mutants` branch. See `docs/ARCHITECTURE.md`.
 
+#![forbid(unsafe_code)]
 #![warn(missing_docs)]
 
-pub mod invocation;
 pub mod model;
 pub mod patrol;
 pub mod system;

@@ -7,8 +7,8 @@
 use std::fmt;
 use std::path::PathBuf;
 
-use crate::model::onboarding::roster_error::RosterError;
-use crate::system::unit::job_error::JobError;
+use sentinel4rust::model::onboarding::roster_error::RosterError;
+use sentinel4rust::system::unit::job_error::JobError;
 
 /// Why the service could not start.
 #[derive(Debug, Clone, PartialEq, Eq)]

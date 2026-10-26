@@ -14,7 +14,7 @@ default:
     @just --list
 
 # Formatting, clippy and tests -- cargo built-ins only, so it works on a fresh checkout.
-# --workspace on clippy/test so the xtask member is covered too; `cargo fmt`
+# --workspace on clippy/test so cli and xtask are covered too; `cargo fmt`
 # formats every workspace member by default already.
 stage1:
     cargo fmt {{fmt_mode}}

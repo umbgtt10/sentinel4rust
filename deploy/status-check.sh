@@ -49,7 +49,7 @@ refuse() {
 }
 [ -f "$roster" ] || refuse "no roster at $roster"
 command -v "$sentinel" > /dev/null \
-  || refuse "no $sentinel: install it from a checkout, cargo install --path core --locked"
+  || refuse "no $sentinel: install it from a checkout, cargo install --path cli --locked"
 
 if [ "$dry_run" -eq 1 ]; then
   printf 'would run %s --roster %s --status\n' "$sentinel" "$roster"

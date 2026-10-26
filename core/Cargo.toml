@@ -1,18 +1,22 @@
 [package]
-name = "sentinel4rust"
-version = "0.1.0"
+name = "sentinel4rust-core"
+version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 authors.workspace = true
 repository.workspace = true
-description = "Runs mutation testing around the clock on a dedicated machine and publishes each repository's surviving mutants on its own branch"
-readme = "../README.md"
-documentation = "https://docs.rs/sentinel4rust"
-keywords = ["mutation-testing", "testing", "cargo-mutants", "ci", "cli"]
-categories = ["development-tools::testing", "command-line-utilities"]
+description = "The technology-free core of sentinel4rust: the patrol and its back-off, the roster, the record kept on each repository's mutants branch, and what git and cargo-mutants answer"
+readme = "README.md"
+documentation = "https://docs.rs/sentinel4rust-core"
+keywords = ["mutation-testing", "testing", "cargo-mutants", "no-std"]
+categories = ["development-tools::testing", "no-std"]
 
 autotests = false
+
+[lib]
+name = "sentinel4rust"
+path = "src/lib.rs"
 
 [[test]]
 name = "all_tests"

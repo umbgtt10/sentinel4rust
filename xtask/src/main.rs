@@ -19,9 +19,10 @@ use xtask::gates::stern_gate::SternGate;
 use xtask::gates::twin_gate::TwinGate;
 use xtask::process::system_command_runner::SystemCommandRunner;
 
-const CORE_PACKAGE: &str = "sentinel4rust";
+const CLI_PACKAGE: &str = "sentinel4rust";
+const CORE_PACKAGE: &str = "sentinel4rust-core";
 const XTASK_PACKAGE: &str = "xtask";
-const DRY_EXCLUDES: [&[&str]; 2] = [&["xtask"], &["core", "tests"]];
+const DRY_EXCLUDES: [&[&str]; 3] = [&["xtask"], &["core", "tests"], &["cli", "tests"]];
 const CRAP_THRESHOLD: &str = "15";
 const ICEBERG_THRESHOLD: &str = "7";
 const DRY_BASELINE: &str = "dry4rust-baseline.json";
@@ -46,8 +47,12 @@ fn run_stage2() -> ExitCode {
     let files = SystemFileStore::new();
     let parser = CrapReportParser::new();
 
-    // Both members, so the crate that enforces the bar is held to it too.
-    let packages = vec![String::from(CORE_PACKAGE), String::from(XTASK_PACKAGE)];
+    // Every member, so the crate that enforces the bar is held to it too.
+    let packages = vec![
+        String::from(CORE_PACKAGE),
+        String::from(CLI_PACKAGE),
+        String::from(XTASK_PACKAGE),
+    ];
 
     // First: its corrections are renames, file moves and directory splits,
     // so a layout it is about to reject is a layout the rest would measure

@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: MIT
 
 use crate::support::temp_dir::TempDir;
-use sentinel4rust::invocation::work_dir_lock::WorkDirLock;
+use sentinel4rust_cli::invocation::work_dir_lock::WorkDirLock;
 
 // Tests in this binary spawn git and sh from other threads. A child holds a
 // copy of every open descriptor from its fork until its exec, so for that
