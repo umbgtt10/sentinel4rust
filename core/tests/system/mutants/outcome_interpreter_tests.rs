@@ -2,11 +2,11 @@
 // Licensed under the MIT License
 // SPDX-License-Identifier: MIT
 
+use crate::support::in_memory_mutants_out::InMemoryMutantsOut;
 use sentinel4rust::model::command_result::CommandResult;
 use sentinel4rust::model::run_outcome::RunOutcome;
 use sentinel4rust::system::mutants::log_tail::LogTail;
 use sentinel4rust::system::mutants::outcome_interpreter::OutcomeInterpreter;
-use std::path::Path;
 
 fn exited(code: i32, stdout: &str) -> CommandResult {
     CommandResult::Exited {
@@ -23,7 +23,7 @@ fn interpreter() -> OutcomeInterpreter {
 #[test]
 fn interpret_each_exit_code_follows_the_table() {
     // Arrange
-    let none = Path::new("/nonexistent");
+    let none = &InMemoryMutantsOut::default();
     let killed = CommandResult::Exited {
         code: None,
         stdout: String::new(),

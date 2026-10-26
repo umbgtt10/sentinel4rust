@@ -8,6 +8,7 @@
 pub mod clock;
 pub mod command_runner;
 pub mod journal;
+pub mod mutants_out;
 pub mod mutation_runner;
 pub mod pause;
 pub mod repo_source;

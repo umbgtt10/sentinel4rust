@@ -4,12 +4,11 @@
 
 //! What a cargo-mutants run ended as.
 
-use std::path::Path;
-
 use crate::model::command_result::CommandResult;
 use crate::model::run_outcome::RunOutcome;
 use crate::system::mutants::log_tail::LogTail;
 use crate::system::mutants::mutants_out_lists::MutantsOutLists;
+use crate::traits::mutants_out::MutantsOut;
 
 /// Turns the process result and `mutants.out` into an outcome (the exit-code table of `ADR-ResultsFailuresAndBackOff`).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -24,7 +23,7 @@ impl OutcomeInterpreter {
     }
 
     /// 0, 2 and 3 completed (the lists say what), 4 is a failing baseline, anything else the tool failing.
-    pub fn interpret(&self, result: &CommandResult, mutants_out: &Path) -> RunOutcome {
+    pub fn interpret(&self, result: &CommandResult, mutants_out: &dyn MutantsOut) -> RunOutcome {
         match result {
             CommandResult::FailedToStart(message) => RunOutcome::ToolFailed {
                 reason: format!("could not start cargo-mutants: {message}"),

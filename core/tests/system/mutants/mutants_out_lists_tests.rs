@@ -2,30 +2,54 @@
 // Licensed under the MIT License
 // SPDX-License-Identifier: MIT
 
-use crate::support::temp_dir::TempDir;
+use crate::support::in_memory_mutants_out::InMemoryMutantsOut;
 use sentinel4rust::model::counts::MutantCounts;
 use sentinel4rust::model::run_outcome::RunOutcome;
 use sentinel4rust::system::mutants::mutants_out_lists::MutantsOutLists;
-use std::fs;
-use std::path::Path;
-use std::path::PathBuf;
 
 // The four lists cargo-mutants 27.1.0 wrote on 2026-10-25, unedited, for the
 // two fixture crates the stage-2 tests in main_tests.rs run: one whose test
 // fails without any mutation (exit 4), and `spin`, a loop behind `black_box`
 // whose `+ with *` mutant never ends (exit 3).
-fn captured(case: &str) -> PathBuf {
-    Path::new(env!("CARGO_MANIFEST_DIR"))
-        .join("tests/fixtures/mutants_out")
-        .join(case)
-}
+const BASELINE_FAILED: [(&str, &str); 4] = [
+    (
+        "caught.txt",
+        include_str!("../../fixtures/mutants_out/baseline_failed/caught.txt"),
+    ),
+    (
+        "missed.txt",
+        include_str!("../../fixtures/mutants_out/baseline_failed/missed.txt"),
+    ),
+    (
+        "timeout.txt",
+        include_str!("../../fixtures/mutants_out/baseline_failed/timeout.txt"),
+    ),
+    (
+        "unviable.txt",
+        include_str!("../../fixtures/mutants_out/baseline_failed/unviable.txt"),
+    ),
+];
+const TIMEOUTS: [(&str, &str); 4] = [
+    (
+        "caught.txt",
+        include_str!("../../fixtures/mutants_out/timeouts/caught.txt"),
+    ),
+    (
+        "missed.txt",
+        include_str!("../../fixtures/mutants_out/timeouts/missed.txt"),
+    ),
+    (
+        "timeout.txt",
+        include_str!("../../fixtures/mutants_out/timeouts/timeout.txt"),
+    ),
+    (
+        "unviable.txt",
+        include_str!("../../fixtures/mutants_out/timeouts/unviable.txt"),
+    ),
+];
 
-fn lists(files: &[(&str, &str)]) -> TempDir {
-    let dir = TempDir::new("mutants-out");
-    for (name, text) in files {
-        fs::write(dir.path().join(name), text).unwrap();
-    }
-    dir
+fn lists(files: &[(&str, &str)]) -> InMemoryMutantsOut {
+    InMemoryMutantsOut::with_lists(files)
 }
 
 // A failing baseline still writes every list, empty; exit 4 is read as
@@ -33,7 +57,7 @@ fn lists(files: &[(&str, &str)]) -> TempDir {
 #[test]
 fn read_of_a_real_baseline_failure_finds_every_list_empty() {
     // Arrange
-    let dir = captured("baseline_failed");
+    let dir = lists(&BASELINE_FAILED);
 
     // Act
     let outcome = MutantsOutLists.read(&dir);
@@ -57,7 +81,7 @@ fn read_of_a_real_baseline_failure_finds_every_list_empty() {
 #[test]
 fn read_of_a_real_run_with_a_timeout_keeps_its_line_and_counts_the_rest() {
     // Arrange
-    let dir = captured("timeouts");
+    let dir = lists(&TIMEOUTS);
 
     // Act
     let outcome = MutantsOutLists.read(&dir);
@@ -92,7 +116,7 @@ fn read_of_all_four_lists_counts_each_and_keeps_missed_and_timeouts() {
     ]);
 
     // Act
-    let outcome = MutantsOutLists.read(dir.path());
+    let outcome = MutantsOutLists.read(&dir);
 
     // Assert
     assert_eq!(
@@ -116,7 +140,7 @@ fn read_without_missed_names_the_list() {
     let dir = lists(&[("caught.txt", "")]);
 
     // Act
-    let outcome = MutantsOutLists.read(dir.path());
+    let outcome = MutantsOutLists.read(&dir);
 
     // Assert
     assert!(outcome.is_err_and(|error| error.name == "missed.txt"));
@@ -128,7 +152,7 @@ fn read_without_the_optional_lists_counts_them_as_none() {
     let dir = lists(&[("caught.txt", ""), ("missed.txt", "")]);
 
     // Act
-    let outcome = MutantsOutLists.read(dir.path());
+    let outcome = MutantsOutLists.read(&dir);
 
     // Assert
     assert_eq!(

@@ -102,6 +102,10 @@ behaviour, checked after each step against the tree before the split.
   `RepoSource::checkout` returns the checkout as a `String`, and `MutationRunner::run` and `recheck` take it as
   `&str`. Each comes from UTF-8 text -- the command line, the roster, `job.toml` -- and the implementations turn
   it into a `Path` where they touch the disk.
+- `MutantsOutLists::read` and `OutcomeInterpreter::interpret` read a run's lists through a new contract,
+  `traits::mutants_out::MutantsOut` (`list`, failing with `UnreadableList`), where they took the directory: a
+  required list that cannot be read fails as before, an optional one counts as empty as before.
+  `system::mutants::mutants_out_dir::MutantsOutDir` reads it on disk, for `CargoMutantsCli`.
 - Stage 2 runs dry4rust once, from the workspace root, with `xtask/` and `core/tests/` excluded by full path, so a
   copy from one crate into another will be seen; what it judges is unchanged. `DryGate::new` takes the exclusions.
 - `BaselineRetry::run` takes the previous record's survivors, to tell the new ones.

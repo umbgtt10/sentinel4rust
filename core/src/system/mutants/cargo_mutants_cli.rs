@@ -14,6 +14,7 @@ use crate::model::mutation_run::MutationRun;
 use crate::model::onboarding::onboarded_repo::OnboardedRepo;
 use crate::model::run_outcome::RunOutcome;
 use crate::model::work_dir::WorkDir;
+use crate::system::mutants::mutants_out_dir::MutantsOutDir;
 use crate::system::mutants::outcome_interpreter::OutcomeInterpreter;
 use crate::traits::command_runner::CommandRunner;
 use crate::traits::mutation_runner::MutationRunner;
@@ -117,8 +118,10 @@ impl CargoMutantsCli {
             .with_env("NO_COLOR", "1")
             .with_env("TMPDIR", &tmp_text)
             .with_capture_limit(CAPTURE_BYTES);
-        self.interpreter
-            .interpret(&self.runner.run(&command), &out.join("mutants.out"))
+        self.interpreter.interpret(
+            &self.runner.run(&command),
+            &MutantsOutDir::new(out.join("mutants.out")),
+        )
     }
 
     fn version(&self, program: &str, args: &[&str], dir: &str) -> Option<String> {

@@ -10,6 +10,7 @@
 
 pub mod cargo_mutants_cli;
 pub mod log_tail;
+pub mod mutants_out_dir;
 pub mod mutants_out_lists;
 pub mod outcome_interpreter;
 pub mod unreadable_list;

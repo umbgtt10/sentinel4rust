@@ -4,6 +4,7 @@
 
 pub mod file_protocol_runner;
 pub mod git_shell;
+pub mod in_memory_mutants_out;
 pub mod origin;
 pub mod run_records;
 pub mod scripted_runner;
