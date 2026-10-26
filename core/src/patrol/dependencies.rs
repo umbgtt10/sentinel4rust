@@ -4,7 +4,7 @@
 
 //! Everything the sentinel talks to.
 
-use std::rc::Rc;
+use alloc::rc::Rc;
 
 use crate::traits::clock::Clock;
 use crate::traits::journal::Journal;

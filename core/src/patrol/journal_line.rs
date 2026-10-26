@@ -4,8 +4,10 @@
 
 //! The journal's lines.
 
-use std::fmt::Write as _;
-use std::time::Duration;
+use alloc::format;
+use alloc::string::String;
+use core::fmt::Write as _;
+use core::time::Duration;
 
 use crate::model::onboarding::onboarded_repo::OnboardedRepo;
 use crate::model::onboarding::roster::Roster;

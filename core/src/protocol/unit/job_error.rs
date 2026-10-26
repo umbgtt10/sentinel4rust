@@ -4,7 +4,9 @@
 
 //! A job that could not be read, run or recorded.
 
-use std::fmt;
+use alloc::string::String;
+use alloc::string::ToString;
+use core::fmt;
 
 use crate::model::toml::toml_error::TomlError;
 

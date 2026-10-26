@@ -112,6 +112,8 @@ behaviour, checked after each step against the tree before the split.
   `protocol::git::{outside_paths, remote_listing, unreachable_classifier}`,
   `protocol::mutants::{log_tail, mutants_out_lists, outcome_interpreter, unreadable_list}` and
   `protocol::unit::{job_error, job_toml, result_toml}`.
+- The library is `#![no_std]`, with `alloc`, and still depends on nothing. `Schedule` keeps its states in a
+  `BTreeMap`, which it only looks up, so nothing reads them in a different order.
 - Stage 2 runs dry4rust once, from the workspace root, with `xtask/` and `core/tests/` excluded by full path, so a
   copy from one crate into another will be seen; what it judges is unchanged. `DryGate::new` takes the exclusions.
 - `BaselineRetry::run` takes the previous record's survivors, to tell the new ones.

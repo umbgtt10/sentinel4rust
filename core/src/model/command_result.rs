@@ -4,6 +4,10 @@
 
 //! How a command ended.
 
+use alloc::format;
+use alloc::string::String;
+use alloc::string::ToString;
+
 /// How a command ended.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum CommandResult {

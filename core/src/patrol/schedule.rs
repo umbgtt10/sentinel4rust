@@ -4,8 +4,11 @@
 
 //! Which repository to visit next.
 
-use std::collections::HashMap;
-use std::time::Duration;
+use alloc::collections::BTreeMap;
+use alloc::string::String;
+use alloc::string::ToString;
+use alloc::vec::Vec;
+use core::time::Duration;
 
 use crate::model::commit_hash::CommitHash;
 use crate::model::onboarding::onboarded_repo::OnboardedRepo;
@@ -17,7 +20,7 @@ use crate::patrol::repo_state::RepoState;
 #[derive(Debug)]
 pub struct Schedule {
     pause: Duration,
-    states: HashMap<String, RepoState>,
+    states: BTreeMap<String, RepoState>,
 }
 
 impl Schedule {
@@ -25,7 +28,7 @@ impl Schedule {
     pub fn new(pause: Duration) -> Self {
         Self {
             pause,
-            states: HashMap::new(),
+            states: BTreeMap::new(),
         }
     }
 

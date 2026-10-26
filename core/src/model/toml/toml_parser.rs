@@ -10,6 +10,9 @@ use crate::model::toml::document::Document;
 use crate::model::toml::document_builder::DocumentBuilder;
 use crate::model::toml::toml_error::TomlError;
 use crate::model::toml::value::Value;
+use alloc::format;
+use alloc::string::String;
+use alloc::string::ToString;
 
 /// Parses the TOML subset: comments, bare and quoted keys, basic and literal strings, integers, booleans and
 /// arrays of tables. Anything else is rejected with the line number.

@@ -14,6 +14,9 @@ use crate::model::mutation_run::MutationRun;
 use crate::model::outcome_kind::OutcomeKind;
 use crate::model::run_outcome::RunOutcome;
 use crate::model::timestamp::Timestamp;
+use alloc::string::String;
+use alloc::string::ToString;
+use alloc::vec::Vec;
 
 /// Builds what to publish for a run that is to be published, under the roster's `config_version`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

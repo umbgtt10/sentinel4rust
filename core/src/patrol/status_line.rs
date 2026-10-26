@@ -4,6 +4,8 @@
 
 //! One repository's line in the status pass.
 
+use alloc::string::String;
+
 /// One repository's line in the status pass, and whether it says something needs a look.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct StatusLine {

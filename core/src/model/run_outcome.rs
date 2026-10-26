@@ -5,6 +5,8 @@
 //! The result of one cargo-mutants run.
 
 use crate::model::counts::MutantCounts;
+use alloc::string::String;
+use alloc::vec::Vec;
 
 /// The result of one cargo-mutants run, as the runner reports it.
 #[derive(Debug, Clone, PartialEq, Eq)]

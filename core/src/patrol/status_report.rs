@@ -4,8 +4,11 @@
 
 //! How far each repository's record is behind its `main`.
 
-use std::rc::Rc;
-use std::time::Duration;
+use alloc::format;
+use alloc::rc::Rc;
+use alloc::string::ToString;
+use alloc::vec::Vec;
+use core::time::Duration;
 
 use crate::model::branch::record_currency::RecordCurrency;
 use crate::model::branch::record_state::RecordState;

@@ -4,6 +4,8 @@
 
 //! A scalar value.
 
+use alloc::string::String;
+
 /// A scalar value.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Value {

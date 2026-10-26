@@ -4,6 +4,10 @@
 
 //! What a cargo-mutants run ended as.
 
+use alloc::format;
+use alloc::string::String;
+use alloc::string::ToString;
+
 use crate::model::command_result::CommandResult;
 use crate::model::run_outcome::RunOutcome;
 use crate::protocol::mutants::log_tail::LogTail;

@@ -4,6 +4,11 @@
 
 //! The end of a failing run's output.
 
+use alloc::format;
+use alloc::string::String;
+use alloc::string::ToString;
+use alloc::vec::Vec;
+
 /// The last `lines` lines, and at most `bytes` bytes, of a run's output.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct LogTail {

@@ -56,7 +56,7 @@ reach `std::{env,fs,io,net,os,process,thread}`, the printing macros, the file-sy
 | S3 | paths as text in the core: `Command`, `Roster`, `RepoSource::checkout`, `MutationRunner` | done |
 | S4 | the `MutantsOut` port: `MutantsOutLists` and `OutcomeInterpreter` read through it; `MutantsOutDir` reads the disk | done |
 | S5 | the move: ten files that only read text become the core's `protocol/`; the rest of `system/` and `WorkDir` go to cli | done |
-| S6 | `#![no_std]`: `alloc` and `core` imports; `Schedule` on a `BTreeMap` | |
+| S6 | `#![no_std]`: `alloc` and `core` imports; `Schedule` on a `BTreeMap` | done |
 | S7 | the technology-free gate, first in stage 2 | |
 | S8 | `.cargo/mutants.toml` | |
 | S9 | docs, and this record moves to `docs/history/` | |

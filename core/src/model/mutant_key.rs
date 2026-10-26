@@ -9,8 +9,12 @@
 //! `src/lib.rs: replace == with != in Parser::next`, with ` #2`, ` #3`… when the same key occurs more than
 //! once in a file, numbered in source order.
 
-use std::collections::{BTreeMap, BTreeSet};
-use std::fmt;
+use alloc::collections::{BTreeMap, BTreeSet};
+use alloc::format;
+use alloc::string::String;
+use alloc::vec;
+use alloc::vec::Vec;
+use core::fmt;
 
 use crate::model::key_changes::KeyChanges;
 use crate::model::located::Located;

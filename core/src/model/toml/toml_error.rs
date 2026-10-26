@@ -4,8 +4,9 @@
 
 //! A parse or type error, with its line.
 
-use std::error::Error;
-use std::fmt;
+use alloc::string::String;
+use core::error::Error;
+use core::fmt;
 
 /// A parse or type error, with its line (1-based; 0 when unknown).
 #[derive(Debug, Clone, PartialEq, Eq)]

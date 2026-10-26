@@ -4,7 +4,9 @@
 
 //! New survivors, checked once more before they are published.
 
-use std::collections::BTreeSet;
+use alloc::collections::BTreeSet;
+use alloc::string::String;
+use alloc::vec::Vec;
 
 use crate::model::mutant_key::MutantKey;
 use crate::model::run_outcome::RunOutcome;

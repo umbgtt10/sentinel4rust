@@ -4,9 +4,9 @@
 
 //! A UTC instant with second precision, formatted as RFC 3339.
 
-use std::fmt;
-use std::ops::Range;
-use std::time::Duration;
+use core::fmt;
+use core::ops::Range;
+use core::time::Duration;
 
 /// Seconds since the Unix epoch, UTC.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]

@@ -9,8 +9,11 @@
 //! effect goes through a trait in `traits`; the real implementations, and the binary, are the `sentinel4rust`
 //! package. See `docs/ARCHITECTURE.md`.
 
+#![no_std]
 #![forbid(unsafe_code)]
 #![warn(missing_docs)]
+
+extern crate alloc;
 
 pub mod model;
 pub mod patrol;

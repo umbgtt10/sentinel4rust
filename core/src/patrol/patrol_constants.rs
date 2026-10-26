@@ -4,7 +4,7 @@
 
 //! What the loop's parts share.
 
-use std::time::Duration;
+use core::time::Duration;
 
 /// Cap on the back-off, and the wait after "unreachable".
 pub const MAX_BACKOFF: Duration = Duration::from_secs(6 * 3600);

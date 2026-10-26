@@ -4,7 +4,11 @@
 
 //! A document assembled line by line.
 
-use std::collections::BTreeMap;
+use alloc::collections::BTreeMap;
+use alloc::format;
+use alloc::string::String;
+use alloc::string::ToString;
+use alloc::vec::Vec;
 
 use crate::model::toml::document::Document;
 use crate::model::toml::table::Table;

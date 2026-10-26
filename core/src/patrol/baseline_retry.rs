@@ -4,8 +4,8 @@
 
 //! One run of a commit, retried once on a failing baseline (`ADR-ResultsFailuresAndBackOff`).
 
-use std::rc::Rc;
-use std::time::Duration;
+use alloc::rc::Rc;
+use core::time::Duration;
 
 use crate::model::checkout_error::CheckoutError;
 use crate::model::commit_hash::CommitHash;

@@ -5,6 +5,7 @@
 //! One run and the facts needed to record it.
 
 use crate::model::run_outcome::RunOutcome;
+use alloc::string::String;
 
 /// One run and the facts needed to record it.
 #[derive(Debug, Clone, PartialEq, Eq)]

@@ -8,6 +8,7 @@ use crate::model::commit_hash::CommitHash;
 use crate::model::counts::MutantCounts;
 use crate::model::outcome_kind::OutcomeKind;
 use crate::model::skip_reason::SkipReason;
+use alloc::string::String;
 
 /// What one visit to a repository did.
 #[derive(Debug, Clone, PartialEq, Eq)]

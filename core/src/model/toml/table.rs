@@ -4,8 +4,10 @@
 
 //! A table of key-value pairs.
 
-use std::collections::BTreeMap;
-use std::collections::btree_map::Entry;
+use alloc::collections::BTreeMap;
+use alloc::collections::btree_map::Entry;
+use alloc::format;
+use alloc::string::String;
 
 use crate::model::toml::toml_error::TomlError;
 use crate::model::toml::value::Value;

@@ -4,7 +4,9 @@
 
 //! Global settings and the onboarded repositories.
 
-use std::time::Duration;
+use alloc::string::String;
+use alloc::vec::Vec;
+use core::time::Duration;
 
 use crate::model::onboarding::onboarded_repo::OnboardedRepo;
 

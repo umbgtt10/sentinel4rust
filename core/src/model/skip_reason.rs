@@ -4,6 +4,8 @@
 
 //! Why a visit ran nothing although `main` had moved.
 
+use alloc::string::String;
+
 /// Why a visit ran nothing although `main` had moved (`ADR-FiltersLiveInEachRepository`).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum SkipReason {

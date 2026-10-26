@@ -4,6 +4,10 @@
 
 //! The lists cargo-mutants writes into `mutants.out`.
 
+use alloc::string::String;
+use alloc::string::ToString;
+use alloc::vec::Vec;
+
 use crate::model::counts::MutantCounts;
 use crate::model::run_outcome::RunOutcome;
 use crate::protocol::mutants::unreadable_list::UnreadableList;

@@ -4,7 +4,8 @@
 
 //! A validated full commit hash.
 
-use std::fmt;
+use alloc::string::String;
+use core::fmt;
 
 /// A 40-character lowercase hexadecimal git commit hash.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]

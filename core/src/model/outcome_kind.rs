@@ -4,7 +4,7 @@
 
 //! The outcome as published in `summary.toml`.
 
-use std::fmt;
+use core::fmt;
 
 /// The outcome as published in `summary.toml`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

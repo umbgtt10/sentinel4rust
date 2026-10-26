@@ -4,8 +4,12 @@
 
 //! A command, written for the run unit and read back inside it.
 
-use std::fmt::Write as _;
-use std::time::Duration;
+use alloc::format;
+use alloc::string::String;
+use alloc::string::ToString;
+use alloc::vec::Vec;
+use core::fmt::Write as _;
+use core::time::Duration;
 
 use crate::model::command::Command;
 use crate::model::toml::toml_parser::TomlParser;

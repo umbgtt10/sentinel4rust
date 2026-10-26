@@ -4,6 +4,8 @@
 
 //! What a cargo-mutants run left in `mutants.out`.
 
+use alloc::string::String;
+
 use crate::protocol::mutants::unreadable_list::UnreadableList;
 
 /// Reads the lists one cargo-mutants run wrote.

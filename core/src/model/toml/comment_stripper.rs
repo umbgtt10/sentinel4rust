@@ -6,6 +6,7 @@
 
 use crate::model::toml::quote_state::QuoteState;
 use crate::model::toml::toml_error::TomlError;
+use alloc::string::String;
 
 /// Cuts a line's comment, leaving a `#` inside a string alone.
 #[derive(Debug, Clone, Copy, Default)]

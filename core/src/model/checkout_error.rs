@@ -4,7 +4,8 @@
 
 //! Why a checkout could not be made.
 
-use std::fmt;
+use alloc::string::String;
+use core::fmt;
 
 /// Why a checkout could not be made: the step that failed and how.
 #[derive(Debug, Clone, PartialEq, Eq)]

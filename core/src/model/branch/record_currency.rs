@@ -6,6 +6,7 @@
 
 use crate::model::branch::run_record::RunRecord;
 use crate::model::commit_hash::CommitHash;
+use alloc::string::String;
 
 /// Whether a record answers for a commit under the roster's `config_version` and the installed cargo-mutants.
 #[derive(Debug, Clone, PartialEq, Eq)]

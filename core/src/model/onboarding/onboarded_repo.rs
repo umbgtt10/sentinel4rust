@@ -4,7 +4,8 @@
 
 //! One onboarded repository.
 
-use std::time::Duration;
+use alloc::string::String;
+use core::time::Duration;
 
 /// One onboarded repository.
 #[derive(Debug, Clone, PartialEq, Eq)]

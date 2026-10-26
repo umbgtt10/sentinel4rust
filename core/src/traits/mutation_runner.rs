@@ -4,7 +4,8 @@
 
 //! Running mutation testing.
 
-use std::time::Duration;
+use alloc::string::String;
+use core::time::Duration;
 
 use crate::model::mutation_run::MutationRun;
 use crate::model::onboarding::onboarded_repo::OnboardedRepo;

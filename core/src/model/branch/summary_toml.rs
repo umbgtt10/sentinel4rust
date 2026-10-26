@@ -12,6 +12,9 @@ use crate::model::outcome_kind::OutcomeKind;
 use crate::model::timestamp::Timestamp;
 use crate::model::toml::toml_parser::TomlParser;
 use crate::model::toml::toml_writer::TomlWriter;
+use alloc::format;
+use alloc::string::String;
+use alloc::string::ToString;
 
 /// The `summary.toml` schema this version writes and understands.
 const SCHEMA: i64 = 1;

@@ -4,7 +4,8 @@
 
 //! A `mutants.out` list that could not be read.
 
-use std::fmt;
+use alloc::string::String;
+use core::fmt;
 
 /// A `mutants.out` list that could not be read, and why.
 #[derive(Debug, Clone, PartialEq, Eq)]

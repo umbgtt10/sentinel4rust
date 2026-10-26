@@ -6,6 +6,8 @@
 
 use crate::model::branch::run_record::RunRecord;
 use crate::model::mutant_key::MutantKey;
+use alloc::string::String;
+use alloc::vec::Vec;
 
 /// Everything written to `mutants` for one commit.
 #[derive(Debug, Clone, PartialEq, Eq)]

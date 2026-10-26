@@ -4,6 +4,10 @@
 
 //! What `git ls-remote` listed.
 
+use alloc::string::String;
+use alloc::string::ToString;
+use alloc::vec::Vec;
+
 /// The refs `git ls-remote` listed.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RemoteListing {

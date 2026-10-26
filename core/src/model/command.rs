@@ -4,9 +4,12 @@
 
 //! A program to run.
 
-use std::collections::BTreeMap;
-use std::iter::once;
-use std::time::Duration;
+use alloc::collections::BTreeMap;
+use alloc::string::String;
+use alloc::string::ToString;
+use alloc::vec::Vec;
+use core::iter::once;
+use core::time::Duration;
 
 /// A program to run: what, with which arguments, where, with which extra environment, for how long.
 #[derive(Debug, Clone, PartialEq, Eq)]

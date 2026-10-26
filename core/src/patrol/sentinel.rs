@@ -4,7 +4,11 @@
 
 //! The loop (`ADR-PollingPerRepository`): visit one due repository at a time, run, publish, back off.
 
-use std::time::Duration;
+use alloc::format;
+use alloc::string::String;
+use alloc::string::ToString;
+use alloc::vec::Vec;
+use core::time::Duration;
 
 use crate::model::branch::record_currency::RecordCurrency;
 use crate::model::branch::record_state::RecordState;

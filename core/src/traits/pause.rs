@@ -4,7 +4,7 @@
 
 //! Waiting.
 
-use std::time::Duration;
+use core::time::Duration;
 
 /// Waiting.
 pub trait Pause {

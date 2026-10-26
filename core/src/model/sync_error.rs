@@ -4,6 +4,8 @@
 
 //! Why a fetch failed.
 
+use alloc::string::String;
+
 /// Why a fetch failed.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum SyncError {

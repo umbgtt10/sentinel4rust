@@ -5,6 +5,9 @@
 //! The inside of a basic string, escapes decoded.
 
 use crate::model::toml::toml_error::TomlError;
+use alloc::format;
+use alloc::string::String;
+use alloc::vec::Vec;
 
 /// Reads the inside of a basic string, after its opening quote.
 #[derive(Debug, Clone, Copy, Default)]

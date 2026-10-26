@@ -6,6 +6,7 @@
 
 use crate::model::branch::record_error::RecordError;
 use crate::model::branch::run_record::RunRecord;
+use alloc::boxed::Box;
 
 /// What `summary.toml` on the fetched `mutants` branch holds (`ADR-StateLivesOnMutants`).
 #[derive(Debug, Clone, PartialEq, Eq)]

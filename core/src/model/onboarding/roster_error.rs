@@ -4,8 +4,10 @@
 
 //! A roster that cannot be used.
 
-use std::error::Error;
-use std::fmt;
+use alloc::string::String;
+use alloc::string::ToString;
+use core::error::Error;
+use core::fmt;
 
 use crate::model::toml::toml_error::TomlError;
 

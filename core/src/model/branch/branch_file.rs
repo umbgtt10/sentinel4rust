@@ -4,6 +4,8 @@
 
 //! One file written on the `mutants` branch.
 
+use alloc::string::String;
+
 /// One file written on the `mutants` branch.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BranchFile {

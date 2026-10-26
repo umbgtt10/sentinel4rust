@@ -8,6 +8,9 @@ use crate::model::command_result::CommandResult;
 use crate::model::toml::toml_parser::TomlParser;
 use crate::model::toml::toml_writer::TomlWriter;
 use crate::protocol::unit::job_error::JobError;
+use alloc::format;
+use alloc::string::String;
+use alloc::string::ToString;
 
 /// `result.toml`: `kind` -- `exited` with its `code`, `signal`, `timed-out`, or `failed-to-start` with its `message`;
 /// the output lies beside it, in `stdout` and `stderr`.

@@ -8,6 +8,11 @@ use crate::model::branch::branch_file::BranchFile;
 use crate::model::branch::publication::Publication;
 use crate::model::branch::summary_toml::SummaryToml;
 use crate::model::outcome_kind::OutcomeKind;
+use alloc::format;
+use alloc::string::String;
+use alloc::string::ToString;
+use alloc::vec;
+use alloc::vec::Vec;
 
 /// The `README.md` written on the `mutants` branch.
 const BRANCH_README: &str = "\

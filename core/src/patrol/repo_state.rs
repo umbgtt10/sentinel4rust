@@ -4,7 +4,7 @@
 
 //! One repository's visits and back-off.
 
-use std::time::Duration;
+use core::time::Duration;
 
 use crate::model::commit_hash::CommitHash;
 use crate::model::timestamp::Timestamp;

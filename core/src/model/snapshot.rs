@@ -8,6 +8,7 @@ use crate::model::branch::record_state::RecordState;
 use crate::model::commit_hash::CommitHash;
 use crate::model::mutant_key::MutantKey;
 use crate::model::skip_reason::SkipReason;
+use alloc::vec::Vec;
 
 /// What a fetch found.
 #[derive(Debug, Clone, PartialEq, Eq)]

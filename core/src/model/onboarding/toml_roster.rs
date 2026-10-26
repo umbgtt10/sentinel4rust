@@ -4,8 +4,12 @@
 
 //! The roster file, read and validated (`deploy/roster.example.toml`).
 
-use std::collections::BTreeSet;
-use std::time::Duration;
+use alloc::collections::BTreeSet;
+use alloc::format;
+use alloc::string::String;
+use alloc::string::ToString;
+use alloc::vec::Vec;
+use core::time::Duration;
 
 use crate::model::onboarding::onboarded_repo::OnboardedRepo;
 use crate::model::onboarding::roster::Roster;

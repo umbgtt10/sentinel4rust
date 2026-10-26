@@ -4,6 +4,10 @@
 
 //! A mutant as cargo-mutants names it, split at its position.
 
+use alloc::format;
+use alloc::string::String;
+use alloc::string::ToString;
+
 /// Where in its file a mutant is.
 struct Position {
     pub line: u64,

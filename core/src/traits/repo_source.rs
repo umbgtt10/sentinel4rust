@@ -4,6 +4,8 @@
 
 //! Reading repositories.
 
+use alloc::string::String;
+
 use crate::model::checkout_error::CheckoutError;
 use crate::model::commit_hash::CommitHash;
 use crate::model::onboarding::onboarded_repo::OnboardedRepo;

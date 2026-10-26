@@ -4,7 +4,8 @@
 
 //! Writes values the parser reads back.
 
-use std::fmt::Write as _;
+use alloc::string::String;
+use core::fmt::Write as _;
 
 /// Writes values the parser reads back.
 #[derive(Debug, Clone, Copy, Default)]

@@ -4,7 +4,9 @@
 
 //! Why a `summary.toml` could not be used.
 
-use std::fmt;
+use alloc::string::String;
+use alloc::string::ToString;
+use core::fmt;
 
 use crate::model::toml::toml_error::TomlError;
 

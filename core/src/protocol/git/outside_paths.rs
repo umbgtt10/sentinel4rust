@@ -5,6 +5,7 @@
 //! Path dependencies that leave the repository.
 
 use crate::model::toml::comment_stripper::CommentStripper;
+use alloc::vec::Vec;
 
 /// Finds `path = "..."` values in a manifest that point outside the repository: a run's checkout holds only the
 /// repository, so such a dependency is never there.

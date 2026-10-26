@@ -6,6 +6,8 @@
 
 use crate::model::command_result::CommandResult;
 use crate::model::sync_error::SyncError;
+use alloc::format;
+use alloc::string::String;
 
 /// git messages meaning the repository is gone or refuses the key.
 const UNREACHABLE_MARKERS: &[&str] = &[

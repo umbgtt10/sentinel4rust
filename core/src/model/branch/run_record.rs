@@ -8,6 +8,7 @@ use crate::model::commit_hash::CommitHash;
 use crate::model::counts::MutantCounts;
 use crate::model::outcome_kind::OutcomeKind;
 use crate::model::timestamp::Timestamp;
+use alloc::string::String;
 
 /// The contents of `summary.toml`.
 #[derive(Debug, Clone, PartialEq, Eq)]
