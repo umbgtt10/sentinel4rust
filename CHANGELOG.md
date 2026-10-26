@@ -89,6 +89,8 @@ this repository uses it.
   `.github/rulesets/main.json`, the copy of record for `main`'s ruleset.
 
 ### Changed
+- Stage 2 runs dry4rust once, from the workspace root, with `xtask/` and `core/tests/` excluded by full path, so a
+  copy from one crate into another will be seen; what it judges is unchanged. `DryGate::new` takes the exclusions.
 - `BaselineRetry::run` takes the previous record's survivors, to tell the new ones.
 - `Sentinel::new` takes the installed cargo-mutants version, and `RecordCurrency::new` the same beside the
   `config_version`; `CargoMutantsCli::installed_version` reads it.

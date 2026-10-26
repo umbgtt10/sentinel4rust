@@ -21,9 +21,9 @@ use xtask::process::system_command_runner::SystemCommandRunner;
 
 const CORE_PACKAGE: &str = "sentinel4rust";
 const XTASK_PACKAGE: &str = "xtask";
+const DRY_EXCLUDES: [&[&str]; 2] = [&["xtask"], &["core", "tests"]];
 const CRAP_THRESHOLD: &str = "15";
 const ICEBERG_THRESHOLD: &str = "7";
-const DRY_PATH: &str = "core/src";
 const DRY_BASELINE: &str = "dry4rust-baseline.json";
 const DRY_MIN_NODES: &str = "25";
 const CARGO_MUTANTS_VERSION: &str = "27.1.0";
@@ -68,11 +68,17 @@ fn run_stage2() -> ExitCode {
     let shear = ShearGate::new(&runner, manifest_path.clone());
 
     // Third, for the same reason stern4rust is first: removing a duplicate
-    // moves code between files. The core's source only, with zero ceilings
-    // against a baseline of what was already duplicated when the gate arrived.
+    // moves code between files. One run over the workspace, so a copy from
+    // one crate into another is seen -- tests repeat their arrangement by
+    // design, and xtask is not the service -- with zero ceilings against a
+    // baseline of what was already duplicated when the gate arrived.
     let dry = DryGate::new(
         &runner,
-        root.join(DRY_PATH).to_string_lossy().into_owned(),
+        root.to_string_lossy().into_owned(),
+        DRY_EXCLUDES
+            .iter()
+            .map(|exclude| below(&root, exclude).to_string_lossy().into_owned())
+            .collect(),
         root.join(DRY_BASELINE).to_string_lossy().into_owned(),
         String::from(DRY_MIN_NODES),
     );
@@ -119,6 +125,14 @@ fn workspace_manifest_path() -> String {
         .join("Cargo.toml")
         .to_string_lossy()
         .into_owned()
+}
+
+// Joined a component at a time, so the path carries the platform's separator
+// throughout -- dry4rust matches its exclusions as text.
+fn below(root: &Path, components: &[&str]) -> PathBuf {
+    components
+        .iter()
+        .fold(root.to_path_buf(), |path, component| path.join(component))
 }
 
 fn workspace_root() -> PathBuf {

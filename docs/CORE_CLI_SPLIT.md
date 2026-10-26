@@ -51,7 +51,7 @@ reach `std::{env,fs,io,net,os,process,thread}`, the printing macros, the file-sy
 | # | slice | status |
 |---|---|---|
 | S0 | this record | done |
-| S1 | `DryGate`: one run over the workspace, with the trees it must not judge excluded by full path | |
+| S1 | `DryGate`: one run over the workspace, with the trees it must not judge excluded by full path | done |
 | S2 | the split: `cli` takes `main.rs` and all of `invocation/`; core is renamed; one workspace version; the core's root forbids unsafe code; `deploy/` installs from `cli` | |
 | S3 | paths as text in the core: `Command`, `Roster`, `RepoSource::checkout`, `MutationRunner` | |
 | S4 | the `MutantsOut` port: `MutantsOutLists` and `OutcomeInterpreter` read through it; `MutantsOutDir` reads the disk | |
