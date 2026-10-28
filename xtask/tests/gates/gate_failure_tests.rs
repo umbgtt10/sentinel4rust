@@ -6,24 +6,8 @@
 // has always reported it.
 
 use xtask::crap::report_failure::ReportFailure;
-use xtask::files::file_failure::FileFailure;
 use xtask::gates::gate_failure::GateFailure;
 use xtask::process::launch_failure::LaunchFailure;
-
-#[test]
-fn from_a_file_failure_is_unrecorded() {
-    // Arrange
-    let write = FileFailure {
-        path: String::from("target/stern4rust/REV"),
-        reason: String::from("denied"),
-    };
-
-    // Act
-    let failure = GateFailure::from(write.clone());
-
-    // Assert
-    assert_eq!(failure, GateFailure::Unrecorded(write));
-}
 
 #[test]
 fn from_a_launch_failure_is_not_launched() {
@@ -102,19 +86,6 @@ fn to_string_of_an_unexpected_exit_gives_the_code() {
 
     // Assert
     assert_eq!(text, "exit code Some(3)");
-}
-
-#[test]
-fn to_string_of_an_unrecorded_marker_is_the_write_failure() {
-    // Arrange & Act
-    let text = GateFailure::Unrecorded(FileFailure {
-        path: String::from("target/stern4rust/REV"),
-        reason: String::from("denied"),
-    })
-    .to_string();
-
-    // Assert
-    assert_eq!(text, "failed to write target/stern4rust/REV: denied");
 }
 
 #[test]

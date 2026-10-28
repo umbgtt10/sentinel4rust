@@ -3,7 +3,6 @@
 // SPDX-License-Identifier: MIT
 
 pub mod crap;
-pub mod files;
 pub mod gates;
 pub mod process;
 pub mod shear;

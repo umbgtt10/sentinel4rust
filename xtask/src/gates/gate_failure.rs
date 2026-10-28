@@ -5,7 +5,6 @@
 use std::fmt;
 
 use crate::crap::report_failure::ReportFailure;
-use crate::files::file_failure::FileFailure;
 use crate::process::launch_failure::LaunchFailure;
 
 // Why a gate failed, one variant per way it can: its tool is not installed, could
@@ -24,19 +23,12 @@ pub enum GateFailure {
         version: String,
     },
     NotLaunched(LaunchFailure),
-    Unrecorded(FileFailure),
     Unreported {
         failure: ReportFailure,
         exit_code: Option<i32>,
         stderr: String,
         stdout_tail: String,
     },
-}
-
-impl From<FileFailure> for GateFailure {
-    fn from(failure: FileFailure) -> Self {
-        Self::Unrecorded(failure)
-    }
 }
 
 impl From<LaunchFailure> for GateFailure {
@@ -63,7 +55,6 @@ impl fmt::Display for GateFailure {
                 "{binary} {version} is not installed -- run: cargo install {binary} --version {version} --locked"
             ),
             Self::NotLaunched(failure) => write!(formatter, "{failure}"),
-            Self::Unrecorded(failure) => write!(formatter, "{failure}"),
             Self::Unreported {
                 failure,
                 exit_code,
