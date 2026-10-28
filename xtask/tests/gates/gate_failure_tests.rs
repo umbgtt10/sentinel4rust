@@ -41,22 +41,6 @@ fn from_a_launch_failure_is_not_launched() {
 }
 
 #[test]
-fn to_string_of_a_failed_install_gives_its_exit_code_and_the_command_to_run() {
-    // Arrange & Act
-    let text = GateFailure::InstallFailed {
-        command: String::from("cargo install --root target/tool cargo-tool"),
-        exit_code: Some(101),
-    }
-    .to_string();
-
-    // Assert
-    assert_eq!(
-        text,
-        "could not install, exit code Some(101) -- run: cargo install --root target/tool cargo-tool"
-    );
-}
-
-#[test]
 fn to_string_of_a_finding_is_the_finding() {
     // Arrange & Act
     let text = GateFailure::Found(String::from("source files without a mirrored test")).to_string();

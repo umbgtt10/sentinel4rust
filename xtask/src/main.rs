@@ -7,7 +7,6 @@ use std::path::Path;
 use std::path::PathBuf;
 use std::process::ExitCode;
 use xtask::crap::crap_report_parser::CrapReportParser;
-use xtask::files::system_file_store::SystemFileStore;
 use xtask::gates::boundary::boundary_rule::BoundaryRule;
 use xtask::gates::boundary::crate_root_attributes::CrateRootAttributes;
 use xtask::gates::boundary::disk_source_files::DiskSourceFiles;
@@ -59,7 +58,6 @@ const ICEBERG_THRESHOLD: &str = "7";
 const DRY_BASELINE: &str = "dry4rust-baseline.json";
 const DRY_MIN_NODES: &str = "25";
 const CARGO_MUTANTS_VERSION: &str = "27.1.0";
-const STERN_INSTALL_ROOT: &str = "target/stern4rust";
 
 // Reading the real process argv and wiring the concrete runner are the two
 // things no test can reach, so they are all this binary does.
@@ -75,7 +73,6 @@ fn main() -> ExitCode {
 fn run_stage2() -> ExitCode {
     let manifest_path = workspace_manifest_path();
     let runner = SystemCommandRunner::new();
-    let files = SystemFileStore::new();
     let parser = CrapReportParser::new();
 
     // Every member, so the crate that enforces the bar is held to it too.
@@ -115,15 +112,9 @@ fn run_stage2() -> ExitCode {
 
     // Second: its corrections are renames, file moves and directory splits,
     // so a layout it is about to reject is a layout the rest would measure
-    // for nothing. Every rule holds, so there is no baseline; it runs the pinned
-    // stern4rust it installs under target/, never the global one.
-    let stern = SternGate::new(
-        &runner,
-        &files,
-        manifest_path.clone(),
-        packages.clone(),
-        root.join(STERN_INSTALL_ROOT).to_string_lossy().into_owned(),
-    );
+    // for nothing. Every rule holds, so there is no baseline; it runs the
+    // release on PATH, as every other gate here does.
+    let stern = SternGate::new(&runner, manifest_path.clone(), packages.clone());
 
     // Third: every declared dependency used, in the section that uses it. Its
     // corrections edit manifests only, so they move nothing the gates behind it

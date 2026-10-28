@@ -18,10 +18,6 @@ pub enum GateFailure {
     CouldNotRun(Option<i32>),
     Exited(Option<i32>),
     Found(String),
-    InstallFailed {
-        command: String,
-        exit_code: Option<i32>,
-    },
     NotInstalled(String),
     NotInstalledAt {
         binary: String,
@@ -56,10 +52,6 @@ impl fmt::Display for GateFailure {
             Self::CouldNotRun(None) => write!(formatter, "could not run, terminated by signal"),
             Self::Exited(code) => write!(formatter, "exit code {code:?}"),
             Self::Found(finding) => write!(formatter, "{finding}"),
-            Self::InstallFailed { command, exit_code } => write!(
-                formatter,
-                "could not install, exit code {exit_code:?} -- run: {command}"
-            ),
             Self::NotInstalled(binary) => {
                 write!(
                     formatter,

@@ -61,7 +61,7 @@ repo=etheram-raft step=unchanged hash=9f8e7d6 duration_s=1
 
 ```sh
 just stage1   # fmt, clippy (pedantic, -D warnings), the tests: unit, git and end to end with a stub cargo-mutants
-just stage2   # the technology-free core, stern4rust (pinned), cargo-shear, dry4rust, crap4rust, twin4rust, iceberg4rust,
+just stage2   # the technology-free core, stern4rust, cargo-shear, dry4rust, crap4rust, twin4rust, iceberg4rust,
               # then the real cargo-mutants 27.1.0
 ```
 

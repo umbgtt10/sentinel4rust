@@ -89,8 +89,8 @@ before the split.
   the rest; `deploy/SETUP.md` gains a procedure for measuring a repository and sizing its `jobs` and cap from it
   (open point 3). `OnboardedRepo` carries the cap as `run_timeout`.
 - Stage 1, `just stage1`: `cargo fmt`, clippy pedantic with `-D warnings` on every target, the tests. Stage 2,
-  `just stage2`: stern4rust pinned at commit `8b0e8e5` of its repository and installed under `target/stern4rust`,
-  cargo-shear, dry4rust, crap4rust, twin4rust and iceberg4rust, then the end-to-end tests against the real
+  `just stage2`: stern4rust, the release on PATH (0.18.0 or later; a pinned commit installed under
+  `target/stern4rust` until that release), cargo-shear, dry4rust, crap4rust, twin4rust and iceberg4rust, then the end-to-end tests against the real
   cargo-mutants 27.1.0. Every gate passes with nothing baselined.
 - The `xtask` rebuilt as `Gate` implementations against a `CommandRunner`, with tests of its own; a `cargo xtask`
   alias; a `justfile`; the compiler pinned at 1.99.1; CI running both stages on Linux.

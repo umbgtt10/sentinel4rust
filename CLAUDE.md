@@ -74,11 +74,9 @@ of `Path` or `extern crate std` (read with syn, so string literals are data). It
 `xtask/src/gates/boundary/`. It cannot see a use inside a macro's arguments, and a method of the core's own named like
 a file-system one would be reported.
 
-The stern gate runs stern4rust pinned at commit `8b0e8e5` of `https://github.com/umbgtt10/stern4rust` (a constant
-in `xtask/src/gates/stern_gate.rs`), installed repo-locally under `target/stern4rust`, never over the global
-`cargo-stern4rust`: the gate installs it whenever `target/stern4rust/bin/cargo-stern4rust` is missing or
-`target/stern4rust/REV` does not name the pin, locally and on CI alike. All its rules hold, so there is no stern
-baseline. `docs/header.txt` holds the header every `.rs` file carries, and `stern4rust.toml` names it.
+The stern gate runs the release on PATH, `cargo stern4rust` 0.18.0 or later, which holds all thirty-eight rules, as
+every other gate runs its tool; until that release, 2026-10-28, it installed a pinned commit of stern4rust under
+`target/stern4rust` instead. All its rules hold, so there is no stern baseline. `docs/header.txt` holds the header every `.rs` file carries, and `stern4rust.toml` names it.
 
 dry4rust makes one run from the workspace root, with `xtask/`, `core/tests/` and `cli/tests/` excluded by full path,
 so a copy from one crate into the other is seen. `dry4rust-baseline.json` records no group and may never gain one.
