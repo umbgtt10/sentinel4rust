@@ -5,6 +5,7 @@
 pub mod boundary;
 pub mod boundary_gate;
 pub mod crap_gate;
+pub mod deny_gate;
 pub mod dry_gate;
 pub mod end_to_end_gate;
 pub mod gate;

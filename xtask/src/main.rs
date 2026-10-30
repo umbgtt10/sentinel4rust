@@ -13,6 +13,7 @@ use xtask::gates::boundary::disk_source_files::DiskSourceFiles;
 use xtask::gates::boundary::package_dependencies::PackageDependencies;
 use xtask::gates::boundary_gate::BoundaryGate;
 use xtask::gates::crap_gate::CrapGate;
+use xtask::gates::deny_gate::DenyGate;
 use xtask::gates::dry_gate::DryGate;
 use xtask::gates::end_to_end_gate::EndToEndGate;
 use xtask::gates::gate::Gate;
@@ -120,6 +121,8 @@ fn run_stage2() -> ExitCode {
     // corrections edit manifests only, so they move nothing the gates behind it
     // measure, and it costs a second.
     let shear = ShearGate::new(&runner, manifest_path.clone());
+    // Last in stage 2: its advisories change without the code changing (see DenyGate).
+    let deny = DenyGate::new(&runner, manifest_path.clone());
 
     // Fourth, for the same reason stern4rust runs early: removing a duplicate
     // moves code between files. One run over both crates' sources, so a copy
@@ -169,6 +172,7 @@ fn run_stage2() -> ExitCode {
         &twin,
         &iceberg,
         &end_to_end,
+        &deny,
     ];
 
     match Stage2::new(gates).run() {

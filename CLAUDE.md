@@ -64,6 +64,7 @@ Stage 2 is `cargo xtask stage2`, the gates in this order, all on, nothing baseli
 | `cargo crap4rust` | is any function complex and untested (threshold 15) |
 | `cargo twin4rust` | does every source file have a mirrored test file |
 | `cargo iceberg4rust` | is any file's private implementation risk at or above 7 |
+| `cargo deny` | do the dependencies carry an advisory, a refused licence or a foreign source |
 | end to end | do the `#[ignore]`d tests pass against the real cargo-mutants 27.1.0 |
 
 The technology-free gate runs first, because its fix -- moving code into `cli` -- changes what every gate behind it
@@ -87,9 +88,25 @@ Re-record it only to drop a group that is gone, at the same floor: `cargo dry4ru
 The iceberg ceiling is a ratchet just above the worst file: lower it when the score improves, never raise it to turn
 a red build green.
 
+cargo-deny runs **last**, and is the one gate that can turn red with nothing
+changed: its advisories come from the RustSec database, so a newly published
+one fails an untouched checkout, and it fetches that database over the network.
+That is the point of it, and running last keeps it from hiding what the house
+gates say about a change. `deny.toml` is the same file in every *4rust
+repository and slotgate: licences MIT, Apache-2.0 and Unicode-3.0 -- the union
+of what their trees carry -- crates.io as the only source, duplicate versions a
+warning, and a wildcard requirement refused except a path dependency in an
+unpublished crate. An accepted advisory goes in `[advisories] ignore` with its
+id and its reason. The gate fetches the advisory database first, on its own and
+up to three times, then checks `--frozen` -- locked and offline -- so a fetch
+that keeps failing reports the gate as unable to run, never as an advisory
+found. It decodes cargo-deny's exit code, one bit per failed check, into the
+checks' names; a `deny.toml` it cannot read exits 1, as advisories does, and the
+streamed output says which.
+
 `cargo install just`, `cargo install cargo-dry4rust --locked`, `cargo install cargo-crap4rust`,
 `cargo install cargo-twin4rust`, `cargo install cargo-iceberg4rust`, `cargo install --locked cargo-shear --version
-1.14.0`, `cargo install cargo-llvm-cov` (crap4rust's coverage), `cargo install --locked cargo-mutants --version
+1.14.0`, `cargo install --locked cargo-deny --version 0.20.2`, `cargo install cargo-llvm-cov` (crap4rust's coverage), `cargo install --locked cargo-mutants --version
 27.1.0` (the end-to-end gate refuses any other version). `.github/workflows/ci.yml` runs both stages on Linux.
 
 ### Branch protection
