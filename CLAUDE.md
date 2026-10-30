@@ -67,6 +67,12 @@ Stage 2 is `cargo xtask stage2`, the gates in this order, all on, nothing baseli
 | `cargo deny` | do the dependencies carry an advisory, a refused licence or a foreign source |
 | end to end | do the `#[ignore]`d tests pass against the real cargo-mutants 27.1.0 |
 
+`just stage1` starts with `just sync`: `cargo update`, every dependency to its
+newest compatible version, in the lock file only, while the tools are in
+development. It needs the network. A requirement in a manifest never moves, so a
+published crate's users can still resolve what they could; what it moves is
+committed on its own. Breaking versions are a separate decision, not taken here.
+
 The technology-free gate runs first, because its fix -- moving code into `cli` -- changes what every gate behind it
 measures, and it needs no installed tool: `sentinel4rust-core`'s manifest may name no crate in any section (read from
 `cargo metadata`), `core/src/lib.rs` must carry `#![no_std]` and `#![forbid(unsafe_code)]`, and no file under
