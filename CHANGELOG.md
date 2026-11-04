@@ -146,6 +146,11 @@ before the split.
 - Every `#[cfg(test)]` module moved to a mirrored file under `core/tests/`, in Arrange/Act/Assert and named
   `<method>_<conditions>_<result>`, with every assertion; the two tests that read the clock or slept assert on
   captured output and on the clock adapter instead.
+- The xtask's fakes -- `FakeGate`, `FakeCommandRunner` and `InMemorySourceFiles` -- move to
+  `xtask/tests/gates/support/`, one file each. The mirrors that held them, of `Gate`, `CommandRunner` and
+  `SourceFiles`, go: those traits carry no behaviour, and twin4rust 0.7.0 finds their mirrors unearned. Ten of the
+  fakes' own tests go with them, each already exercised by the gate and stage tests that use the fake; the eleventh,
+  that the runner records the program it ran, nothing else checks, and it moves unchanged into `stern_gate_tests.rs`.
 - `docs/DESIGN.md` moved, unchanged, to `docs/history/[SUPERSEDED] DESIGN.md`.
 
 ### Fixed

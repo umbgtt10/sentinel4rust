@@ -2,9 +2,10 @@
 // Licensed under the MIT License
 // SPDX-License-Identifier: MIT
 
-use crate::process::command_runner_tests::FakeCommandRunner;
+use crate::gates::support::fake_command_runner::FakeCommandRunner;
 use xtask::gates::gate::Gate;
 use xtask::gates::stern_gate::SternGate;
+use xtask::process::command_runner::CommandRunner;
 
 fn gate(runner: &FakeCommandRunner) -> SternGate<'_> {
     SternGate::new(
@@ -46,6 +47,21 @@ fn run_passes_the_manifest_path_and_package_to_the_tool() {
             String::from("--package"),
             String::from("sentinel4rust"),
         ]
+    );
+}
+
+#[test]
+fn run_streaming_records_the_program_it_was_called_with() {
+    // Arrange
+    let runner = FakeCommandRunner::new();
+
+    // Act
+    let _ = runner.run_streaming("target/stern4rust/bin/cargo-stern4rust", &[]);
+
+    // Assert
+    assert_eq!(
+        runner.programs(),
+        vec![String::from("target/stern4rust/bin/cargo-stern4rust")]
     );
 }
 

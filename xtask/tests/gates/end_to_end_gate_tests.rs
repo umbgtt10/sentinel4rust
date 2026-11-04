@@ -2,7 +2,7 @@
 // Licensed under the MIT License
 // SPDX-License-Identifier: MIT
 
-use crate::process::command_runner_tests::FakeCommandRunner;
+use crate::gates::support::fake_command_runner::FakeCommandRunner;
 use xtask::gates::end_to_end_gate::EndToEndGate;
 use xtask::gates::gate::Gate;
 
