@@ -64,8 +64,8 @@ Stage 2 is `cargo xtask stage2`, the gates in this order, all on, nothing baseli
 | `cargo crap4rust` | is any function complex and untested (threshold 15) |
 | `cargo twin4rust` | does every source file have a mirrored test file |
 | `cargo iceberg4rust` | is any file's private implementation risk at or above 7 |
-| `cargo deny` | do the dependencies carry an advisory, a refused licence or a foreign source |
 | end to end | do the `#[ignore]`d tests pass against the real cargo-mutants 27.1.0 |
+| `cargo deny` | do the dependencies carry an advisory, a refused licence or a foreign source |
 
 `just stage1` starts with `just sync`: `cargo update`, every dependency to its
 newest compatible version, in the lock file only, while the tools are in
@@ -81,7 +81,7 @@ of `Path` or `extern crate std` (read with syn, so string literals are data). It
 `xtask/src/gates/boundary/`. It cannot see a use inside a macro's arguments, and a method of the core's own named like
 a file-system one would be reported.
 
-The stern gate runs the release on PATH, `cargo stern4rust` 0.18.0 or later, which holds all thirty-eight rules, as
+The stern gate runs the release on PATH, `cargo stern4rust` 0.20.1 or later, which holds all thirty-nine rules, as
 every other gate runs its tool; until that release, 2026-10-28, it installed a pinned commit of stern4rust under
 `target/stern4rust` instead. All its rules hold, so there is no stern baseline. `docs/header.txt` holds the header every `.rs` file carries, and `stern4rust.toml` names it.
 

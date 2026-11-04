@@ -92,6 +92,12 @@ before the split.
   `just stage2`: stern4rust, the release on PATH (0.18.0 or later; a pinned commit installed under
   `target/stern4rust` until that release), cargo-shear, dry4rust, crap4rust, twin4rust and iceberg4rust, then the end-to-end tests against the real
   cargo-mutants 27.1.0. Every gate passes with nothing baselined.
+- Stage 1 starts with a lock sync, `just sync`: `cargo update`, every dependency to its newest compatible version,
+  in the lock file only; a manifest's requirements never move.
+- Stage 2 ends with cargo-deny, judging advisories, licences, bans and sources against `deny.toml`: licences MIT,
+  Apache-2.0 and Unicode-3.0, crates.io as the only source, duplicate versions a warning. The advisory database is
+  fetched first, up to three times, and the check runs `--frozen`; the exit code, one bit per failed check, is
+  decoded into the checks' names. Last, because advisories change without the code changing.
 - The `xtask` rebuilt as `Gate` implementations against a `CommandRunner`, with tests of its own; a `cargo xtask`
   alias; a `justfile`; the compiler pinned at 1.99.1; CI running both stages on Linux.
 - The copyright header on every `.rs` file, named in `stern4rust.toml`.
