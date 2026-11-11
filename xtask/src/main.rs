@@ -6,7 +6,6 @@ use std::env::args;
 use std::path::Path;
 use std::path::PathBuf;
 use std::process::ExitCode;
-use xtask::crap::crap_report_parser::CrapReportParser;
 use xtask::gates::boundary::boundary_rule::BoundaryRule;
 use xtask::gates::boundary::crate_root_attributes::CrateRootAttributes;
 use xtask::gates::boundary::disk_source_files::DiskSourceFiles;
@@ -24,6 +23,7 @@ use xtask::gates::stage2::Stage2;
 use xtask::gates::stern_gate::SternGate;
 use xtask::gates::twin_gate::TwinGate;
 use xtask::process::system_command_runner::SystemCommandRunner;
+use xtask::reports::crap_report_parser::CrapReportParser;
 
 const CLI_PACKAGE: &str = "sentinel4rust";
 const CORE_PACKAGE: &str = "sentinel4rust-core";

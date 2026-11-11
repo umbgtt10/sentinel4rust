@@ -4,8 +4,8 @@
 
 use std::fmt;
 
-use crate::crap::report_failure::ReportFailure;
 use crate::process::launch_failure::LaunchFailure;
+use crate::reports::report_failure::ReportFailure;
 
 // Why a gate failed, one variant per way it can: its tool is not installed, could
 // not be installed or could not be started, its install could not be recorded,
