@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: MIT
 
 use std::cell::RefCell;
+use std::collections::VecDeque;
 use xtask::process::command_outcome::CommandOutcome;
 use xtask::process::command_runner::CommandRunner;
 use xtask::process::launch_failure::LaunchFailure;
@@ -11,9 +12,12 @@ use xtask::process::launch_failure::LaunchFailure;
 // so they share one fake rather than each growing their own.
 pub struct FakeCommandRunner {
     available: bool,
+    launches: bool,
     streaming_code: Option<i32>,
     capturing_code: Option<i32>,
+    capturing_codes: RefCell<VecDeque<Option<i32>>>,
     stdout: String,
+    replies: RefCell<VecDeque<String>>,
     calls: RefCell<Vec<Vec<String>>>,
     programs: RefCell<Vec<String>>,
 }
@@ -22,9 +26,12 @@ impl FakeCommandRunner {
     pub fn new() -> Self {
         Self {
             available: true,
+            launches: true,
             streaming_code: Some(0),
             capturing_code: Some(0),
+            capturing_codes: RefCell::new(VecDeque::new()),
             stdout: String::new(),
+            replies: RefCell::new(VecDeque::new()),
             calls: RefCell::new(Vec::new()),
             programs: RefCell::new(Vec::new()),
         }
@@ -35,10 +42,25 @@ impl FakeCommandRunner {
         self
     }
 
+    // Every call fails to start the program, as a binary that vanished between
+    // the availability check and the call would.
+    pub fn with_launch_failure(mut self) -> Self {
+        self.launches = false;
+        self
+    }
+
     // A captured run answers with the streaming code too, unless told otherwise:
     // a gate that captures one command and streams another needs the two apart.
     pub fn with_capturing_code(mut self, capturing_code: Option<i32>) -> Self {
         self.capturing_code = capturing_code;
+        self
+    }
+
+    // One exit code per capturing call, in order, for a caller whose questions
+    // fare differently; once they run out, every call gets
+    // `with_capturing_code`'s answer.
+    pub fn with_capturing_codes(self, codes: &[Option<i32>]) -> Self {
+        *self.capturing_codes.borrow_mut() = codes.iter().copied().collect();
         self
     }
 
@@ -53,12 +75,32 @@ impl FakeCommandRunner {
         self
     }
 
+    // One stdout per capturing call, in order, for a caller that asks more than
+    // one question; once they run out, every call gets `with_stdout`'s answer.
+    pub fn with_replies(self, replies: &[&str]) -> Self {
+        *self.replies.borrow_mut() = replies.iter().map(|reply| String::from(*reply)).collect();
+        self
+    }
+
     pub fn calls(&self) -> Vec<Vec<String>> {
         self.calls.borrow().clone()
     }
 
     pub fn programs(&self) -> Vec<String> {
         self.programs.borrow().clone()
+    }
+
+    fn record(&self, program: &str, args: &[String]) -> Result<(), LaunchFailure> {
+        self.programs.borrow_mut().push(String::from(program));
+        self.calls.borrow_mut().push(args.to_vec());
+        if self.launches {
+            Ok(())
+        } else {
+            Err(LaunchFailure {
+                program: String::from(program),
+                reason: String::from("refused by the fake"),
+            })
+        }
     }
 }
 
@@ -74,8 +116,7 @@ impl CommandRunner for FakeCommandRunner {
     }
 
     fn run_streaming(&self, program: &str, args: &[String]) -> Result<Option<i32>, LaunchFailure> {
-        self.calls.borrow_mut().push(args.to_vec());
-        self.programs.borrow_mut().push(String::from(program));
+        self.record(program, args)?;
         Ok(self.streaming_code)
     }
 
@@ -84,11 +125,20 @@ impl CommandRunner for FakeCommandRunner {
         program: &str,
         args: &[String],
     ) -> Result<CommandOutcome, LaunchFailure> {
-        self.calls.borrow_mut().push(args.to_vec());
-        self.programs.borrow_mut().push(String::from(program));
+        self.record(program, args)?;
+        let stdout = self
+            .replies
+            .borrow_mut()
+            .pop_front()
+            .unwrap_or_else(|| self.stdout.clone());
+        let code = self
+            .capturing_codes
+            .borrow_mut()
+            .pop_front()
+            .unwrap_or(self.capturing_code);
         Ok(CommandOutcome {
-            exit_code: self.capturing_code,
-            stdout: self.stdout.clone(),
+            exit_code: code,
+            stdout,
             stderr: String::new(),
         })
     }
