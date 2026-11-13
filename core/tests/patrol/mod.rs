@@ -10,3 +10,4 @@ pub mod schedule_tests;
 pub mod sentinel_tests;
 pub mod status_report_tests;
 pub mod survivor_recheck_tests;
+pub mod timeout_warning_tests;

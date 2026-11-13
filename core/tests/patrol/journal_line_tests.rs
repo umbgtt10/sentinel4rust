@@ -2,13 +2,31 @@
 // Licensed under the MIT License
 // SPDX-License-Identifier: MIT
 
+use sentinel4rust::model::commit_hash::CommitHash;
+use sentinel4rust::model::counts::MutantCounts;
 use sentinel4rust::model::onboarding::onboarded_repo::OnboardedRepo;
 use sentinel4rust::model::onboarding::roster::Roster;
+use sentinel4rust::model::outcome_kind::OutcomeKind;
 use sentinel4rust::model::round_step::RoundStep;
 use sentinel4rust::model::skip_reason::SkipReason;
 use sentinel4rust::model::timestamp::Timestamp;
 use sentinel4rust::patrol::journal_line::JournalLine;
 use std::time::Duration;
+
+fn published(caught: u64, timeout: u64) -> RoundStep {
+    RoundStep::Published {
+        head: CommitHash::parse(&"ab".repeat(20)).unwrap(),
+        outcome: OutcomeKind::Completed,
+        counts: MutantCounts {
+            caught,
+            missed: 2,
+            timeout,
+            unviable: 3,
+        },
+        new: 1,
+        gone: 0,
+    }
+}
 
 fn repo(name: &str) -> OnboardedRepo {
     OnboardedRepo {
@@ -45,6 +63,32 @@ fn startup_names_the_version_repositories_pause_and_config_version() {
             env!("CARGO_PKG_VERSION"),
             Timestamp::from_unix(1_792_800_000)
         )
+    );
+}
+
+#[test]
+fn visit_published_names_its_counts() {
+    // Arrange & Act
+    let line = JournalLine.visit(&repo("a"), &published(10, 1), Duration::from_secs(7));
+
+    // Assert
+    assert_eq!(
+        line,
+        "repo=a step=published hash=abababa outcome=completed missed=2 caught=10 timeout=1 unviable=3 new=1 gone=0 duration_s=7"
+    );
+}
+
+// A run whose mutants mostly timed out says so on its own line, before anyone
+// reads its lists.
+#[test]
+fn visit_published_with_more_timeouts_than_caught_warns() {
+    // Arrange & Act
+    let line = JournalLine.visit(&repo("a"), &published(74, 121), Duration::from_secs(7));
+
+    // Assert
+    assert_eq!(
+        line,
+        "repo=a step=published hash=abababa outcome=completed missed=2 caught=74 timeout=121 unviable=3 new=1 gone=0 warning=timeouts-outnumber-caught duration_s=7"
     );
 }
 

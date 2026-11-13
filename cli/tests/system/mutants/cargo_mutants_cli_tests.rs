@@ -210,6 +210,7 @@ fn recheck_runs_only_those_mutants_and_reads_their_lists() {
             },
             missed: vec!["src/a.rs:9:1: replace f -> bool with true".to_string()],
             timed_out: vec![],
+            test_timeout_seconds: None,
         }
     );
     assert!(!out.exists(), "output left behind");
@@ -337,6 +338,7 @@ fn run_passes_jobs_output_and_deadline_then_cleans_up() {
             },
             missed: vec!["src/a.rs:3:1: m1".to_string()],
             timed_out: vec![],
+            test_timeout_seconds: None,
         }
     );
     assert!(!out.exists(), "output left behind");

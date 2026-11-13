@@ -11,6 +11,7 @@ use alloc::string::String;
 pub struct StatusLine {
     /// `repo=… state=… …`.
     pub text: String,
-    /// The repository could not be judged, or `main` has waited longer than the roster allows.
+    /// The repository could not be judged, `main` has waited longer than the roster allows, or the record warns
+    /// that its timeouts outnumber its caught mutants.
     pub needs_attention: bool,
 }

@@ -72,6 +72,7 @@ fn publication(commit: &CommitHash, missed: &[&str]) -> Publication {
             arguments: "mutants".to_string(),
             reason: None,
             log_tail: None,
+            test_timeout_seconds: None,
         },
         missed: keys,
         timed_out: vec![],

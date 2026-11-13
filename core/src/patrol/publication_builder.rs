@@ -40,33 +40,42 @@ impl PublicationBuilder {
         finished: Timestamp,
         previous_missed: &[MutantKey],
     ) -> Publication {
-        let record = |outcome, counts, (new, gone), reason, log_tail| RunRecord {
-            commit: head.clone(),
-            config_version: self.config_version,
-            kind: KIND_FULL.to_string(),
-            outcome,
-            started,
-            finished,
-            counts,
-            new,
-            gone,
-            cargo_mutants_version: run.cargo_mutants_version.clone(),
-            rustc_version: run.rustc_version.clone(),
-            arguments: run.arguments.clone(),
-            reason,
-            log_tail,
-        };
+        let record =
+            |outcome, counts, (new, gone), test_timeout_seconds, (reason, log_tail)| RunRecord {
+                commit: head.clone(),
+                config_version: self.config_version,
+                kind: KIND_FULL.to_string(),
+                outcome,
+                started,
+                finished,
+                counts,
+                new,
+                gone,
+                cargo_mutants_version: run.cargo_mutants_version.clone(),
+                rustc_version: run.rustc_version.clone(),
+                arguments: run.arguments.clone(),
+                test_timeout_seconds,
+                reason,
+                log_tail,
+            };
         match &run.outcome {
             RunOutcome::Completed {
                 counts,
                 missed,
                 timed_out,
+                test_timeout_seconds,
             } => {
                 let missed_keys = MutantKey::from_located(missed);
                 let changes = MutantKey::changes(previous_missed, &missed_keys);
                 let new_gone = (changes.new, changes.gone);
                 Publication {
-                    record: record(OutcomeKind::Completed, *counts, new_gone, None, None),
+                    record: record(
+                        OutcomeKind::Completed,
+                        *counts,
+                        new_gone,
+                        *test_timeout_seconds,
+                        (None, None),
+                    ),
                     missed: missed_keys,
                     timed_out: MutantKey::from_located(timed_out),
                     located_missed: Self::sorted(missed),
@@ -78,21 +87,21 @@ impl PublicationBuilder {
                 MutantCounts::default(),
                 (0, 0),
                 None,
-                Some(log_tail.clone()),
+                (None, Some(log_tail.clone())),
             )),
             RunOutcome::ToolchainMissing { message } => Self::without_lists(record(
                 OutcomeKind::ToolFailed,
                 MutantCounts::default(),
                 (0, 0),
-                Some(message.clone()),
                 None,
+                (Some(message.clone()), None),
             )),
             RunOutcome::ToolFailed { reason, log_tail } => Self::without_lists(record(
                 OutcomeKind::ToolFailed,
                 MutantCounts::default(),
                 (0, 0),
-                Some(reason.clone()),
-                Some(log_tail.clone()),
+                None,
+                (Some(reason.clone()), Some(log_tail.clone())),
             )),
         }
     }

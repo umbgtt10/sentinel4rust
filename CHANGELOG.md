@@ -16,6 +16,8 @@ The repository then splits into a technology-free core and a cli crate
 (`docs/history/[IMPLEMENTED] CORE_CLI_SPLIT.md`), with the same behaviour, checked after each step against the tree
 before the split.
 
+Then, on 2026-11-13, what a run publishes and reports changes where a run's timeouts went unseen: see Changed.
+
 ### Added
 - Stage 2 gains a first gate, "Technology-free core": the core's manifest may name no crate, in any section; its
   crate root must carry `#![no_std]` and `#![forbid(unsafe_code)]`; and no file under `core/src` or `core/tests` may
@@ -106,6 +108,18 @@ before the split.
   `.github/rulesets/main.json`, the copy of record for `main`'s ruleset.
 
 ### Changed
+- A published run whose timeouts outnumber its caught mutants is flagged, by a new `TimeoutWarning`:
+  `warning=timeouts-outnumber-caught` on its journal line, before `duration_s`, and on its repository's `--status`
+  line, current or behind, which then needs attention -- so `--status`, and `deploy/status-check.sh` with it, exits 1.
+  `--help`, the README, `deploy/SETUP.md` and `docs/IMPLEMENTED-FEATURES.md` say so.
+- `summary.toml` records `test_timeout_seconds`, the test timeout cargo-mutants set from the baseline, read from
+  `mutants.out/debug.log` -- the only file that states it -- by a new `TestTimeoutLine`; absent when the log does not
+  say it, and in records written before. A completed `RunOutcome` and the `RunRecord` carry it; a survivor re-check
+  keeps the first run's. The `mutants` branch's README names it. Open point 10 and `deploy/SETUP.md` section 4 record
+  why it is needed: cargo-mutants 27.1.0 times its baseline without the packages `test_package` names.
+- A completed run's commit message on `mutants` names its timeouts when there are any: `Mutants of 1a2b3c4: 0 missed
+  (+0 -0), 74 caught, 121 timed out`. Without them, a run whose mutants nearly all timed out -- a test timeout below
+  the tests' own run time -- read as a clean one (seen onboarding beggar on the development laptop, 2026-11-13).
 - Packages: `sentinel4rust` is now the binary's package (`cli/`), with a library, `sentinel4rust_cli`; the library
   `sentinel4rust` is published by a new package, `sentinel4rust-core` (`core/`). Both share the workspace's version.
   `invocation::*` moves to `sentinel4rust_cli::invocation::*`. The binary is installed with `cargo install --path cli

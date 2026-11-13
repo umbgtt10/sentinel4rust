@@ -13,13 +13,13 @@ An orphan `mutants` branch, one commit per tested `main` commit:
 
 ```
 README.md          what the branch is; do not merge
-summary.toml       commit, times, outcome, counts, new/gone, versions
+summary.toml       commit, times, outcome, counts, new/gone, versions, the test timeout
 missed.txt         surviving mutants, without line numbers, so `git log -p` is the history of the survivors
 timeout.txt        mutants whose tests timed out (absent when none)
 located/           the same lists with file:line:col
 ```
 
-Commit messages read `Mutants of 1a2b3c4: 5 missed (+1 -2), 120 caught`.
+Commit messages read `Mutants of 1a2b3c4: 5 missed (+1 -2), 120 caught`, and end `, 3 timed out` when any did.
 
 A repository is tested only once it has a `.cargo/mutants.toml` on `main`; crate filters and accepted survivors
 (`exclude_re`, `#[mutants::skip]`) live there.
@@ -38,6 +38,10 @@ One journal line per visit:
 repo=twin4rust step=published hash=1a2b3c4 outcome=completed missed=5 caught=120 timeout=0 unviable=3 new=1 gone=2 duration_s=1834
 repo=etheram-raft step=unchanged hash=9f8e7d6 duration_s=1
 ```
+
+A published run whose timeouts outnumber its caught mutants adds `warning=timeouts-outnumber-caught` before
+`duration_s`, and `--status` adds it to the repository's line and exits 1: its lists say little, and the likeliest
+cause is a test timeout below the tests' own run ([`docs/OPEN_POINTS.md`](docs/OPEN_POINTS.md) point 10).
 
 - Roster format: [`deploy/roster.example.toml`](deploy/roster.example.toml)
 - Machine set-up, automated: [`deploy/PROVISION.md`](deploy/PROVISION.md), which an agent on the machine executes:

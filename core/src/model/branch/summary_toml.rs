@@ -65,6 +65,14 @@ impl SummaryToml {
             cargo_mutants_version: t.required_string("cargo_mutants_version")?,
             rustc_version: t.required_string("rustc_version")?,
             arguments: t.required_string("arguments")?,
+            test_timeout_seconds: t
+                .integer("test_timeout_seconds")?
+                .map(|seconds| {
+                    u64::try_from(seconds).map_err(|_| {
+                        RecordError::Invalid("negative `test_timeout_seconds`".to_string())
+                    })
+                })
+                .transpose()?,
             reason: t.string("reason")?,
             log_tail: t.string("log_tail")?,
         })
@@ -102,6 +110,9 @@ impl SummaryToml {
         );
         line("rustc_version", TomlWriter.quote(&record.rustc_version));
         line("arguments", TomlWriter.quote(&record.arguments));
+        if let Some(seconds) = record.test_timeout_seconds {
+            line("test_timeout_seconds", seconds.to_string());
+        }
         if let Some(reason) = &record.reason {
             line("reason", TomlWriter.quote(reason));
         }

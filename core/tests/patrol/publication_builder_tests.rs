@@ -71,6 +71,7 @@ fn build_of_a_completed_run_keys_and_sorts_the_lists_and_counts_new_and_gone() {
             "src/a.rs:2:1: kept".to_string(),
         ],
         timed_out: vec!["src/b.rs:4:1: slow".to_string()],
+        test_timeout_seconds: Some(240),
     });
 
     // Act
@@ -98,6 +99,7 @@ fn build_of_a_completed_run_keys_and_sorts_the_lists_and_counts_new_and_gone() {
     assert_eq!(record.cargo_mutants_version, "cargo-mutants 27.1.0");
     assert_eq!(record.rustc_version, "rustc 1.99.1");
     assert_eq!(record.arguments, "mutants --jobs 2");
+    assert_eq!(record.test_timeout_seconds, Some(240));
     assert_eq!(
         (record.reason.clone(), record.log_tail.clone()),
         (None, None)
@@ -168,5 +170,6 @@ fn build_of_a_tool_failure_publishes_its_reason_and_log_tail() {
     assert_eq!(record.outcome, OutcomeKind::ToolFailed);
     assert_eq!(record.reason.as_deref(), Some("run cap hit"));
     assert_eq!(record.log_tail.as_deref(), Some("boom"));
+    assert_eq!(record.test_timeout_seconds, None);
     assert_eq!(publication.timed_out, Vec::<MutantKey>::new());
 }

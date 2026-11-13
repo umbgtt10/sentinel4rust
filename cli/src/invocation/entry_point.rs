@@ -45,7 +45,8 @@ usage: sentinel4rust --roster <file> [--once]
   --roster <file>  the roster (TOML); see deploy/roster.example.toml
   --once           visit every repository once and exit (1 if any visit failed)
   --status         fetch only, and say how far each repository's record is behind main
-                   (1 if one has waited longer than stale_after_hours, or could not be judged)
+                   (1 if one has waited longer than stale_after_hours, could not be judged,
+                   or has a record whose timeouts outnumber its caught mutants)
   --run-job <dir>  run the job in <dir> and write its result there (the run unit's ExecStart)
   --help           this text
   --version        the version

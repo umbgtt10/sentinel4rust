@@ -18,7 +18,8 @@ pub struct SurvivorRecheck;
 
 impl SurvivorRecheck {
     /// `first` with every one of `rechecked` the re-check did not find missed or timed out counted as caught; when
-    /// the re-check did not complete, `first` as it was.
+    /// the re-check did not complete, `first` as it was. The test timeout stays `first`'s: the re-check is a run of
+    /// its own, with a baseline and a timeout of its own.
     pub fn apply(
         &self,
         first: RunOutcome,
@@ -37,6 +38,7 @@ impl SurvivorRecheck {
             mut counts,
             missed,
             timed_out,
+            test_timeout_seconds,
         } = first
         else {
             return first;
@@ -56,6 +58,7 @@ impl SurvivorRecheck {
             counts,
             missed,
             timed_out,
+            test_timeout_seconds,
         }
     }
 
