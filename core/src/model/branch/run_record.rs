@@ -37,6 +37,9 @@ pub struct RunRecord {
     pub rustc_version: String,
     /// The arguments given to cargo.
     pub arguments: String,
+    /// The test timeout cargo-mutants set, in seconds, for a completed run whose debug log says it: a run whose
+    /// mutants mostly timed out is told apart by it.
+    pub test_timeout_seconds: Option<u64>,
     /// For `tool-failed`: why.
     pub reason: Option<String>,
     /// For failures: the end of the log.

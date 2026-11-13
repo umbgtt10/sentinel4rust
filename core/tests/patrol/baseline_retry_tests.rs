@@ -18,6 +18,7 @@ fn completed() -> RunOutcome {
         counts: MutantCounts::default(),
         missed: vec![],
         timed_out: vec![],
+        test_timeout_seconds: None,
     }
 }
 
@@ -49,6 +50,7 @@ fn survived(missed: &[&str]) -> RunOutcome {
         },
         missed: missed.iter().map(ToString::to_string).collect(),
         timed_out: vec![],
+        test_timeout_seconds: None,
     }
 }
 
@@ -133,6 +135,7 @@ fn run_with_a_survivor_caught_on_the_recheck_counts_it_caught() {
             },
             missed: vec!["src/a.rs:2:1: kept".to_string()],
             timed_out: vec![],
+            test_timeout_seconds: None,
         })
     );
 }

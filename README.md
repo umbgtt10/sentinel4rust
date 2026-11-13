@@ -13,7 +13,7 @@ An orphan `mutants` branch, one commit per tested `main` commit:
 
 ```
 README.md          what the branch is; do not merge
-summary.toml       commit, times, outcome, counts, new/gone, versions
+summary.toml       commit, times, outcome, counts, new/gone, versions, the test timeout
 missed.txt         surviving mutants, without line numbers, so `git log -p` is the history of the survivors
 timeout.txt        mutants whose tests timed out (absent when none)
 located/           the same lists with file:line:col

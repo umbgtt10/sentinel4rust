@@ -51,6 +51,7 @@ fn completed(missed: &[&str]) -> RunOutcome {
         },
         missed: missed.iter().map(ToString::to_string).collect(),
         timed_out: vec![],
+        test_timeout_seconds: None,
     }
 }
 
@@ -74,6 +75,7 @@ fn record_for(commit: &CommitHash, config_version: i64) -> RunRecord {
         arguments: String::new(),
         reason: None,
         log_tail: None,
+        test_timeout_seconds: None,
     }
 }
 

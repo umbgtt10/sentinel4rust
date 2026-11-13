@@ -333,6 +333,12 @@ fn once_real_cargo_mutants_on_a_looping_mutant_publishes_its_timeout() {
     assert!(summary.contains("outcome = \"completed\""), "{summary}");
     assert!(summary.contains("caught = 6\n"), "{summary}");
     assert!(summary.contains("timeout = 1\n"), "{summary}");
+    assert!(
+        summary
+            .lines()
+            .any(|line| line == "test_timeout_seconds = 2"),
+        "{summary}"
+    );
 }
 
 #[test]

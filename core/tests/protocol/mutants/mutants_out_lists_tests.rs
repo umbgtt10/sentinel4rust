@@ -10,7 +10,9 @@ use sentinel4rust::protocol::mutants::mutants_out_lists::MutantsOutLists;
 // The four lists cargo-mutants 27.1.0 wrote on 2026-10-25, unedited, for the
 // two fixture crates the stage-2 tests in main_tests.rs run: one whose test
 // fails without any mutation (exit 4), and `spin`, a loop behind `black_box`
-// whose `+ with *` mutant never ends (exit 3).
+// whose `+ with *` mutant never ends (exit 3) -- with, for `spin`, the end of
+// the baseline in the debug log it wrote on 2026-11-13, where it says the test
+// timeout it set.
 const BASELINE_FAILED: [(&str, &str); 4] = [
     (
         "caught.txt",
@@ -29,7 +31,7 @@ const BASELINE_FAILED: [(&str, &str); 4] = [
         include_str!("../../fixtures/mutants_out/baseline_failed/unviable.txt"),
     ),
 ];
-const TIMEOUTS: [(&str, &str); 4] = [
+const TIMEOUTS: [(&str, &str); 5] = [
     (
         "caught.txt",
         include_str!("../../fixtures/mutants_out/timeouts/caught.txt"),
@@ -45,6 +47,10 @@ const TIMEOUTS: [(&str, &str); 4] = [
     (
         "unviable.txt",
         include_str!("../../fixtures/mutants_out/timeouts/unviable.txt"),
+    ),
+    (
+        "debug.log",
+        include_str!("../../fixtures/mutants_out/timeouts/debug.log"),
     ),
 ];
 
@@ -74,6 +80,7 @@ fn read_of_a_real_baseline_failure_finds_every_list_empty() {
             },
             missed: vec![],
             timed_out: vec![],
+            test_timeout_seconds: None,
         })
     );
 }
@@ -98,6 +105,7 @@ fn read_of_a_real_run_with_a_timeout_keeps_its_line_and_counts_the_rest() {
             },
             missed: vec![],
             timed_out: vec!["src/lib.rs:6:25: replace + with * in spin".to_string()],
+            test_timeout_seconds: Some(2),
         })
     );
 }
@@ -130,6 +138,7 @@ fn read_of_all_four_lists_counts_each_and_keeps_missed_and_timeouts() {
             },
             missed: vec!["src/a.rs:3:1: m1".to_string()],
             timed_out: vec!["src/a.rs:5:1: t1".to_string()],
+            test_timeout_seconds: None,
         })
     );
 }
@@ -166,6 +175,7 @@ fn read_without_the_optional_lists_counts_them_as_none() {
             },
             missed: vec![],
             timed_out: vec![],
+            test_timeout_seconds: None,
         })
     );
 }

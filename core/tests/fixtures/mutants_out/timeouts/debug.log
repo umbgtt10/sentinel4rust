@@ -1,0 +1,5 @@
+   0.943755963s DEBUG run{phase=Test}: cargo_mutants::cargo: /home/user/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/cargo-mutants-27.1.0/src/cargo.rs:68: process_status=Success elapsed=101.05438ms
+   0.943901130s DEBUG cargo_mutants::lab: /home/user/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/cargo-mutants-27.1.0/src/lab.rs:321: outcome=Success
+   0.943932096s  INFO cargo_mutants::timeouts: /home/user/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/cargo-mutants-27.1.0/src/timeouts.rs:68: Auto-set test timeout to 2s
+   0.943950608s DEBUG cargo_mutants::lab: /home/user/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/cargo-mutants-27.1.0/src/lab.rs:88: timeouts=Timeouts { build: None, test: Some(2s) }
+   0.944072099s TRACE cargo_mutants::lab: /home/user/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/cargo-mutants-27.1.0/src/lab.rs:100: start thread thread_id=ThreadId(3)

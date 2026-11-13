@@ -31,5 +31,6 @@ pub fn record(outcome: OutcomeKind) -> RunRecord {
         arguments: "mutants --jobs 2".to_string(),
         reason: None,
         log_tail: None,
+        test_timeout_seconds: Some(240),
     }
 }

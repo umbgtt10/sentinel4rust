@@ -21,7 +21,47 @@ fn completed(caught: u64, missed: &[&str]) -> RunOutcome {
         },
         missed: missed.iter().map(ToString::to_string).collect(),
         timed_out: vec![],
+        test_timeout_seconds: None,
     }
+}
+
+// The re-check is a second cargo-mutants run, with a baseline and a timeout of
+// its own; the record keeps the timeout the run's own mutants were tested under.
+#[test]
+fn apply_keeps_the_first_run_s_test_timeout() {
+    // Arrange
+    let first = RunOutcome::Completed {
+        counts: MutantCounts {
+            caught: 7,
+            missed: 2,
+            timeout: 0,
+            unviable: 1,
+        },
+        missed: vec![KEPT.to_string(), NEW.to_string()],
+        timed_out: vec![],
+        test_timeout_seconds: Some(240),
+    };
+    let recheck = RunOutcome::Completed {
+        counts: MutantCounts::default(),
+        missed: vec![],
+        timed_out: vec![],
+        test_timeout_seconds: Some(20),
+    };
+
+    // Act
+    let outcome = SurvivorRecheck.apply(first, &[NEW.to_string()], &recheck);
+
+    // Assert
+    assert!(
+        matches!(
+            outcome,
+            RunOutcome::Completed {
+                test_timeout_seconds: Some(240),
+                ..
+            }
+        ),
+        "{outcome:?}"
+    );
 }
 
 #[test]
@@ -48,6 +88,7 @@ fn apply_with_a_timeout_on_the_recheck_keeps_it_missed() {
         counts: MutantCounts::default(),
         missed: vec![],
         timed_out: vec![NEW.to_string()],
+        test_timeout_seconds: None,
     };
 
     // Act
@@ -78,6 +119,7 @@ fn apply_with_one_caught_on_the_recheck_counts_it_caught() {
             },
             missed: vec![KEPT.to_string(), OTHER.to_string()],
             timed_out: vec![],
+            test_timeout_seconds: None,
         }
     );
 }

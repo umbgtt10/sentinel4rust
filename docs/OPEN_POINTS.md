@@ -147,8 +147,15 @@ repository is onboarded:
   installs a pinned toolchain on first use or needs `rustup toolchain install` is still to be checked there (rustup
   1.29.1 on the development laptop).
 
-Private git dependencies and embedded targets stay as recorded above: to be settled per repository before it is
-onboarded.
+- **Tests in another package** (`test_package` in `.cargo/mutants.toml`, as beggar's and faction's ladders are):
+  cargo-mutants 27.1.0 runs its baseline over the mutated packages alone and never the test packages named, so the
+  test timeout it derives from the baseline is too short for them -- its 20 s floor under beggar's 45 s ladder --
+  and every mutant they would catch is published as a timeout (seen onboarding beggar on the development laptop,
+  2026-11-13: 121 timeouts, 74 caught). Such a repository sets the floor itself, `minimum_test_timeout`, above its
+  tests' run with the jobs sharing the machine; `summary.toml`'s `test_timeout_seconds` shows the timeout a run had.
+
+Private git dependencies, embedded targets and tests in another package stay as recorded above: to be settled per
+repository before it is onboarded.
 
 ## 11. Flaky tests and machine-dependent timeouts make the lists noisy
 

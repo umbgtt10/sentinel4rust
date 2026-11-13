@@ -19,7 +19,8 @@ mutants (orphan)
   README.md       what this branch is; generated; "do not merge"
   summary.toml    schema = 1, commit, config_version, kind = "full", started/finished UTC, duration_seconds,
                   outcome, counts (caught, missed, timeout, unviable), new/gone, cargo-mutants and rustc
-                  versions, arguments; reason and log tail on failures
+                  versions, arguments, test_timeout_seconds when cargo-mutants' debug log states it; reason and
+                  log tail on failures
   missed.txt      one surviving mutant per line, by key, sorted
   timeout.txt     one timed-out mutant per line, by key, sorted (absent when none)
   located/        the same lists as cargo-mutants wrote them, with file:line:col

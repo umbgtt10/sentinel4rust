@@ -94,6 +94,9 @@ cargo mutants --list | wc -l                                          # mutants,
 - **`run_timeout_hours`:** the measured wall time with a margin, on the repository's `[[repo]]` when it differs from
   the roster's. A run that hits the cap is a tool failure and the third on one commit publishes `tool-failed`, so a
   cap too short costs three full runs per commit, during which nothing else is visited.
+- **Tests in another package:** when `.cargo/mutants.toml` names `test_package`, cargo-mutants times its baseline
+  without them and sets the test timeout too short for them (`docs/OPEN_POINTS.md` point 10): set
+  `minimum_test_timeout` there, above those tests' run, and check `test_timeout_seconds` in the first `summary.toml`.
 - Note the mutant count, wall time and peak memory beside the repository's roster entry.
 
 ## 5. Watching it from elsewhere

@@ -7,6 +7,22 @@ use sentinel4rust::model::branch::record_error::RecordError;
 use sentinel4rust::model::branch::summary_toml::SummaryToml;
 use sentinel4rust::model::outcome_kind::OutcomeKind;
 
+// A record written before the test timeout was recorded, or of a run whose
+// debug log did not say it, has none.
+#[test]
+fn parse_of_a_summary_without_a_test_timeout_reads_none() {
+    // Arrange
+    let text = SummaryToml
+        .render(&record(OutcomeKind::Completed))
+        .replace("test_timeout_seconds = 240\n", "");
+
+    // Act
+    let parsed = SummaryToml.parse(&text);
+
+    // Assert
+    assert_eq!(parsed.map(|r| r.test_timeout_seconds), Ok(None));
+}
+
 #[test]
 fn parse_rendered_record_round_trips() {
     // Arrange
@@ -20,6 +36,7 @@ fn parse_rendered_record_round_trips() {
 
     // Assert
     assert!(text.contains("duration_seconds = 3600"));
+    assert!(text.contains("test_timeout_seconds = 240\n"), "{text}");
     assert_eq!(SummaryToml.parse(&text).unwrap(), r);
     assert_eq!(
         SummaryToml.parse(&SummaryToml.render(&plain)).unwrap(),

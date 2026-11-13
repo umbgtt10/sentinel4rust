@@ -110,7 +110,8 @@ Text in, the core's data out; no tool is run here.
   repository is gone or refuses the key) and `OutsidePaths` (a manifest's `path` dependencies that leave the
   repository, for `path-outside-repo`).
 - **`mutants/`** -- `OutcomeInterpreter` (the exit-code table), which reads the lists with `MutantsOutLists`
-  through `MutantsOut` (`UnreadableList` when a required one cannot be read) and keeps a failing run's `LogTail`.
+  through `MutantsOut` (`UnreadableList` when a required one cannot be read) and keeps a failing run's `LogTail`;
+  `TestTimeoutLine` reads the test timeout cargo-mutants set out of `debug.log`, the one file that states it.
 - **`unit/`** -- `JobToml` and `ResultToml`, the files the service and its run unit hand each other, and `JobError`.
 
 ## cli: `system/` -- the real implementations
@@ -168,8 +169,8 @@ in Arrange/Act/Assert.
 `core/tests/` touches no disk and starts no process: its 174 tests run in a hundredth of a second, and they are what
 each mutant is tested against. Its `support/` holds `World`, a fake for all six of the sentinel's contracts on a fake
 clock; `InMemoryMutantsOut`, the lists of one run held in memory; `run_records` and `command_results`.
-`fixtures/mutants_out/` keeps the lists two real cargo-mutants runs wrote, which the tests of `MutantsOutLists`
-include at compile time.
+`fixtures/mutants_out/` keeps the lists two real cargo-mutants runs wrote, and the end of one's baseline in its
+`debug.log`, which the tests of `MutantsOutLists` and `TestTimeoutLine` include at compile time.
 
 `cli/tests/` holds the tests of the real implementations. Its `support/` holds `ScriptedRunner`, a `CommandRunner`
 answering from a script, which the git parts are tested against; `Origin`, a bare repository with a working clone, for

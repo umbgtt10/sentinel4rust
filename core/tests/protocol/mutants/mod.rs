@@ -5,4 +5,5 @@
 pub mod log_tail_tests;
 pub mod mutants_out_lists_tests;
 pub mod outcome_interpreter_tests;
+pub mod test_timeout_line_tests;
 pub mod unreadable_list_tests;

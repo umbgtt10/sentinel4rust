@@ -50,6 +50,7 @@ fn record_for(commit: &CommitHash) -> RecordState {
         arguments: String::new(),
         reason: None,
         log_tail: None,
+        test_timeout_seconds: None,
     }))
 }
 

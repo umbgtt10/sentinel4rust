@@ -10,15 +10,17 @@ use alloc::vec::Vec;
 
 use crate::model::counts::MutantCounts;
 use crate::model::run_outcome::RunOutcome;
+use crate::protocol::mutants::test_timeout_line::TestTimeoutLine;
 use crate::protocol::mutants::unreadable_list::UnreadableList;
 use crate::traits::mutants_out::MutantsOut;
 
-/// Reads `caught.txt` and `missed.txt` (required) and `timeout.txt` and `unviable.txt` (absent when empty).
+/// Reads `caught.txt` and `missed.txt` (required) and `timeout.txt` and `unviable.txt` (absent when empty), and the
+/// test timeout from `debug.log` (none when it is absent or does not say it).
 #[derive(Debug, Clone, Copy, Default)]
 pub struct MutantsOutLists;
 
 impl MutantsOutLists {
-    /// A completed outcome with the counts and the missed and timed-out mutants, as written.
+    /// A completed outcome with the counts, the missed and timed-out mutants, as written, and the test timeout.
     pub fn read(&self, lists: &dyn MutantsOut) -> Result<RunOutcome, UnreadableList> {
         let caught = Self::list(lists, "caught.txt", true)?;
         let missed = Self::list(lists, "missed.txt", true)?;
@@ -34,6 +36,10 @@ impl MutantsOutLists {
             },
             missed,
             timed_out,
+            test_timeout_seconds: lists
+                .list("debug.log")
+                .ok()
+                .and_then(|log| TestTimeoutLine.seconds(&log)),
         })
     }
 

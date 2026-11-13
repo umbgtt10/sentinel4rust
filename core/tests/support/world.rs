@@ -121,6 +121,7 @@ impl MutationRunner for World {
                 counts: MutantCounts::default(),
                 missed: mutants.to_vec(),
                 timed_out: vec![],
+                test_timeout_seconds: None,
             })
     }
 }

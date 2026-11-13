@@ -19,6 +19,8 @@ pub enum RunOutcome {
         missed: Vec<String>,
         /// `mutants.out/timeout.txt`.
         timed_out: Vec<String>,
+        /// The test timeout cargo-mutants set from the baseline, in seconds, when its debug log says it.
+        test_timeout_seconds: Option<u64>,
     },
     /// The unmutated tree failed to build or pass its tests: exit 4.
     BaselineFailed {
