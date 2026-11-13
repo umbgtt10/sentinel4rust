@@ -70,7 +70,8 @@ just stage2   # the technology-free core, stern4rust, cargo-shear, dry4rust, cra
 ```
 
 Layout: `core/` (`sentinel4rust-core`: the logic, `no_std`, with no dependency and no technology), `cli/`
-(`sentinel4rust`: the binary and every implementation, installed with `cargo install --path cli --locked`), `xtask/`
+(`sentinel4rust`: the binary and every implementation, installed with `cargo install --path cli --locked`, or the
+release with `cargo install sentinel4rust --locked`), `xtask/`
 (the gates, with tests of their own). cargo-mutants mutates the core only (`.cargo/mutants.toml`).
 CI (`.github/workflows/ci.yml`) runs both stages on Linux. The ruleset for `main` -- a pull request with both jobs
 green -- is kept in [`.github/rulesets/main.json`](.github/rulesets/main.json), as GitHub holds it server-side.

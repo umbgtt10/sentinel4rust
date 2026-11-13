@@ -8,7 +8,7 @@ be observed yet, that it is to be verified on the machine. Recorded 2026-10-24. 
 | # | point | weight |
 |---|---|---|
 | 1 | cargo-mutants builds in a private `/tmp`, which is usually RAM | closed: `TMPDIR` under `work_dir` |
-| 2 | `cargo install sentinel4rust` installs the placeholder that does nothing | closed: `deploy/SETUP.md` |
+| 2 | `cargo install sentinel4rust` installs the placeholder that does nothing | closed: 0.1.0 on crates.io |
 | 3 | a large repository can hold the machine for 36 hours per commit and publish nothing | to measure on the machine |
 | 4 | an unreadable `summary.toml` silently reruns the same commit forever | closed: its own state |
 | 5 | every repository's code runs where every repository's key is | closed in the code; prove on the machine |
@@ -41,9 +41,9 @@ longer matters.
 
 ## 2. `cargo install sentinel4rust` installs the placeholder
 
-**Closed.** crates.io has only `0.0.1`, the placeholder that prints "under construction" and exits `0`.
-`deploy/SETUP.md` now installs from the repository only, with `cargo install --path cli --locked`, until `0.1.0`
-is published; nothing is published from here.
+**Closed.** crates.io had only `0.0.1`, the placeholder that prints "under construction" and exits `0`, until 0.1.0
+was published on 2026-11-13: `cargo install sentinel4rust --locked` installs the service since. `deploy/` still
+builds it from the checkout, with `cargo install --path cli --locked`, at the commit the checkout is at.
 
 ## 3. A large repository can hold the machine for 36 hours per commit
 

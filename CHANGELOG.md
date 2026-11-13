@@ -6,11 +6,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.1.0] — 2026-11-13
+
+### The first release
+
+The first version on [crates.io](https://crates.io/crates/sentinel4rust/0.1.0) of both packages: `sentinel4rust`,
+the service, in place of the 0.0.1 placeholder that only reserved its name, and `sentinel4rust-core`, its
+technology-free core, new. The repository is public from this release on.
+
 The first implementation (`48c8fb1`) is the service as `docs/IMPLEMENTED-FEATURES.md` describes it. Since then the
 repository has been brought under the gates and the layout of the other `*4rust` tools. The service's behaviour is
 unchanged: the same command line and exit codes, the same roster format, the same journal lines and the same
-files and commit messages on `mutants`. The library's paths all changed; it has never been published, and nothing outside
-this repository uses it.
+files and commit messages on `mutants`. The library's paths all changed; it had never been published, and nothing
+outside this repository used it.
 
 The repository then splits into a technology-free core and a cli crate
 (`docs/history/[IMPLEMENTED] CORE_CLI_SPLIT.md`), with the same behaviour, checked after each step against the tree
