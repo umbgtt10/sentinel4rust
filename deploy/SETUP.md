@@ -104,9 +104,10 @@ cargo mutants --list | wc -l                                          # mutants,
 A stopped sentinel looks like repositories that did not move. `--status` makes one read-only pass -- it fetches,
 runs nothing and pushes nothing -- and prints one line per repository: `state=current`, `behind`, `no-record`,
 `unreadable`, `skipped` or `unknown` (it could not fetch), `main`'s and the record's commits, and, when the record
-does not answer for `main`, how long `main`'s head has waited for one. It exits 1 when one has waited longer than the
-roster's `stale_after_hours` (24 by default) or could not be judged, so a timer or cron job on another machine with
-read access can mail on failure:
+does not answer for `main`, how long `main`'s head has waited for one. A record whose timeouts outnumber its caught
+mutants adds `warning=timeouts-outnumber-caught`. It exits 1 when one has waited longer than the roster's
+`stale_after_hours` (24 by default), could not be judged or has such a record, so a timer or cron job on another
+machine with read access can mail on failure:
 
 ```sh
 sentinel4rust --roster roster.toml --status

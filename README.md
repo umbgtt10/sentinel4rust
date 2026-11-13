@@ -39,6 +39,10 @@ repo=twin4rust step=published hash=1a2b3c4 outcome=completed missed=5 caught=120
 repo=etheram-raft step=unchanged hash=9f8e7d6 duration_s=1
 ```
 
+A published run whose timeouts outnumber its caught mutants adds `warning=timeouts-outnumber-caught` before
+`duration_s`, and `--status` adds it to the repository's line and exits 1: its lists say little, and the likeliest
+cause is a test timeout below the tests' own run ([`docs/OPEN_POINTS.md`](docs/OPEN_POINTS.md) point 10).
+
 - Roster format: [`deploy/roster.example.toml`](deploy/roster.example.toml)
 - Machine set-up, automated: [`deploy/PROVISION.md`](deploy/PROVISION.md), which an agent on the machine executes:
   `deploy/provision.sh`, `deploy/onboard.sh`, `deploy/go-live.sh`, and `deploy/status-check.sh` to watch it from

@@ -14,6 +14,7 @@ use crate::model::onboarding::roster::Roster;
 use crate::model::round_step::RoundStep;
 use crate::model::skip_reason::SkipReason;
 use crate::model::timestamp::Timestamp;
+use crate::patrol::timeout_warning::TimeoutWarning;
 
 /// The journal's lines: one at start, one per visit (`docs/ARCHITECTURE.md`).
 #[derive(Debug, Clone, Copy, Default)]
@@ -54,6 +55,9 @@ impl JournalLine {
                     counts.timeout,
                     counts.unviable,
                 );
+                if let Some(warning) = TimeoutWarning.of(counts) {
+                    let _ = write!(line, " warning={warning}");
+                }
             }
             RoundStep::BackedOff { reason }
             | RoundStep::Unreachable { reason }

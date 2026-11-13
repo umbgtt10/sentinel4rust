@@ -100,7 +100,8 @@ a `Publication`: keys, sorted located lists, new and gone against the previous r
 start-up line and one `repo=… step=… …` line per visit. `Dependencies` is the record of the six injected parts;
 `MAX_BACKOFF` (6 hours) is shared from `patrol_constants.rs`. `StatusReport` is the `--status` pass: it syncs
 each repository, runs and publishes nothing, and turns what it finds -- and, through `RepoSource::committed_at`, how
-long `main`'s head has waited -- into a `StatusLine` that says whether it needs attention.
+long `main`'s head has waited -- into a `StatusLine` that says whether it needs attention. `TimeoutWarning` judges a
+run whose timeouts outnumber its caught mutants, for the visit's journal line and for the record's status line.
 
 ## core: `protocol/` -- what the tools answer, and what it means
 
@@ -166,7 +167,7 @@ The roster is TOML, read once on start ([`deploy/roster.example.toml`](../deploy
 Each crate's `tests/` mirrors its `src/` file by file (`<source>_tests.rs`, one `all_tests.rs` registry), every test
 in Arrange/Act/Assert.
 
-`core/tests/` touches no disk and starts no process: its 174 tests run in a hundredth of a second, and they are what
+`core/tests/` touches no disk and starts no process: its 186 tests run in a hundredth of a second, and they are what
 each mutant is tested against. Its `support/` holds `World`, a fake for all six of the sentinel's contracts on a fake
 clock; `InMemoryMutantsOut`, the lists of one run held in memory; `run_records` and `command_results`.
 `fixtures/mutants_out/` keeps the lists two real cargo-mutants runs wrote, and the end of one's baseline in its

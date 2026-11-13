@@ -35,6 +35,10 @@ fn line(text: &str, needs_attention: bool) -> StatusLine {
 }
 
 fn record_for(commit: &CommitHash) -> RecordState {
+    record_with(commit, MutantCounts::default())
+}
+
+fn record_with(commit: &CommitHash, counts: MutantCounts) -> RecordState {
     RecordState::Present(Box::new(RunRecord {
         commit: commit.clone(),
         config_version: 1,
@@ -42,7 +46,7 @@ fn record_for(commit: &CommitHash) -> RecordState {
         outcome: OutcomeKind::Completed,
         started: Timestamp::from_unix(0),
         finished: Timestamp::from_unix(0),
-        counts: MutantCounts::default(),
+        counts,
         new: 0,
         gone: 0,
         cargo_mutants_version: String::new(),
@@ -139,6 +143,40 @@ fn check_of_a_moved_main_within_the_limit_says_behind_and_how_long() {
             "repo=a state=behind main=bbbbbbb record=aaaaaaa waited_s=3600",
             false
         )]
+    );
+}
+
+// Current or not, a record whose mutants mostly timed out is not one to rely
+// on: the likeliest cause is a test timeout below the tests' own run.
+#[test]
+fn check_of_a_record_with_more_timeouts_than_caught_warns_and_needs_attention() {
+    // Arrange
+    let world = world(90_000);
+    let counts = MutantCounts {
+        caught: 74,
+        missed: 0,
+        timeout: 121,
+        unviable: 95,
+    };
+    world.queue_sync(Ok(snapshot(&hash('a'), record_with(&hash('a'), counts))));
+    world.queue_sync(Ok(snapshot(&hash('b'), record_with(&hash('a'), counts))));
+
+    // Act
+    let lines = report(&world).check(&[repo("a"), repo("b")]);
+
+    // Assert
+    assert_eq!(
+        lines,
+        [
+            line(
+                "repo=a state=current main=aaaaaaa record=aaaaaaa warning=timeouts-outnumber-caught",
+                true
+            ),
+            line(
+                "repo=b state=behind main=bbbbbbb record=aaaaaaa waited_s=90000 warning=timeouts-outnumber-caught",
+                true
+            ),
+        ]
     );
 }
 

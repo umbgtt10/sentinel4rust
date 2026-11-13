@@ -12,16 +12,19 @@ use core::time::Duration;
 
 use crate::model::branch::record_currency::RecordCurrency;
 use crate::model::branch::record_state::RecordState;
+use crate::model::branch::run_record::RunRecord;
 use crate::model::commit_hash::CommitHash;
 use crate::model::onboarding::onboarded_repo::OnboardedRepo;
 use crate::model::snapshot::Snapshot;
 use crate::model::sync_error::SyncError;
 use crate::patrol::status_line::StatusLine;
+use crate::patrol::timeout_warning::TimeoutWarning;
 use crate::traits::clock::Clock;
 use crate::traits::repo_source::RepoSource;
 
 /// A read-only pass over the roster: fetches each repository, runs nothing, pushes nothing, and says whether its
-/// record on `mutants` answers for `main` and, when not, how long `main`'s head has waited for one.
+/// record on `mutants` answers for `main` and, when not, how long `main`'s head has waited for one -- and warns of a
+/// record whose timeouts outnumber its caught mutants, which needs a look whether current or not.
 pub struct StatusReport {
     source: Rc<dyn RepoSource>,
     clock: Rc<dyn Clock>,
@@ -66,14 +69,17 @@ impl StatusReport {
             (RecordState::Present(record), _)
                 if self.currency.is_current(record, &snapshot.head) =>
             {
-                StatusLine {
-                    text: format!(
-                        "repo={} state=current main={main} record={}",
-                        repo.name,
-                        record.commit.short()
-                    ),
-                    needs_attention: false,
-                }
+                Self::warned(
+                    StatusLine {
+                        text: format!(
+                            "repo={} state=current main={main} record={}",
+                            repo.name,
+                            record.commit.short()
+                        ),
+                        needs_attention: false,
+                    },
+                    record,
+                )
             }
             (_, Err(reason)) => StatusLine {
                 text: format!(
@@ -83,10 +89,13 @@ impl StatusReport {
                 ),
                 needs_attention: false,
             },
-            (RecordState::Present(record), Ok(())) => self.waiting(
-                repo,
-                &snapshot.head,
-                &format!("state=behind main={main} record={}", record.commit.short()),
+            (RecordState::Present(record), Ok(())) => Self::warned(
+                self.waiting(
+                    repo,
+                    &snapshot.head,
+                    &format!("state=behind main={main} record={}", record.commit.short()),
+                ),
+                record,
             ),
             (RecordState::Absent, Ok(())) => self.waiting(
                 repo,
@@ -125,6 +134,17 @@ impl StatusReport {
                 text: format!("repo={} {state} waited_s=unknown", repo.name),
                 needs_attention: true,
             },
+        }
+    }
+
+    // `line` with the record's warning, if it calls for one, which then needs attention.
+    fn warned(line: StatusLine, record: &RunRecord) -> StatusLine {
+        match TimeoutWarning.of(&record.counts) {
+            Some(warning) => StatusLine {
+                text: format!("{} warning={warning}", line.text),
+                needs_attention: true,
+            },
+            None => line,
         }
     }
 }

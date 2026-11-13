@@ -108,6 +108,10 @@ Then, on 2026-11-13, what a run publishes and reports changes where a run's time
   `.github/rulesets/main.json`, the copy of record for `main`'s ruleset.
 
 ### Changed
+- A published run whose timeouts outnumber its caught mutants is flagged, by a new `TimeoutWarning`:
+  `warning=timeouts-outnumber-caught` on its journal line, before `duration_s`, and on its repository's `--status`
+  line, current or behind, which then needs attention -- so `--status`, and `deploy/status-check.sh` with it, exits 1.
+  `--help`, the README, `deploy/SETUP.md` and `docs/IMPLEMENTED-FEATURES.md` say so.
 - `summary.toml` records `test_timeout_seconds`, the test timeout cargo-mutants set from the baseline, read from
   `mutants.out/debug.log` -- the only file that states it -- by a new `TestTimeoutLine`; absent when the log does not
   say it, and in records written before. A completed `RunOutcome` and the `RunRecord` carry it; a survivor re-check
