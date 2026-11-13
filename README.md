@@ -19,7 +19,7 @@ timeout.txt        mutants whose tests timed out (absent when none)
 located/           the same lists with file:line:col
 ```
 
-Commit messages read `Mutants of 1a2b3c4: 5 missed (+1 -2), 120 caught`.
+Commit messages read `Mutants of 1a2b3c4: 5 missed (+1 -2), 120 caught`, and end `, 3 timed out` when any did.
 
 A repository is tested only once it has a `.cargo/mutants.toml` on `main`; crate filters and accepted survivors
 (`exclude_re`, `#[mutants::skip]`) live there.

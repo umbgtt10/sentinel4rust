@@ -79,12 +79,27 @@ fn files_of_failed_run_write_no_lists() {
     }
 }
 
+// A run with no timeout says nothing of them: the clause is there to keep a run
+// whose mutants mostly timed out from reading as a clean one.
+#[test]
+fn message_of_a_completed_run_with_no_timeout_leaves_them_out() {
+    // Arrange
+    let mut publication = publication(OutcomeKind::Completed, false);
+    publication.record.counts.timeout = 0;
+
+    // Act
+    let message = BranchLayout.message(&publication);
+
+    // Assert
+    assert_eq!(message, "Mutants of abababa: 2 missed (+1 -0), 10 caught");
+}
+
 #[test]
 fn message_of_each_outcome_follows_the_design() {
     // Arrange & Act & Assert
     assert_eq!(
         BranchLayout.message(&publication(OutcomeKind::Completed, false)),
-        "Mutants of ababab: 2 missed (+1 -0), 10 caught".replace("ababab", "abababa")
+        "Mutants of abababa: 2 missed (+1 -0), 10 caught, 1 timed out"
     );
     assert_eq!(
         BranchLayout.message(&publication(OutcomeKind::BaselineFailed, false)),

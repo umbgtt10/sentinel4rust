@@ -25,8 +25,9 @@ mutants (orphan)
   located/        the same lists as cargo-mutants wrote them, with file:line:col
 ```
 
-Commit messages: `Mutants of <short hash>: <missed> missed (+<new> -<gone>), <caught> caught`, or
-`Mutants of <short hash>: baseline failed` / `tool failed`. Failures write `README.md` and `summary.toml` only.
+Commit messages: `Mutants of <short hash>: <missed> missed (+<new> -<gone>), <caught> caught`, then
+`, <timeout> timed out` when any did, or `Mutants of <short hash>: baseline failed` / `tool failed`. A run's
+timeouts are in its message so that one whose mutants mostly timed out does not read as a clean run. Failures write `README.md` and `summary.toml` only.
 
 ## Forcing constraints / Evidence
 

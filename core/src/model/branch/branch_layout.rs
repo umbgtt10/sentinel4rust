@@ -65,11 +65,16 @@ impl BranchLayout {
         files
     }
 
-    /// The commit message (`ADR-OrphanMutantsBranch`).
+    /// The commit message (`ADR-OrphanMutantsBranch`): a completed run's timeouts are named when there are any, so
+    /// one whose mutants mostly timed out does not read as a clean run.
     pub fn message(&self, publication: &Publication) -> String {
         let r = &publication.record;
         let short = r.commit.short();
         match r.outcome {
+            OutcomeKind::Completed if r.counts.timeout > 0 => format!(
+                "Mutants of {short}: {} missed (+{} -{}), {} caught, {} timed out",
+                r.counts.missed, r.new, r.gone, r.counts.caught, r.counts.timeout
+            ),
             OutcomeKind::Completed => format!(
                 "Mutants of {short}: {} missed (+{} -{}), {} caught",
                 r.counts.missed, r.new, r.gone, r.counts.caught
