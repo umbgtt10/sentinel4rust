@@ -6,6 +6,42 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### One shared results repository
+
+On 2026-11-14 the first real onboarding, of braintax4rust, showed the rulesets do not hold a write deploy key: GitHub
+listed both as active and applying, and accepted the probe branch and the probe tag pushed with the key. The key and
+the rulesets were deleted, and the design changed (`docs/ADRs/ADR-SharedResultsRepository.md`): the watched
+repositories are only read, and every result goes to one results repository, `umbgtt10/mutants`.
+
+### Changed
+- Results are published to the results repository the roster's new, required `results_url` names, on its `main`, one
+  folder per watched repository: `<repo>/summary.toml`, `missed.txt`, `timeout.txt` (when any) and `located/`, with
+  a `README.md` at the root. Each publication is one commit replacing exactly its repository's folder; commit messages
+  are led by the repository's name, `<repo>: Mutants of <short hash>: ...`. A push rejected because the branch moved
+  backs off, as before. Records are read from the same folder; nothing is pushed to, or read from, a `mutants` branch
+  of a watched repository any more.
+- A watched repository is read over https with no credential: its `[[repo]]` url is
+  `https://github.com/<owner>/<repo>.git`, and it must be public.
+- `cli`: `ResultsClone` (`cli/src/system/git/results_clone.rs`), the results repository's bare clone at
+  `<work_dir>/results.git`, reads and publishes the records; `GitCli::new` takes the results URL; `RecordReader` and
+  `PlumbingCommit` take the repository's folder; `BareClone::ensure_at` and `WorkDir::results_clone` are new;
+  `RESULTS_BRANCH` and `RESULTS_REMOTE_REF` replace `MUTANTS_REMOTE_REF`. `core`: `Roster::results_url`;
+  `BranchLayout::files` and `message` take the folder.
+- `deploy/onboard.sh` makes one key, `~sentinel/.ssh/sentinel_mutants`, its host alias `github-mutants` and its write
+  deploy key on the results repository (`--results`, default `mutants`) -- the one GitHub change, still only with
+  `--apply-github` -- sets `results_url` before the roster's first `[[repo]]`, and per watched repository checks it is
+  public, refuses it if it carries a deploy key titled `sentinel4rust`, and appends its entry with its https URL.
+- `deploy/verify-access.sh <results url> [<watched url>...]` reads each watched repository's `main` with no
+  credential, and proves the key writes the results repository by creating and deleting a branch,
+  `sentinel4rust-probe`; it never touches a `main`. `--include-main` is gone.
+- `deploy/SETUP.md`, `deploy/PROVISION.md`, `deploy/roster.example.toml`, the README, `docs/ARCHITECTURE.md`,
+  `docs/IMPLEMENTED-FEATURES.md`, `docs/ROADMAP.md` and `docs/OPEN_POINTS.md` (points 5, 14, 15, 17, 18, 20 and 21)
+  follow; `ADR-DeployKeyAndRuleset` and `ADR-OrphanMutantsBranch` are superseded by `ADR-SharedResultsRepository`.
+
+### Removed
+- `deploy/rulesets/` and both rulesets, `sentinel: only mutants` and `sentinel: no tags`: a write deploy key got
+  through them.
+
 ## [0.1.0] — 2026-11-13
 
 ### The first release

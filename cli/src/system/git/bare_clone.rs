@@ -2,7 +2,7 @@
 // Licensed under the MIT License
 // SPDX-License-Identifier: MIT
 
-//! The bare clone each repository is fetched into.
+//! The bare clones the watched repositories and the results repository are fetched into.
 
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -27,11 +27,16 @@ impl BareClone {
 
     /// The clone of `repo`, made if missing and its origin reset if the roster's URL changed.
     pub fn ensure(&self, repo: &OnboardedRepo) -> Result<PathBuf, SyncError> {
-        let dir = self.work_dir.bare_clone(repo);
+        self.ensure_at(&self.work_dir.bare_clone(repo), &repo.url)
+    }
+
+    /// A clone of `url` at `dir`, made if missing and its origin reset if the URL changed.
+    pub fn ensure_at(&self, dir: &Path, url: &str) -> Result<PathBuf, SyncError> {
+        let dir = dir.to_path_buf();
         if Self::is_clone(&dir) {
             let current = self.local(&dir, &["remote", "get-url", "origin"])?;
-            if current.trim() != repo.url {
-                self.local(&dir, &["remote", "set-url", "origin", &repo.url])?;
+            if current.trim() != url {
+                self.local(&dir, &["remote", "set-url", "origin", url])?;
             }
             return Ok(dir);
         }
@@ -41,7 +46,7 @@ impl BareClone {
             .map_err(|e| SyncError::Transient(format!("create {}: {e}", parent.display())))?;
         let dir_text = dir.to_string_lossy().into_owned();
         self.local(&parent, &["init", "--quiet", "--bare", &dir_text])?;
-        self.local(&dir, &["remote", "add", "origin", &repo.url])?;
+        self.local(&dir, &["remote", "add", "origin", url])?;
         Ok(dir)
     }
 

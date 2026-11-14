@@ -36,7 +36,8 @@ Sentinel::step                                 core/src/patrol/sentinel.rs
                      quiet)
 
 Sentinel::visit(repo) -> RoundStep
-  1. RepoSource::sync          -> Snapshot { head, record, previous_missed, readiness }
+  1. RepoSource::sync          -> Snapshot { head, record, previous_missed, readiness }: the watched branch
+                                  fetched, the results repository's main fetched, the repository's folder read
                                   Unreachable: back off to the cap; Transient: back off; NoBranch: skip
   2. RecordState               unreadable -> Unreadable, backed off to the cap, never run over
      RecordCurrency            present, naming head, config_version and the installed cargo-mutants -> Unchanged
@@ -44,11 +45,12 @@ Sentinel::visit(repo) -> RoundStep
   4. BaselineRetry             RepoSource::checkout, MutationRunner::run (again once on a baseline failure),
                                MutationRunner::recheck on the new survivors (SurvivorRecheck), RepoSource::remove_checkout
   5. a missing toolchain -> Skipped; a tool failure below the third on this commit -> BackedOff
-  6. PublicationBuilder::build -> Publication; ResultStore::publish -> Published, or BackedOff if rejected
+  6. PublicationBuilder::build -> Publication; ResultStore::publish (one commit replacing the repository's folder in
+                                  the results repository) -> Published, or BackedOff if rejected
 ```
 
 `EntryPoint::compose` is the only place real parts are built, and where a crash's leftovers are pruned. One `SystemCommandRunner` serves git and cargo; one
-`GitCli` fills both `RepoSource` and `ResultStore` through `Rc` coercion; `CargoMutantsCli` is the `MutationRunner`;
+`GitCli`, given the roster's `results_url`, fills both `RepoSource` and `ResultStore` through `Rc` coercion; `CargoMutantsCli` is the `MutationRunner`;
 `SystemClock`, `ThreadPause` and a `StdoutJournal` over stdout complete `Dependencies`, which `Sentinel::new` takes
 whole.
 
@@ -76,11 +78,13 @@ so the loop is tested with fakes and no clock ([ADR-InjectedTime](ADRs/ADR-Injec
 - **Contract data:** `Command` (its directory as text) and `CommandResult`; `Snapshot` and `SyncError` (what a
   fetch found, or why it did not); `CheckoutError`, `PublishError`; `MutationRun` and `RunOutcome` (what a run
   produced); `OutcomeKind`, `SkipReason` and `RoundStep` (what a visit did, with its journal name).
-- **`branch/`** -- what `mutants` holds ([ADR-OrphanMutantsBranch](ADRs/ADR-OrphanMutantsBranch.md)): the
+- **`branch/`** -- what the results repository holds for one repository
+  ([ADR-SharedResultsRepository](ADRs/ADR-SharedResultsRepository.md)): the
   `RunRecord` and `Publication` records, `RecordState` (absent, present or unreadable), `SummaryToml` (render and
   parse, schema 1), `RecordCurrency`, `BranchLayout`
-  (the files, as `BranchFile`s, and the commit message), `RecordError`, and `KIND_FULL`.
-- **`onboarding/`** -- the roster: `Roster` (its `work_dir` as text) and `OnboardedRepo` records, `TomlRoster` (parse
+  (the root README and the files under the repository's folder, as `BranchFile`s, and the commit message led by the
+  folder), `RecordError`, and `KIND_FULL`.
+- **`onboarding/`** -- the roster: `Roster` (its `work_dir` and `results_url` as text) and `OnboardedRepo` records, `TomlRoster` (parse
   and validate) and `RosterError`.
 - **`toml/`** -- the dependency-free TOML subset ([ADR-NoDependencies](ADRs/ADR-NoDependencies.md)): `TomlParser`
   builds a `Document` (a root `Table` and arrays of tables) with `DocumentBuilder`, after `CommentStripper` (a
@@ -117,8 +121,8 @@ Text in, the core's data out; no tool is run here.
 
 ## cli: `system/` -- the real implementations
 
-`WorkDir` owns every path under the roster's `work_dir`: `repos/<name>.git`, `runs/<name>`, `stage/<name>`,
-`out/<name>`, `tmp/<name>`, `jobs/`.
+`WorkDir` owns every path under the roster's `work_dir`: `repos/<name>.git`, `results.git`, `runs/<name>`,
+`stage/<name>`, `out/<name>`, `tmp/<name>`, `jobs/`.
 
 - **`process/`** -- `SystemCommandRunner` spawns each command in its own process group with piped output, drains
   stdout and stderr on `StreamReader` threads -- keeping only a tail when the command sets a capture limit, as
@@ -126,12 +130,17 @@ Text in, the core's data out; no tool is run here.
   group `SIGKILL` through `kill`. `SystemClock`, `ThreadPause` and `StdoutJournal` implement the small contracts.
 - **`git/`** -- `GitCli` implements `RepoSource` and `ResultStore` over its parts: `GitRunner` (git without prompts,
   in the C locale; `local` failures are `GitFailure`s naming the command), `BareClone` (made once, origin kept on the
-  roster's URL, stale worktree entries pruned), `RemoteListing` (what `ls-remote` listed), `RecordReader` (the
-  record and `missed.txt` off the fetched `mutants`), `CrateReadiness` (with `OutsidePaths`, the manifests' `path` dependencies), `DetachedWorktree` (the run's checkout, with its submodules),
-  `PlumbingCommit` (blobs, a temporary index and `commit-tree`), with the core's `RemoteListing`, `OutsidePaths`
-  and `UnreachableClassifier`. The deadlines and the
-  remote `mutants` ref are in `git_constants.rs`. Only `refs/heads/mutants` is ever pushed
-  ([ADR-ExactCommitOnlyMutantsPushed](ADRs/ADR-ExactCommitOnlyMutantsPushed.md)).
+  roster's URL, stale worktree entries pruned; `ensure_at` for a clone at a path of its own), `CrateReadiness` (with
+  `OutsidePaths`, the manifests' `path` dependencies), `DetachedWorktree` (the run's checkout, with its submodules)
+  and `ResultsClone`, with the core's `RemoteListing`, `OutsidePaths` and `UnreachableClassifier`. A watched
+  repository's clone fetches its branch and nothing else, and nothing is ever pushed to it. `ResultsClone` is the
+  results repository's bare clone, `results.git`: `fetch` takes its `main` (or drops the local copy when there is
+  none yet), `record` and `previous_missed` read the repository's folder through `RecordReader`, and `publish` has
+  `PlumbingCommit` write one commit -- the fetched tip's tree read into a temporary index, the folder's paths removed,
+  the new blobs added, `commit-tree` onto the tip -- and pushes it. The deadlines and the results branch and its
+  remote ref (`RESULTS_BRANCH`, `RESULTS_REMOTE_REF`) are in `git_constants.rs`. Only the results repository's `main`
+  is ever pushed ([ADR-ExactCommitOnlyMutantsPushed](ADRs/ADR-ExactCommitOnlyMutantsPushed.md),
+  [ADR-SharedResultsRepository](ADRs/ADR-SharedResultsRepository.md)).
 - **`mutants/`** -- `CargoMutantsCli` re-checks named mutants with an anchored `--re`, and records `cargo mutants --version` and `rustc --version`, runs
   `cargo mutants --jobs <n> --output <out>` in the checkout with the run cap and `TMPDIR` under the work directory
   (its `prune` empties `tmp/` on start), and hands the result to the core's
@@ -141,8 +150,8 @@ Text in, the core's data out; no tool is run here.
   `UnitCommandRunner`: each is written as `jobs/run/job.toml` (the core's `JobToml`), the template unit started with
   `systemctl start --wait <unit>@run.service`, and the `result.toml` (`ResultToml`), `stdout` and `stderr` the unit
   left are read back into a `CommandResult`. The unit's `ExecStart` is `sentinel4rust --run-job <dir>`: `JobRunner`
-  runs the job with the `SystemCommandRunner` and writes those files. Git never runs there
-  ([ADR-DeployKeyAndRuleset](ADRs/ADR-DeployKeyAndRuleset.md)).
+  runs the job with the `SystemCommandRunner` and writes those files. Git never runs there, so the results
+  repository's key stays out of the unit ([OPEN_POINTS.md](OPEN_POINTS.md), point 5).
 
 ## Configuration
 
@@ -151,13 +160,14 @@ The roster is TOML, read once on start ([`deploy/roster.example.toml`](../deploy
 | key | default | meaning |
 |---|---|---|
 | `work_dir` | required | clones, checkouts, staging areas and cargo-mutants output |
+| `results_url` | required | the results repository every record is read from and every publication pushed to, one folder per repository |
 | `pause_seconds` | 300 | the polling interval per repository |
 | `jobs` | 1 | cargo-mutants `--jobs`, for every repository without its own |
 | `run_timeout_hours` | 12 | the cap on one cargo-mutants run |
 | `config_version` | 1 | bump to rerun every repository |
 | `stale_after_hours` | 24 | how long `main` may wait for a record before `--status` exits 1 |
-| `run_unit` | none | the systemd template unit cargo-mutants runs in, away from the deploy keys |
-| `[[repo]]` `name`, `url` | required | a unique name (letters, digits, `-`, `_`, `.`) and what git fetches from |
+| `run_unit` | none | the systemd template unit cargo-mutants runs in, away from the deploy key |
+| `[[repo]]` `name`, `url` | required | a unique name (letters, digits, `-`, `_`, `.`), which names its folder in the results repository, and what git fetches from, `https://github.com/<owner>/<repo>.git` |
 | `[[repo]]` `branch` | `main` | the branch tested; never `mutants` |
 | `[[repo]]` `jobs` | the global `jobs` | this repository's `--jobs` |
 | `[[repo]]` `run_timeout_hours` | the global `run_timeout_hours` | this repository's cap on one run |
@@ -175,7 +185,8 @@ clock; `InMemoryMutantsOut`, the lists of one run held in memory; `run_records` 
 
 `cli/tests/` holds the tests of the real implementations. Its `support/` holds `ScriptedRunner`, a `CommandRunner`
 answering from a script, which the git parts are tested against; `Origin`, a bare repository with a working clone, for
-`GitCli` on real git through `file://` remotes, with no network; `TempDir`, `git_shell`, `run_records` and a runner
+`GitCli` and `ResultsClone` on real git through `file://` remotes -- one for the watched repository, one for the
+results repository -- with no network; `TempDir`, `git_shell`, `run_records` and a runner
 allowing `file://` submodules. `main_tests.rs` drives the binary end to end against a stub `cargo` in stage 1; its
 `#[ignore]`d tests run the real cargo-mutants 27.1.0 on three fixture crates -- survivors, a failing baseline, a
 mutant that loops -- and stage 2's end-to-end gate runs them.

@@ -91,6 +91,12 @@ the chat -- and `deploy/go-live.sh`, and ends logged out of GitHub. `deploy/stat
 another machine. Proven on the development laptop as far as no root allows; the rest is proven the first time it runs
 on the machine (open point 17), and points 18 to 21 wait for the owner.
 
+The first run on the machine, on 2026-11-14, provisioned it and proved the run unit's isolation; then the first
+onboarding showed the rulesets do not hold a write deploy key. Results now go to one shared results repository,
+`umbgtt10/mutants`, with the sentinel's only key, and the watched repositories are read with no credential
+([ADRs/ADR-SharedResultsRepository.md](ADRs/ADR-SharedResultsRepository.md)). Onboarding and going live follow on
+that design.
+
 ## Under consideration
 
 The ideas of the design's section 8 that no open point takes up, each only if real use asks for it:
@@ -100,7 +106,8 @@ The ideas of the design's section 8 that no open point takes up, each only if re
 - **Docs-only commits** republishing the previous lists instead of a full run.
 - **`--in-place`** with a warm `target/` instead of `--jobs` copies, if measurement favours it.
 - **Reloading the roster** without a restart.
-- **A notification** when survivors rise, if the commit messages on `mutants` turn out not to be enough.
+- **A notification** when survivors rise, if the commit messages on the results repository turn out not to be enough.
+- **Watching a private repository**, through a read-only deploy key of its own, should one need it.
 
 Two of its ideas became open points: re-checking new survivors once before publishing (11, done), and, instead of a
 heartbeat, a check that compares each repository's `main` with its `mutants` record (12, done: `--status`).

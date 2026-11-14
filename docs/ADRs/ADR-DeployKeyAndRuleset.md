@@ -2,7 +2,9 @@
 
 ## Status
 
-Accepted.
+Superseded by `ADR-SharedResultsRepository.md` on 2026-11-14. Kept as the decision it was; the code no longer
+follows it. The first real onboarding proved the rulesets did not hold: the write deploy key
+created a branch and a tag through them.
 
 ## Context
 

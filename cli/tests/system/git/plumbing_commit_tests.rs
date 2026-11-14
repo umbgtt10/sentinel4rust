@@ -17,7 +17,11 @@ use sentinel4rust_cli::system::git::plumbing_commit::PlumbingCommit;
 use std::path::Path;
 use std::rc::Rc;
 
-// A failed run writes two files, README.md and summary.toml.
+fn onto_parent(listed: &str) -> Vec<CommandResult> {
+    vec![ok("parent\n"), ok(""), ok(listed)]
+}
+
+// A failed run writes two files, README.md and x/summary.toml.
 fn publication() -> Publication {
     Publication {
         record: record(OutcomeKind::ToolFailed),
@@ -36,14 +40,20 @@ fn staged_replies() -> Vec<CommandResult> {
 fn write_failing_names_the_step() {
     // Arrange
     let stage = TempDir::new("plumbing-fail");
-    let mut replies = staged_replies();
+    let mut replies = vec![failed(1, "")];
+    replies.extend(staged_replies());
     replies.pop();
     replies.push(failed(128, "fatal: bad index"));
     let runner = Rc::new(ScriptedRunner::new(replies));
     let commit = PlumbingCommit::new(GitRunner::new(runner));
 
     // Act
-    let result = commit.write(Path::new("/w/repos/x.git"), stage.path(), &publication());
+    let result = commit.write(
+        Path::new("/w/results.git"),
+        stage.path(),
+        "x",
+        &publication(),
+    );
 
     // Assert
     assert_eq!(
@@ -55,25 +65,40 @@ fn write_failing_names_the_step() {
 }
 
 #[test]
-fn write_first_commits_an_orphan_as_the_tool() {
+fn write_first_commits_a_root_as_the_tool() {
     // Arrange
     let stage = TempDir::new("plumbing-first");
-    let mut replies = staged_replies();
-    replies.extend([failed(1, ""), ok("commit\n")]);
+    let mut replies = vec![failed(1, "")];
+    replies.extend(staged_replies());
+    replies.push(ok("commit\n"));
     let runner = Rc::new(ScriptedRunner::new(replies));
     let commit = PlumbingCommit::new(GitRunner::new(runner.clone()));
 
     // Act
-    let result = commit.write(Path::new("/w/repos/x.git"), stage.path(), &publication());
+    let result = commit.write(
+        Path::new("/w/results.git"),
+        stage.path(),
+        "x",
+        &publication(),
+    );
 
     // Assert
     assert_eq!(result, Ok(String::from("commit")));
     let index = stage.path().join("index").to_string_lossy().into_owned();
     let commands = runner.commands();
-    let blob = stage.path().join("blob-0").to_string_lossy().into_owned();
-    assert_eq!(commands[0].args(), ["hash-object", "-w", blob.as_str()]);
     assert_eq!(
-        commands[1].args(),
+        commands[0].args(),
+        [
+            "rev-parse",
+            "--verify",
+            "--quiet",
+            "refs/remotes/origin/main^{commit}"
+        ]
+    );
+    let blob = stage.path().join("blob-0").to_string_lossy().into_owned();
+    assert_eq!(commands[1].args(), ["hash-object", "-w", blob.as_str()]);
+    assert_eq!(
+        commands[2].args(),
         [
             "update-index",
             "--add",
@@ -81,27 +106,18 @@ fn write_first_commits_an_orphan_as_the_tool() {
             "100644,blob-a,README.md"
         ]
     );
-    assert_eq!(commands[1].env()["GIT_INDEX_FILE"], index);
+    assert_eq!(commands[2].env()["GIT_INDEX_FILE"], index);
     assert_eq!(
-        commands[3].args(),
+        commands[4].args(),
         [
             "update-index",
             "--add",
             "--cacheinfo",
-            "100644,blob-b,summary.toml"
+            "100644,blob-b,x/summary.toml"
         ]
     );
-    assert_eq!(commands[4].env()["GIT_INDEX_FILE"], index);
-    assert_eq!(
-        commands[5].args(),
-        [
-            "rev-parse",
-            "--verify",
-            "--quiet",
-            "refs/remotes/origin/mutants^{commit}"
-        ]
-    );
-    let message = BranchLayout.message(&publication());
+    assert_eq!(commands[5].env()["GIT_INDEX_FILE"], index);
+    let message = BranchLayout.message("x", &publication());
     assert_eq!(
         commands[6].args(),
         ["commit-tree", "tree", "-m", message.as_str()]
@@ -119,22 +135,51 @@ fn write_first_commits_an_orphan_as_the_tool() {
 }
 
 #[test]
-fn write_onto_mutants_names_its_head_as_the_parent() {
+fn write_onto_results_drops_the_folder_and_names_the_parent() {
     // Arrange
     let stage = TempDir::new("plumbing-parent");
-    let mut replies = staged_replies();
-    replies.extend([ok("parent\n"), ok("commit\n")]);
+    let mut replies = onto_parent("x/summary.toml\nx/timeout.txt\n");
+    replies.push(ok(""));
+    replies.extend(staged_replies());
+    replies.push(ok("commit\n"));
     let runner = Rc::new(ScriptedRunner::new(replies));
     let commit = PlumbingCommit::new(GitRunner::new(runner.clone()));
 
     // Act
-    let result = commit.write(Path::new("/w/repos/x.git"), stage.path(), &publication());
+    let result = commit.write(
+        Path::new("/w/results.git"),
+        stage.path(),
+        "x",
+        &publication(),
+    );
 
     // Assert
     assert_eq!(result, Ok(String::from("commit")));
-    let message = BranchLayout.message(&publication());
+    let index = stage.path().join("index").to_string_lossy().into_owned();
+    let stage_text = stage.path().to_string_lossy().into_owned();
+    let commands = runner.commands();
+    assert_eq!(commands[1].args(), ["read-tree", "parent"]);
+    assert_eq!(commands[1].env()["GIT_INDEX_FILE"], index);
     assert_eq!(
-        runner.commands()[6].args(),
+        commands[2].args(),
+        ["ls-tree", "-r", "--name-only", "parent", "--", "x"]
+    );
+    assert_eq!(
+        commands[3].args(),
+        [
+            "--work-tree",
+            stage_text.as_str(),
+            "update-index",
+            "--force-remove",
+            "--",
+            "x/summary.toml",
+            "x/timeout.txt"
+        ]
+    );
+    assert_eq!(commands[3].env()["GIT_INDEX_FILE"], index);
+    let message = BranchLayout.message("x", &publication());
+    assert_eq!(
+        commands[9].args(),
         [
             "commit-tree",
             "tree",
@@ -143,5 +188,34 @@ fn write_onto_mutants_names_its_head_as_the_parent() {
             "-m",
             message.as_str()
         ]
+    );
+}
+
+#[test]
+fn write_onto_results_without_the_folder_removes_nothing() {
+    // Arrange
+    let stage = TempDir::new("plumbing-new-folder");
+    let mut replies = onto_parent("");
+    replies.extend(staged_replies());
+    replies.push(ok("commit\n"));
+    let runner = Rc::new(ScriptedRunner::new(replies));
+    let commit = PlumbingCommit::new(GitRunner::new(runner.clone()));
+
+    // Act
+    let result = commit.write(
+        Path::new("/w/results.git"),
+        stage.path(),
+        "x",
+        &publication(),
+    );
+
+    // Assert
+    assert_eq!(result, Ok(String::from("commit")));
+    let commands = runner.commands();
+    assert_eq!(commands[3].args()[0], "hash-object");
+    assert!(
+        commands
+            .iter()
+            .all(|command| !command.args().iter().any(|arg| arg == "--force-remove"))
     );
 }

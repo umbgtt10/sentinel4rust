@@ -10,3 +10,4 @@ pub mod git_failure_tests;
 pub mod git_runner_tests;
 pub mod plumbing_commit_tests;
 pub mod record_reader_tests;
+pub mod results_clone_tests;

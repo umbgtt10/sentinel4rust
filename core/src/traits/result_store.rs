@@ -10,6 +10,6 @@ use crate::model::publish_error::PublishError;
 
 /// Publishes results.
 pub trait ResultStore {
-    /// Writes `publication` as a new commit on `mutants` and pushes only that branch.
+    /// Writes `publication` as a new commit in the results repository, replacing `repo`'s folder, and pushes it.
     fn publish(&self, repo: &OnboardedRepo, publication: &Publication) -> Result<(), PublishError>;
 }

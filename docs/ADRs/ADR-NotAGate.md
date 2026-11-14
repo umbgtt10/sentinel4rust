@@ -16,7 +16,8 @@ a question about one commit, and its answer does not go stale until the code doe
 ## Decision
 
 `sentinel4rust` answers that question after the fact, on a dedicated machine, for every commit `main` reaches, and
-publishes the answer on the repository's own `mutants` branch; nothing waits for it, and it never touches `main`.
+publishes the answer in the repository's folder of one shared results repository (`ADR-SharedResultsRepository`);
+nothing waits for it, and it never writes to the repository at all.
 
 ## Forcing constraints / Evidence
 
@@ -38,8 +39,9 @@ that stopped looks like a repository that did not move, which `--status`, run fr
 
 ## Enforcement
 
-`GitCli` pushes `refs/heads/mutants` and nothing else (`ADR-ExactCommitOnlyMutantsPushed`), and the real-git tests in
-`cli/tests/system/git/git_cli_tests.rs` assert `main` is byte-identical after every publish.
+Only `ResultsClone` pushes, and only the results repository's `main` (`ADR-ExactCommitOnlyMutantsPushed`); the
+real-git tests in `cli/tests/system/git/git_cli_tests.rs` assert the watched repository's refs are byte-identical
+after every publish.
 
 ## Related
 

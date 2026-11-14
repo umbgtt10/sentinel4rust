@@ -40,6 +40,11 @@ impl WorkDir {
         self.root.join("out").join(&repo.name)
     }
 
+    /// The bare clone of the results repository.
+    pub fn results_clone(&self) -> PathBuf {
+        self.root.join("results.git")
+    }
+
     /// The directory itself.
     pub fn root(&self) -> &Path {
         &self.root

@@ -109,6 +109,7 @@ fn assert_success(output: &Output) {
 
 struct Bench {
     origin: Origin,
+    results: Origin,
     work: TempDir,
     bin: TempDir,
     roster: PathBuf,
@@ -117,6 +118,7 @@ struct Bench {
 impl Bench {
     fn new() -> Self {
         let origin = Origin::new();
+        let results = Origin::new();
         let work = TempDir::new("e2e-work");
         let bin = TempDir::new("e2e-bin");
         let stub = bin.path().join("cargo");
@@ -126,14 +128,16 @@ impl Bench {
         fs::write(
             &roster,
             format!(
-                "work_dir = \"{}\"\npause_seconds = 1\njobs = 2\n\n[[repo]]\nname = \"fixture\"\nurl = \"{}\"\n",
+                "work_dir = \"{}\"\nresults_url = \"{}\"\npause_seconds = 1\njobs = 2\n\n[[repo]]\nname = \"fixture\"\nurl = \"{}\"\n",
                 work.path().join("state").display(),
+                results.url(),
                 origin.url()
             ),
         )
         .unwrap();
         Self {
             origin,
+            results,
             work,
             bin,
             roster,
@@ -148,7 +152,10 @@ impl Bench {
     }
 
     fn mutants(&self, path: &str) -> String {
-        git(&self.origin.bare(), &["show", &format!("mutants:{path}")])
+        git(
+            &self.results.bare(),
+            &["show", &format!("main:fixture/{path}")],
+        )
     }
 
     // The service runs cargo-mutants without the gates' `RUSTFLAGS=-D warnings`,
@@ -248,6 +255,7 @@ fn once_publishes_survivors_then_finds_main_unchanged() {
     );
     assert!(summary.contains("cargo_mutants_version = \"cargo-mutants 27.1.0 (stub)\""));
     assert_eq!(bench.origin.remote_ref("refs/heads/main"), main_before);
+    assert_eq!(bench.origin.remote_ref("refs/heads/mutants"), "");
     let state = bench.work.path().join("state");
     let ran_in = fs::read_to_string(state.join("out/ran-in")).unwrap();
     assert!(ran_in.trim().ends_with("runs/fixture"), "{ran_in}");
@@ -264,7 +272,7 @@ fn once_publishes_survivors_then_finds_main_unchanged() {
         stdout(&second)
     );
     assert_eq!(
-        git(&bench.origin.bare(), &["rev-list", "--count", "mutants"]),
+        git(&bench.results.bare(), &["rev-list", "--count", "main"]),
         "1"
     );
 }
@@ -379,7 +387,10 @@ fn once_real_cargo_mutants_on_a_red_fixture_publishes_baseline_failed() {
         summary.contains("add_is_checked_against_the_wrong_sum"),
         "{summary}"
     );
-    let files = git(&bench.origin.bare(), &["ls-tree", "--name-only", "mutants"]);
+    let files = git(
+        &bench.results.bare(),
+        &["ls-tree", "-r", "--name-only", "main"],
+    );
     assert!(!files.contains("missed.txt"), "{files}");
 }
 
@@ -402,7 +413,10 @@ fn once_red_main_publishes_baseline_failed() {
     let summary = bench.mutants("summary.toml");
     assert!(summary.contains("outcome = \"baseline-failed\""));
     assert!(summary.contains("baseline: test x ... FAILED"));
-    let files = git(&bench.origin.bare(), &["ls-tree", "--name-only", "mutants"]);
+    let files = git(
+        &bench.results.bare(),
+        &["ls-tree", "-r", "--name-only", "main"],
+    );
     assert!(!files.contains("missed.txt"), "{files}");
 }
 
@@ -434,7 +448,7 @@ fn once_tool_failure_backs_off_and_exits_one() {
     // Assert
     assert_eq!(output.status.code(), Some(1));
     assert!(stdout(&output).contains("step=backed-off reason=\"cargo-mutants exited with 70\""));
-    assert_eq!(bench.origin.remote_ref("refs/heads/mutants"), "");
+    assert_eq!(bench.results.remote_ref("refs/heads/main"), "");
 }
 
 // What the run unit's ExecStart does: the job in, the result and output out.
@@ -475,7 +489,7 @@ fn status_after_a_publish_is_current_then_behind_and_never_pushes() {
     let bench = Bench::new();
     let head = bench.origin.commit_crate();
     assert_success(&bench.once("2", true));
-    let mutants_before = bench.origin.remote_ref("refs/heads/mutants");
+    let results_before = bench.results.remote_ref("refs/heads/main");
 
     // Act
     let current = bench.status();
@@ -503,8 +517,5 @@ fn status_after_a_publish_is_current_then_behind_and_never_pushes() {
         "{}",
         stdout(&behind)
     );
-    assert_eq!(
-        bench.origin.remote_ref("refs/heads/mutants"),
-        mutants_before
-    );
+    assert_eq!(bench.results.remote_ref("refs/heads/main"), results_before);
 }

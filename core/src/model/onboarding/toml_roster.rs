@@ -25,6 +25,7 @@ const ROOT_KEYS: &[&str] = &[
     "config_version",
     "stale_after_hours",
     "run_unit",
+    "results_url",
 ];
 const REPO_KEYS: &[&str] = &["name", "url", "branch", "jobs", "run_timeout_hours"];
 
@@ -54,8 +55,13 @@ impl TomlRoster {
         if repos.is_empty() {
             return Err(RosterError("no [[repo]] entries".to_string()));
         }
+        let work_dir = root.required_string("work_dir")?;
+        let results_url = root.required_string("results_url")?;
+        if results_url.trim().is_empty() {
+            return Err(RosterError("empty `results_url`".to_string()));
+        }
         Ok(Roster {
-            work_dir: root.required_string("work_dir")?,
+            work_dir,
             pause: Duration::from_secs(Self::positive(
                 root.integer("pause_seconds")?,
                 300,
@@ -69,6 +75,7 @@ impl TomlRoster {
                 24,
                 "stale_after_hours",
             )?),
+            results_url,
             run_unit: Self::run_unit(root.string("run_unit")?)?,
             repos,
         })

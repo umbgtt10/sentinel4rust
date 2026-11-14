@@ -25,7 +25,7 @@ fn previous_missed_reads_one_key_per_non_blank_line() {
     let reader = RecordReader::new(GitRunner::new(runner.clone()));
 
     // Act
-    let missed = reader.previous_missed(Path::new("/w/repos/x.git"));
+    let missed = reader.previous_missed(Path::new("/w/results.git"), "x");
 
     // Assert
     assert_eq!(
@@ -37,7 +37,7 @@ fn previous_missed_reads_one_key_per_non_blank_line() {
     );
     assert_eq!(
         runner.args(),
-        [["show", "refs/remotes/origin/mutants:missed.txt"]]
+        [["show", "refs/remotes/origin/main:x/missed.txt"]]
     );
 }
 
@@ -48,7 +48,7 @@ fn previous_missed_without_a_list_is_empty() {
     let reader = RecordReader::new(GitRunner::new(runner));
 
     // Act
-    let missed = reader.previous_missed(Path::new("/w/repos/x.git"));
+    let missed = reader.previous_missed(Path::new("/w/results.git"), "x");
 
     // Assert
     assert_eq!(missed, Vec::<MutantKey>::new());
@@ -62,13 +62,13 @@ fn record_of_a_valid_summary_parses_it() {
     let reader = RecordReader::new(GitRunner::new(runner.clone()));
 
     // Act
-    let read = reader.record(Path::new("/w/repos/x.git"));
+    let read = reader.record(Path::new("/w/results.git"), "x");
 
     // Assert
     assert_eq!(read, RecordState::Present(Box::new(written)));
     assert_eq!(
         runner.args(),
-        [["show", "refs/remotes/origin/mutants:summary.toml"]]
+        [["show", "refs/remotes/origin/main:x/summary.toml"]]
     );
 }
 
@@ -83,7 +83,7 @@ fn record_of_an_unknown_schema_is_absent() {
     let reader = RecordReader::new(GitRunner::new(runner));
 
     // Act
-    let read = reader.record(Path::new("/w/repos/x.git"));
+    let read = reader.record(Path::new("/w/results.git"), "x");
 
     // Assert
     assert_eq!(read, RecordState::Absent);
@@ -96,7 +96,7 @@ fn record_of_an_unparseable_summary_is_unreadable() {
     let reader = RecordReader::new(GitRunner::new(runner));
 
     // Act
-    let read = reader.record(Path::new("/w/repos/x.git"));
+    let read = reader.record(Path::new("/w/results.git"), "x");
 
     // Assert
     assert!(matches!(
@@ -112,7 +112,7 @@ fn record_without_a_summary_is_absent() {
     let reader = RecordReader::new(GitRunner::new(runner));
 
     // Act
-    let read = reader.record(Path::new("/w/repos/x.git"));
+    let read = reader.record(Path::new("/w/results.git"), "x");
 
     // Assert
     assert_eq!(read, RecordState::Absent);

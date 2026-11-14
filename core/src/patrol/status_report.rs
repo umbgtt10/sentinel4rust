@@ -23,7 +23,7 @@ use crate::traits::clock::Clock;
 use crate::traits::repo_source::RepoSource;
 
 /// A read-only pass over the roster: fetches each repository, runs nothing, pushes nothing, and says whether its
-/// record on `mutants` answers for `main` and, when not, how long `main`'s head has waited for one -- and warns of a
+/// record in the results repository answers for `main` and, when not, how long `main`'s head has waited for one -- and warns of a
 /// record whose timeouts outnumber its caught mutants, which needs a look whether current or not.
 pub struct StatusReport {
     source: Rc<dyn RepoSource>,

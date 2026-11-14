@@ -6,7 +6,7 @@ Accepted.
 
 ## Context
 
-The service runs unattended beside every onboarded repository's deploy key. Every crate it depends on is code that
+The service runs unattended beside the deploy key of the results repository. Every crate it depends on is code that
 runs there too, and an update to any of them is a change nobody reviewed.
 
 ## Decision

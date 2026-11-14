@@ -4,9 +4,9 @@
 
 `sentinel4rust` hunts mutants around the clock. It runs on a dedicated machine, walks a roster of repositories, and
 whenever a repository's `main` moves it runs full mutation testing with cargo-mutants against that exact commit and
-publishes the surviving mutants on the repository's own orphan `mutants` branch.
+publishes the surviving mutants in the repository's folder of one shared results repository, `umbgtt10/mutants`.
 
-It is not a gate. Nothing waits for it, and it never touches `main`. It answers one question per commit, after the
+It is not a gate. Nothing waits for it, and it never writes to the repositories it watches. It answers one question per commit, after the
 fact: which changes to this code would its tests not notice?
 
 `docs/ARCHITECTURE.md` maps the code; `docs/ADRs/` holds the load-bearing decisions; `docs/OPEN_POINTS.md` the known
@@ -33,7 +33,7 @@ A workspace of three members, with a virtual root that holds no package:
 
 | member | what it is |
 |---|---|
-| `core/` | package `sentinel4rust-core`, library `sentinel4rust`: the patrol, the roster, the record on `mutants`, and what git, cargo-mutants and the run unit answer. `#![no_std]`, no dependency, no technology. |
+| `core/` | package `sentinel4rust-core`, library `sentinel4rust`: the patrol, the roster, the record in the results repository, and what git, cargo-mutants and the run unit answer. `#![no_std]`, no dependency, no technology. |
 | `cli/` | package `sentinel4rust`: the `sentinel4rust` binary and a library, `sentinel4rust_cli` -- the command line, `EntryPoint` and every implementation of the core's contracts. Depends on the core only. |
 | `xtask/` | gate orchestration, run as `cargo xtask`. `publish = false`. |
 
@@ -144,7 +144,8 @@ where a clone asks it to: `just hooks`, once a clone, on each machine.
 
 ## This tool's rules
 
-- `GitCli` pushes `refs/heads/mutants` and nothing else. Tests assert `main` is byte-identical after every publish.
+- Only `ResultsClone` pushes, and only the results repository's `main`; nothing is ever pushed to a watched
+  repository. Tests assert the watched repository's refs are byte-identical after every publish.
 - The core has no dependencies: keep it that way unless a dependency removes real code. TOML goes through
   `core/src/model/toml/`. `cli` depends on the core alone. The dev-only `xtask` uses `serde`, `serde_json` and `syn`,
   and `tempfile` for its tests, from `[workspace.dependencies]`.

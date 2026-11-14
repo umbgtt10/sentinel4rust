@@ -2,7 +2,9 @@
 
 ## Status
 
-Accepted.
+Superseded by `ADR-SharedResultsRepository.md` on 2026-11-14. Kept as the decision it was; the code no longer
+follows it. Results now live in one folder per repository on the results repository's
+`main`.
 
 ## Context
 

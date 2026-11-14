@@ -364,11 +364,12 @@ roster_skeleton() {
 roster_text() {
   cat << EOF
 # The sentinel's roster. deploy/provision.sh wrote this skeleton on $(date -u +%Y-%m-%d) and never overwrites it.
-# deploy/onboard.sh appends the repositories; the service needs one before it starts. Every key, with its default,
+# deploy/onboard.sh sets results_url and appends the repositories; the service needs both before it starts. Every key, with its default,
 # is in docs/ARCHITECTURE.md, and deploy/roster.example.toml is an annotated example. Edit, then, once no run is in
 # progress: sudo systemctl restart sentinel4rust
 #
-# A public repository's mutants branch is public: decide per repository (deploy/SETUP.md section 7).
+# Every watched repository's results are public in the results repository: decide per repository (deploy/SETUP.md
+# section 7).
 
 work_dir = "$work_dir"
 pause_seconds = 300

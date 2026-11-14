@@ -15,9 +15,9 @@ use alloc::vec::Vec;
 pub struct Snapshot {
     /// The configured branch's commit.
     pub head: CommitHash,
-    /// What `summary.toml` on `mutants` holds.
+    /// What the repository's `summary.toml` in the results repository holds.
     pub record: RecordState,
-    /// `missed.txt` on `mutants`, for new/gone.
+    /// The repository's `missed.txt` in the results repository, for new/gone.
     pub previous_missed: Vec<MutantKey>,
     /// Whether `head` can be tested.
     pub readiness: Result<(), SkipReason>,

@@ -4,22 +4,27 @@ Sentinels hunt mutants.
 
 `sentinel4rust` runs on a dedicated machine, around the clock: it walks a list of repositories, and whenever a
 repository's `main` moves it runs full mutation testing with [cargo-mutants](https://mutants.rs) against that exact
-commit, then publishes the surviving mutants, with the commit hash, on the repository's own `mutants` branch. It is
-not a gate: nothing waits for it, and it never touches `main`.
+commit, then publishes the surviving mutants, with the commit hash, in the repository's folder of one shared results
+repository, [`umbgtt10/mutants`](https://github.com/umbgtt10/mutants). It is not a gate: nothing waits for it, and it
+never writes to the repositories it watches -- it reads them over https, with no credential.
 
-## What a repository gets
+## What the results repository holds
 
-An orphan `mutants` branch, one commit per tested `main` commit:
+One folder per watched repository on its `main`, one commit per tested `main` commit, which replaces that folder and
+nothing else:
 
 ```
-README.md          what the branch is; do not merge
-summary.toml       commit, times, outcome, counts, new/gone, versions, the test timeout
-missed.txt         surviving mutants, without line numbers, so `git log -p` is the history of the survivors
-timeout.txt        mutants whose tests timed out (absent when none)
-located/           the same lists with file:line:col
+README.md                what the repository is; generated, do not edit by hand
+<repo>/summary.toml      commit, times, outcome, counts, new/gone, versions, the test timeout
+<repo>/missed.txt        surviving mutants, without line numbers, so `git log -p -- <repo>/` is their history
+<repo>/timeout.txt       mutants whose tests timed out (absent when none)
+<repo>/located/          the same lists with file:line:col
 ```
 
-Commit messages read `Mutants of 1a2b3c4: 5 missed (+1 -2), 120 caught`, and end `, 3 timed out` when any did.
+Commit messages read `twin4rust: Mutants of 1a2b3c4: 5 missed (+1 -2), 120 caught`, and end `, 3 timed out` when
+any did. The sentinel's one key writes the results repository and nothing else
+([`docs/ADRs/ADR-SharedResultsRepository.md`](docs/ADRs/ADR-SharedResultsRepository.md)); a watched repository must be
+public.
 
 A repository is tested only once it has a `.cargo/mutants.toml` on `main`; crate filters and accepted survivors
 (`exclude_re`, `#[mutants::skip]`) live there.
@@ -47,7 +52,7 @@ cause is a test timeout below the tests' own run ([`docs/OPEN_POINTS.md`](docs/O
 - Machine set-up, automated: [`deploy/PROVISION.md`](deploy/PROVISION.md), which an agent on the machine executes:
   `deploy/provision.sh`, `deploy/onboard.sh`, `deploy/go-live.sh`, and `deploy/status-check.sh` to watch it from
   elsewhere
-- What each step does by hand, keys and rulesets: [`deploy/SETUP.md`](deploy/SETUP.md)
+- What each step does by hand, the key and the results repository: [`deploy/SETUP.md`](deploy/SETUP.md)
 
 ## Documentation
 

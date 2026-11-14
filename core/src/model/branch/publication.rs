@@ -2,14 +2,14 @@
 // Licensed under the MIT License
 // SPDX-License-Identifier: MIT
 
-//! Everything written to `mutants` for one commit.
+//! Everything written to the results repository for one commit.
 
 use crate::model::branch::run_record::RunRecord;
 use crate::model::mutant_key::MutantKey;
 use alloc::string::String;
 use alloc::vec::Vec;
 
-/// Everything written to `mutants` for one commit.
+/// Everything written to the results repository for one commit.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Publication {
     /// `summary.toml`.

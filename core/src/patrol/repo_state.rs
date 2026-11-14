@@ -58,7 +58,7 @@ impl RepoState {
         self.trouble == Some(Trouble::Unreachable)
     }
 
-    /// Whether the last visit found the record on `mutants` unreadable.
+    /// Whether the last visit found the record in the results repository unreadable.
     pub fn is_unreadable(&self) -> bool {
         self.trouble == Some(Trouble::Unreadable)
     }

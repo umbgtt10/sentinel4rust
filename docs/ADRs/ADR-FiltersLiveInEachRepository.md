@@ -25,7 +25,7 @@ left out.
 
 - **Filters in the roster.** Unreviewed by the repository's owners, and a hand run would disagree with the published
   lists.
-- **Filters on the `mutants` branch.** Mixes configuration into results.
+- **Filters beside the results.** Mixes configuration into results.
 
 ## Consequences
 

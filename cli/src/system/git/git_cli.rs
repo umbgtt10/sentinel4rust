@@ -11,13 +11,11 @@ use std::rc::Rc;
 use crate::system::git::bare_clone::BareClone;
 use crate::system::git::crate_readiness::CrateReadiness;
 use crate::system::git::detached_worktree::DetachedWorktree;
-use crate::system::git::git_constants::{LOCAL_TIMEOUT, MUTANTS_REMOTE_REF, NETWORK_TIMEOUT};
+use crate::system::git::git_constants::NETWORK_TIMEOUT;
 use crate::system::git::git_runner::GitRunner;
-use crate::system::git::plumbing_commit::PlumbingCommit;
-use crate::system::git::record_reader::RecordReader;
+use crate::system::git::results_clone::ResultsClone;
 use crate::system::work_dir::WorkDir;
 use sentinel4rust::model::branch::publication::Publication;
-use sentinel4rust::model::branch::record_state::RecordState;
 use sentinel4rust::model::checkout_error::CheckoutError;
 use sentinel4rust::model::commit_hash::CommitHash;
 use sentinel4rust::model::onboarding::onboarded_repo::OnboardedRepo;
@@ -31,30 +29,27 @@ use sentinel4rust::traits::command_runner::CommandRunner;
 use sentinel4rust::traits::repo_source::RepoSource;
 use sentinel4rust::traits::result_store::ResultStore;
 
-const MUTANTS_BRANCH: &str = "mutants";
-
-/// git, run through a [`CommandRunner`]: fetches, checks out and publishes, and only ever pushes
-/// `refs/heads/mutants`.
+/// git, run through a [`CommandRunner`]: fetches and checks out the watched repositories, which it never pushes
+/// to, and reads and publishes the records in the results repository.
 pub struct GitCli {
     git: GitRunner,
     work_dir: WorkDir,
     clone: BareClone,
     readiness: CrateReadiness,
-    records: RecordReader,
     worktree: DetachedWorktree,
-    commit: PlumbingCommit,
+    results: ResultsClone,
 }
 
 impl GitCli {
-    /// A git client keeping its clones, checkouts and staging areas under `work_dir`.
-    pub fn new(runner: Rc<dyn CommandRunner>, work_dir: WorkDir) -> Self {
+    /// A git client keeping its clones, checkouts and staging areas under `work_dir`, publishing to the results
+    /// repository at `results_url`.
+    pub fn new(runner: Rc<dyn CommandRunner>, work_dir: WorkDir, results_url: String) -> Self {
         let git = GitRunner::new(runner);
         Self {
             clone: BareClone::new(git.clone(), work_dir.clone()),
             readiness: CrateReadiness::new(git.clone()),
-            records: RecordReader::new(git.clone()),
             worktree: DetachedWorktree::new(git.clone(), work_dir.clone()),
-            commit: PlumbingCommit::new(git.clone()),
+            results: ResultsClone::new(git.clone(), work_dir.clone(), results_url),
             git,
             work_dir,
         }
@@ -70,27 +65,19 @@ impl GitCli {
         }
     }
 
-    fn fetch(&self, dir: &Path, repo: &OnboardedRepo, has_mutants: bool) -> Result<(), SyncError> {
+    fn fetch(&self, dir: &Path, repo: &OnboardedRepo) -> Result<(), SyncError> {
         let branch_spec = format!(
             "+refs/heads/{}:refs/remotes/origin/{}",
             repo.branch, repo.branch
         );
-        let mutants_spec = format!("+refs/heads/{MUTANTS_BRANCH}:{MUTANTS_REMOTE_REF}");
-        let mut args = vec!["fetch", "--quiet", "--no-tags", "origin", &branch_spec];
-        if has_mutants {
-            args.push(&mutants_spec);
-        }
         self.git
-            .git(dir, &args, NETWORK_TIMEOUT)
-            .map_err(|r| UnreachableClassifier.classify(&r, "git fetch"))?;
-        if !has_mutants {
-            let _ = self.git.git(
+            .git(
                 dir,
-                &["update-ref", "-d", MUTANTS_REMOTE_REF],
-                LOCAL_TIMEOUT,
-            );
-        }
-        Ok(())
+                &["fetch", "--quiet", "--no-tags", "origin", &branch_spec],
+                NETWORK_TIMEOUT,
+            )
+            .map(|_| ())
+            .map_err(|r| UnreachableClassifier.classify(&r, "git fetch"))
     }
 
     fn head(&self, dir: &Path, repo: &OnboardedRepo) -> Result<CommitHash, SyncError> {
@@ -102,56 +89,31 @@ impl GitCli {
         CommitHash::parse(&text)
             .ok_or_else(|| SyncError::Transient(format!("bad commit hash `{}`", text.trim())))
     }
-
-    fn push(&self, dir: &Path, commit: &str) -> Result<(), PublishError> {
-        let refspec = format!("{commit}:refs/heads/{MUTANTS_BRANCH}");
-        self.git
-            .git(
-                dir,
-                &["push", "--quiet", "origin", &refspec],
-                NETWORK_TIMEOUT,
-            )
-            .map_err(|r| PublishError(format!("git push: {}", r.describe())))?;
-        self.git
-            .local(dir, &["update-ref", MUTANTS_REMOTE_REF, commit])
-            .map_err(|failure| PublishError(failure.to_string()))?;
-        Ok(())
-    }
 }
 
 impl RepoSource for GitCli {
     fn sync(&self, repo: &OnboardedRepo) -> Result<Snapshot, SyncError> {
         let dir = self.clone.ensure(repo)?;
         let branch_ref = format!("refs/heads/{}", repo.branch);
-        let mutants_ref = format!("refs/heads/{MUTANTS_BRANCH}");
         let listing = self
             .git
             .git(
                 &dir,
-                &["ls-remote", "--heads", "origin", &branch_ref, &mutants_ref],
+                &["ls-remote", "--heads", "origin", &branch_ref],
                 NETWORK_TIMEOUT,
             )
             .map_err(|r| UnreachableClassifier.classify(&r, "git ls-remote"))?;
-        let listing = RemoteListing::parse(&listing);
-        if !listing.has(&branch_ref) {
+        if !RemoteListing::parse(&listing).has(&branch_ref) {
             return Err(SyncError::NoBranch);
         }
-        let has_mutants = listing.has(&mutants_ref);
-        self.fetch(&dir, repo, has_mutants)?;
+        self.fetch(&dir, repo)?;
         let head = self.head(&dir, repo)?;
-        let (record, previous_missed) = if has_mutants {
-            (
-                self.records.record(&dir),
-                self.records.previous_missed(&dir),
-            )
-        } else {
-            (RecordState::Absent, Vec::new())
-        };
+        self.results.fetch()?;
         let readiness = self.readiness.check(&dir, &head);
         Ok(Snapshot {
             head,
-            record,
-            previous_missed,
+            record: self.results.record(repo),
+            previous_missed: self.results.previous_missed(repo),
             readiness,
         })
     }
@@ -180,16 +142,6 @@ impl RepoSource for GitCli {
 
 impl ResultStore for GitCli {
     fn publish(&self, repo: &OnboardedRepo, publication: &Publication) -> Result<(), PublishError> {
-        let dir = self.work_dir.bare_clone(repo);
-        let stage = self.work_dir.stage(repo);
-        let _ = fs::remove_dir_all(&stage);
-        fs::create_dir_all(&stage)
-            .map_err(|e| PublishError(format!("create {}: {e}", stage.display())))?;
-        let result = self
-            .commit
-            .write(&dir, &stage, publication)
-            .and_then(|commit| self.push(&dir, &commit));
-        let _ = fs::remove_dir_all(&stage);
-        result
+        self.results.publish(repo, publication)
     }
 }
