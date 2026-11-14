@@ -8,6 +8,7 @@ use alloc::string::String;
 use alloc::vec::Vec;
 use core::time::Duration;
 
+use crate::model::onboarding::github_app::GithubApp;
 use crate::model::onboarding::onboarded_repo::OnboardedRepo;
 
 /// Global settings and the onboarded repositories.
@@ -30,6 +31,11 @@ pub struct Roster {
     pub results_url: String,
     /// The systemd template unit cargo-mutants runs in, away from the deploy keys; `None`: in the service itself.
     pub run_unit: Option<String>,
-    /// The repositories, in roster order.
+    /// The GitHub App repositories are discovered through; `None`: only the `[[repo]]` entries are watched.
+    pub github_app: Option<GithubApp>,
+    /// How often discovery runs again.
+    pub discovery_interval: Duration,
+    /// The repositories named in the roster, in roster order; with a GitHub App, they come before and win over
+    /// discovered ones.
     pub repos: Vec<OnboardedRepo>,
 }

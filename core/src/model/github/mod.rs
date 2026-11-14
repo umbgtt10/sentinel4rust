@@ -6,3 +6,4 @@
 
 pub mod app_jwt;
 pub mod base64_url;
+pub mod discovered_repo;

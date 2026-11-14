@@ -25,6 +25,8 @@ fn unreachable_roster(dir: &TempDir) -> Roster {
         config_version: 1,
         stale_after: Duration::from_secs(24 * 3600),
         results_url: format!("file://{}/results.git", dir.path().display()),
+        github_app: None,
+        discovery_interval: Duration::from_secs(3600),
         run_unit: None,
         repos: vec![OnboardedRepo {
             name: String::from("x"),

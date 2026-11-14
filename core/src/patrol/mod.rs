@@ -22,3 +22,4 @@ pub mod status_line;
 pub mod status_report;
 pub mod survivor_recheck;
 pub mod timeout_warning;
+pub mod watch_list;

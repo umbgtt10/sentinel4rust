@@ -104,6 +104,8 @@ fn sentinel_for(repos: Vec<OnboardedRepo>, installed: Option<&str>) -> (Sentinel
         config_version: 1,
         stale_after: Duration::from_secs(24 * 3600),
         results_url: "r".to_string(),
+        github_app: None,
+        discovery_interval: Duration::from_secs(3600),
         run_unit: None,
         repos,
     };

@@ -2,6 +2,7 @@
 // Licensed under the MIT License
 // SPDX-License-Identifier: MIT
 
+use sentinel4rust::model::onboarding::github_app::GithubApp;
 use sentinel4rust::model::onboarding::toml_roster::TomlRoster;
 use std::time::Duration;
 
@@ -47,11 +48,47 @@ fn parse_full_roster_reads_settings_and_repos_in_order() {
 }
 
 #[test]
+fn parse_github_app_reads_its_keys_and_needs_no_repo() {
+    // Arrange
+    let text = "\
+        work_dir = \"/w\"
+        results_url = \"r\"
+        github_app_id = 7
+        github_app_installation_id = 8
+        github_app_key = \"/home/sentinel/.ssh/app.pem\"
+        discovery_minutes = 30
+    ";
+
+    // Act
+    let roster = TomlRoster.parse(text).unwrap();
+
+    // Assert
+    assert_eq!(
+        roster.github_app,
+        Some(GithubApp {
+            app_id: 7,
+            installation_id: 8,
+            key: String::from("/home/sentinel/.ssh/app.pem"),
+        })
+    );
+    assert_eq!(roster.discovery_interval, Duration::from_secs(1800));
+    assert_eq!(roster.repos.len(), 0);
+}
+
+#[test]
 fn parse_invalid_rosters_fails_naming_the_problem() {
     // Arrange
     let repo = "[[repo]]\nname = \"a\"\nurl = \"u\"\n";
     let cases = [
         (repo.to_string(), "work_dir"),
+        (
+            "work_dir = \"/w\"\nresults_url = \"r\"\ngithub_app_id = 7".to_string(),
+            "github_app_installation_id",
+        ),
+        (
+            format!("work_dir = \"/w\"\nresults_url = \"r\"\ndiscovery_minutes = 0\n{repo}"),
+            "positive",
+        ),
         (format!("work_dir = \"/w\"\n{repo}"), "results_url"),
         (
             format!("work_dir = \"/w\"\nresults_url = \" \"\n{repo}"),
@@ -112,6 +149,8 @@ fn parse_minimal_roster_applies_the_defaults() {
     assert_eq!(roster.jobs, 1);
     assert_eq!(roster.run_timeout, Duration::from_secs(12 * 3600));
     assert_eq!(roster.config_version, 1);
+    assert_eq!(roster.github_app, None);
+    assert_eq!(roster.discovery_interval, Duration::from_secs(3600));
 }
 
 #[test]

@@ -11,7 +11,9 @@ use alloc::string::ToString;
 use alloc::vec::Vec;
 use core::time::Duration;
 
+use crate::model::onboarding::github_app_toml::GithubAppToml;
 use crate::model::onboarding::onboarded_repo::OnboardedRepo;
+use crate::model::onboarding::repo_names::RepoNames;
 use crate::model::onboarding::roster::Roster;
 use crate::model::onboarding::roster_error::RosterError;
 use crate::model::toml::table::Table;
@@ -26,6 +28,10 @@ const ROOT_KEYS: &[&str] = &[
     "stale_after_hours",
     "run_unit",
     "results_url",
+    "github_app_id",
+    "github_app_installation_id",
+    "github_app_key",
+    "discovery_minutes",
 ];
 const REPO_KEYS: &[&str] = &["name", "url", "branch", "jobs", "run_timeout_hours"];
 
@@ -52,7 +58,8 @@ impl TomlRoster {
             names.insert(repo.name.clone());
             repos.push(repo);
         }
-        if repos.is_empty() {
+        let github_app = GithubAppToml.parse(root)?;
+        if repos.is_empty() && github_app.is_none() {
             return Err(RosterError("no [[repo]] entries".to_string()));
         }
         let work_dir = root.required_string("work_dir")?;
@@ -76,6 +83,11 @@ impl TomlRoster {
                 "stale_after_hours",
             )?),
             results_url,
+            github_app,
+            discovery_interval: Duration::from_secs(
+                Self::positive(root.integer("discovery_minutes")?, 60, "discovery_minutes")?
+                    .saturating_mul(60),
+            ),
             run_unit: Self::run_unit(root.string("run_unit")?)?,
             repos,
         })
@@ -107,7 +119,7 @@ impl TomlRoster {
         table.only(REPO_KEYS)?;
         let line = table.line();
         let name = table.required_string("name")?;
-        if !Self::valid_name(&name) {
+        if !RepoNames.is_name(&name) {
             return Err(RosterError(format!(
                 "line {line}: invalid name `{name}` (letters, digits, `-`, `_`, `.`)"
             )));
@@ -122,7 +134,7 @@ impl TomlRoster {
         let branch = table
             .string("branch")?
             .unwrap_or_else(|| "main".to_string());
-        if !Self::valid_branch(&branch) || branch == "mutants" {
+        if !RepoNames.is_branch(&branch) {
             return Err(RosterError(format!(
                 "line {line}: invalid branch `{branch}`"
             )));
@@ -154,22 +166,5 @@ impl TomlRoster {
             }
             unit => Ok(unit),
         }
-    }
-
-    fn valid_branch(branch: &str) -> bool {
-        !branch.is_empty()
-            && !branch.starts_with('-')
-            && !branch.contains("..")
-            && branch
-                .chars()
-                .all(|c| c.is_ascii_alphanumeric() || matches!(c, '-' | '_' | '.' | '/'))
-    }
-
-    fn valid_name(name: &str) -> bool {
-        !name.is_empty()
-            && !name.starts_with('.')
-            && name
-                .chars()
-                .all(|c| c.is_ascii_alphanumeric() || matches!(c, '-' | '_' | '.'))
     }
 }
