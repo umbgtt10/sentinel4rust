@@ -368,7 +368,7 @@ roster_text() {
 # is in docs/ARCHITECTURE.md, and deploy/roster.example.toml is an annotated example. Edit, then, once no run is in
 # progress: sudo systemctl restart sentinel4rust
 #
-# Every watched repository's results are public in the results repository: decide per repository (deploy/SETUP.md
+# Every watched repository's results go to its folder of the private results repository (deploy/SETUP.md
 # section 7).
 
 work_dir = "$work_dir"

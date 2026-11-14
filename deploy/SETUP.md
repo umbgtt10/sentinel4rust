@@ -27,10 +27,10 @@ GitHub publishes.
 ## 2. The results repository and the watched repositories
 
 The sentinel writes one repository, the results repository (`umbgtt10/mutants`), and only reads the watched ones.
-The results repository is created once, public, by the owner:
+The results repository is created once, private, by the owner:
 
 ```sh
-gh repo create umbgtt10/mutants --public
+gh repo create umbgtt10/mutants --private
 ```
 
 On the machine, as `sentinel`, its one key and host alias:
@@ -59,10 +59,29 @@ In the roster, before the first `[[repo]]`:
 results_url = "git@github-mutants:umbgtt10/mutants.git"
 ```
 
-A watched repository needs nothing on GitHub: it must be public, and is read over https with no credential --
-`url = "https://github.com/umbgtt10/<repo>.git"` in its `[[repo]]`. It must carry no deploy key of the sentinel's: a
-`sentinel4rust` key left from an earlier design is deleted. It needs a `.cargo/mutants.toml` on `main` (it is
-skipped without one).
+A public watched repository needs nothing on GitHub: it is read over https with no credential --
+`url = "https://github.com/umbgtt10/<repo>.git"` in its `[[repo]]` -- and must carry no deploy key of the sentinel's:
+a `sentinel4rust` key left from an earlier design is deleted.
+
+A private watched repository is read with a key of its own, `~/.ssh/sentinel_<repo>`, through a host alias
+`github-<repo>` like the results repository's, added to it on GitHub as a **read-only** deploy key titled
+`sentinel4rust` -- a read-only key cannot push at all -- and `url = "git@github-<repo>:umbgtt10/<repo>.git"`. Its
+results go to the results repository like any other's, so it is watched only while the results repository is private.
+When another watched repository depends on it as a git dependency (`etheram-core = { git =
+"https://github.com/umbgtt10/etheram-core" }`), the build in the run unit, which holds no key, fetches it from the
+sentinel's clone instead: in `~sentinel/.gitconfig`,
+
+```ini
+[url "file:///home/sentinel/sentinel4rust/repos/etheram-core.git"]
+    insteadOf = https://github.com/umbgtt10/etheram-core
+```
+
+and, in `~sentinel/.cargo/config.toml`, `[net] git-fetch-with-cli = true`, so cargo fetches with git, which follows
+the redirect. The clone keeps the branch at `refs/heads/<branch>` for this; the dependency's locked commit must be on
+that branch, and the dependency must itself be on the roster, earlier than its dependants. `insteadOf` matches a
+prefix: the redirect for `etheram-core` would catch an `etheram-core-x` too.
+
+Every watched repository needs a `.cargo/mutants.toml` on `main` (it is skipped without one).
 
 Verify, then add the repositories to the roster:
 
@@ -70,11 +89,13 @@ Verify, then add the repositories to the roster:
 deploy/verify-access.sh git@github-mutants:umbgtt10/mutants.git https://github.com/umbgtt10/<repo>.git ...
 ```
 
-It reads each watched repository's `main` with no credential, and proves the key writes the results repository by
+It reads each watched repository's `main` -- a public one with no credential, a private one through its alias -- and
+proves the key writes the results repository by
 creating a branch, `sentinel4rust-probe`, and deleting it again; the results repository's `main` is never touched.
 `deploy/onboard.sh <repo>...` does this section: the key, the host alias, the deploy key, the access proof,
-`results_url` and the roster entries. It changes GitHub -- the one deploy key -- only with `--apply-github`, and
-refuses a private watched repository, which the sentinel could not read with no credential.
+`results_url`, the redirects and the roster entries. It changes GitHub -- the deploy key on the results repository
+and a read-only one per private watched repository -- only with `--apply-github`, and refuses a private watched
+repository while the results repository is public.
 
 ## 3. The service
 
@@ -154,11 +175,11 @@ only if it passes.
 
 ## 7. Deciding what a repository publishes
 
-The results repository is public: every watched repository's survivor lists -- a map of the code no test pins --
-and, on failures, up to 200 lines of log tail, with paths such as `/home/sentinel/...`, are published there, in the
-repository's folder. Decide per repository, before adding it to the roster, whether that map may be public; a
-repository whose survivors should not be is left off the roster, and nothing about it is published. Record the
-decision beside its roster entry, or in the roster's comments when it is left off.
+The results repository is private, so publishing exposes nothing: every watched repository's survivor lists -- a
+map of the code no test pins -- and, on failures, up to 200 lines of log tail, with paths such as
+`/home/sentinel/...`, are readable by the owner and by the sentinel's key only. It was public until 2026-11-14 and
+was made private that day; nothing in the tool depends on its visibility, so it stays a decision of the owner's. Were
+it ever public again, decide per repository, before adding it to the roster, whether its survivors may be public.
 
 Commits on the results repository are unsigned, from `sentinel4rust@localhost`: it must not require signed commits.
 Nothing is ever written to a watched repository, so its own rules are its owner's business.

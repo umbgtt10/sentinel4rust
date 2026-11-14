@@ -97,11 +97,10 @@ timedatectl show -p NTPSynchronized --value                                    #
 Unless the owner's request named them, ask which repositories to onboard. For each one, the owner decides, and you
 tell them, before step 5:
 
-- **whether its results may be public** -- they are, in its folder of the public results repository `umbgtt10/mutants`:
-  the surviving mutants, a map of the code no test pins, and on failures a log tail with paths (SETUP.md section 7).
-  A repository whose survivors should not be public stays off the roster.
-- that it is public: the sentinel reads a watched repository over https with no credential, so a private one cannot
-  be watched.
+- that its results go to its folder of the private results repository `umbgtt10/mutants`: the surviving mutants, a
+  map of the code no test pins, and on failures a log tail with paths (SETUP.md section 7).
+- whether it is public or private: a public one is read over https with no credential, a private one with a
+  read-only deploy key of its own; a private one is watched only while the results repository is private.
 - whether it has a `.cargo/mutants.toml` on `main`: without one the sentinel skips it, harmlessly, until it has one.
   The dry run in step 4 says.
 - for a large repository, whether to measure one run first (SETUP.md section 4) to size `jobs` and
@@ -116,9 +115,9 @@ deploy/onboard.sh --dry-run <repo>... > ~/sentinel-onboard-plan.log 2>&1; echo "
 It reads GitHub and writes nothing, anywhere. For the results repository it says whether it is there and public, and,
 as `ok` or `would`, the sentinel's key, its host alias and its deploy key. Per watched repository it says whether it
 is public and whether `.cargo/mutants.toml` is there; then, as `ok` or `would`, the access proof, `results_url` and
-the roster entries. A repository marked `BLOCKED` is a private one: the sentinel could not read it with no credential.
-Leave it out of step 5 and put the owner's choices to them: make it public, or leave it off the roster
-(`docs/ADRs/ADR-SharedResultsRepository.md`). The plan fails, too, on a watched repository that still carries a deploy
+the roster entries. A repository marked `BLOCKED` is a private one while the results repository is public: its
+survivors would be published. Leave it out of step 5 and put the owner's choices to them: make the results repository
+private, or leave the repository off the roster (`docs/ADRs/ADR-SharedResultsRepository.md`). The plan fails, too, on a watched repository that still carries a deploy
 key titled `sentinel4rust` -- an earlier design's: the owner deletes it.
 
 ## 5. The owner's go
@@ -126,15 +125,19 @@ key titled `sentinel4rust` -- an earlier design's: the owner deletes it.
 Show the owner, in the chat, exactly what will change, from the plan:
 
 ```text
-umbgtt10/mutants (PUBLIC), the results repository
+umbgtt10/mutants (PRIVATE), the results repository
   GitHub:
   - deploy key "sentinel4rust" added, WITH WRITE ACCESS: the sentinel's key sentinel_mutants      | already there
   - a probe branch sentinel4rust-probe created and deleted again; main is not touched
   This machine:
   - key ~sentinel/.ssh/sentinel_mutants, host alias github-mutants, results_url in the roster
-umbgtt10/<repo> (PUBLIC), watched; its results public in umbgtt10/mutants/<repo>/
+umbgtt10/<repo> (PUBLIC), watched; its results in the private umbgtt10/mutants/<repo>/
   GitHub: nothing -- read over https, with no credential
   This machine: the [[repo]] entry in the roster
+umbgtt10/<repo> (PRIVATE), watched; its results in the private umbgtt10/mutants/<repo>/
+  GitHub: deploy key "sentinel4rust" added, READ-ONLY: the sentinel's key sentinel_<repo>         | already there
+  This machine: key ~sentinel/.ssh/sentinel_<repo>, host alias github-<repo>, the cargo redirect to its clone,
+  the [[repo]] entry in the roster
 ```
 
 and tell them one consequence once: gh adds a deploy key under its own authorization, so **revoking the GitHub CLI's
@@ -273,7 +276,7 @@ its own, e.g. `~/.config/sentinel4rust/status.toml`:
 
 ```toml
 work_dir = "/home/<you>/.cache/sentinel4rust-status"   # its clones, under <work_dir>/status
-results_url = "https://github.com/umbgtt10/mutants.git" # read only: --status never pushes
+results_url = "git@github.com:umbgtt10/mutants.git"  # private: your own SSH key; --status never pushes
 stale_after_hours = 24                                  # as on the machine
 
 [[repo]]

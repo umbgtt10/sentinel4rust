@@ -11,7 +11,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 On 2026-11-14 the first real onboarding, of braintax4rust, showed the rulesets do not hold a write deploy key: GitHub
 listed both as active and applying, and accepted the probe branch and the probe tag pushed with the key. The key and
 the rulesets were deleted, and the design changed (`docs/ADRs/ADR-SharedResultsRepository.md`): the watched
-repositories are only read, and every result goes to one results repository, `umbgtt10/mutants`.
+repositories are only read, and every result goes to one results repository, `umbgtt10/mutants`, made private the
+same day.
+
+### Added
+- Private watched repositories: `deploy/onboard.sh` gives one a read-only deploy key and host alias of its own, and
+  refuses one only while the results repository is public. A private git dependency that is itself watched is served
+  to the run unit from the sentinel's clone, which now also keeps its branch at `refs/heads/<branch>`, through a
+  redirect in `~sentinel/.gitconfig` and cargo's `net.git-fetch-with-cli`.
 
 ### Changed
 - Results are published to the results repository the roster's new, required `results_url` names, on its `main`, one

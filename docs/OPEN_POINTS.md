@@ -21,10 +21,10 @@ be observed yet, that it is to be verified on the machine. Recorded 2026-10-24. 
 | 12 | a dead machine looks like a quiet repository | closed: `--status` |
 | 13 | `config_version` has to be bumped by hand after a cargo-mutants upgrade | closed: the version counts |
 | 14 | `verify-access.sh --include-main` force-pushes `main` | closed: the option is gone |
-| 15 | what public repositories publish | closed: decided per repository |
+| 15 | what public repositories publish | closed: the results repository is private |
 | 16 | smaller things | closed: each fixed or recorded |
 | 17 | the automated set-up is proven only as far as the laptop allows | provisioning proven; onboarding to prove |
-| 18 | a private repository on GitHub's free plan cannot be onboarded | open: no private repository can be watched |
+| 18 | a private repository on GitHub's free plan cannot be onboarded | closed: a read-only deploy key of its own |
 | 19 | restarting the service leaves a run in the run unit running | closed in the unit; prove on the machine |
 | 20 | the ruleset covers branches, not tags | closed: no rulesets; the key writes the results repository only |
 | 21 | the deploy key depends on the GitHub CLI's authorization | recorded |
@@ -143,11 +143,13 @@ repository is onboarded:
 - **Path dependencies outside the repository** (`path = "../sibling"`): closed -- readiness reads every
   `Cargo.toml` at `head` and skips the visit with `path-outside-repo`, naming the manifest, when a `path` leaves the
   repository; the run's checkout would have no sibling.
-- **Private git dependencies:** the sentinel holds no key that reads a private repository at all -- its one key is
-  the results repository's, reachable only through the host alias `github-mutants` -- and a dependency's URL names
-  `github.com`. cargo's built-in git does not read `~/.ssh/config`
-  at all (it authenticates through an SSH agent), and with `net.git-fetch-with-cli` the system git still finds no
-  key for `github.com`.
+- **Private git dependencies:** closed on 2026-11-14 for a dependency that is itself watched. The run unit holds no
+  key, so its build cannot fetch a private dependency from GitHub; instead the sentinel's clone of it, which keeps
+  the branch at `refs/heads/<branch>`, serves it through `file://`: `onboard.sh` redirects the dependency's https URL
+  there in `~sentinel/.gitconfig` and sets `net.git-fetch-with-cli` in `~sentinel/.cargo/config.toml`, so cargo
+  fetches with git, which follows the redirect (`deploy/SETUP.md` section 2). Proven against a scratch crate: the
+  build resolves through the clone and `Cargo.lock` keeps naming the original URL. A private dependency that is not
+  watched is still unsolved.
 - **Embedded targets:** a `.cargo/config.toml` with `build.target = "thumbv…"` (etheram-embassy and its consumers)
   cannot run tests on the host; such crates must be excluded in `.cargo/mutants.toml`, or the repository left out.
 - **Pinned toolchains:** closed in the code -- `rustc --version`, run in the checkout for the record, failing means
@@ -209,7 +211,8 @@ repositories without and with a stand-in ruleset, and with a push landing on `ma
 
 ## 15. What public repositories publish
 
-**Closed.** The results repository, `umbgtt10/mutants`, is public, so every watched repository's results are: the
+**Closed, and moot since 2026-11-14:** the results repository, `umbgtt10/mutants`, was made private that day, so
+no result is public any more. Before that it was public, and so were every watched repository's results: the
 survivor lists -- a map of the code no test pins -- and, on
 failures, up to 200 lines of log tail with paths such as `/home/sentinel/...`. It is decided per repository, as
 `deploy/SETUP.md` section 7 says, and recorded in `deploy/roster.example.toml`: twin4rust, etheram-raft and
@@ -284,7 +287,12 @@ marks it `BLOCKED` and changes nothing on GitHub for it.
 private repository can be watched at all: the sentinel reads a watched repository over https with no credential, so
 `onboard.sh` marks a private one `BLOCKED` (`ADR-SharedResultsRepository`). Make it public, or leave it off the
 roster; a read-only deploy key per private repository is the way to watch one, should one need it
-(`docs/ROADMAP.md`, under consideration).
+(`docs/ROADMAP.md`, under consideration). Since the results repository was made private, on 2026-11-14, such a
+repository's results can go to the same place without exposing anything.
+
+**Closed on 2026-11-14:** `deploy/onboard.sh` gives a private watched repository a read-only deploy key and host
+alias of its own, and refuses one only while the results repository is public. etheram-core, etheram-ibft and
+etheram-raft were the first.
 
 ## 19. Restarting the service leaves a run in the run unit running
 

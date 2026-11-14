@@ -133,7 +133,9 @@ Text in, the core's data out; no tool is run here.
   roster's URL, stale worktree entries pruned; `ensure_at` for a clone at a path of its own), `CrateReadiness` (with
   `OutsidePaths`, the manifests' `path` dependencies), `DetachedWorktree` (the run's checkout, with its submodules)
   and `ResultsClone`, with the core's `RemoteListing`, `OutsidePaths` and `UnreachableClassifier`. A watched
-  repository's clone fetches its branch and nothing else, and nothing is ever pushed to it. `ResultsClone` is the
+  repository's clone fetches its branch and nothing else -- into `refs/remotes/origin/<branch>`, and into
+  `refs/heads/<branch>`, where a build in the run unit can fetch it as a private git dependency through `file://`
+  (`deploy/SETUP.md` section 2) -- and nothing is ever pushed to it. `ResultsClone` is the
   results repository's bare clone, `results.git`: `fetch` takes its `main` (or drops the local copy when there is
   none yet), `record` and `previous_missed` read the repository's folder through `RecordReader`, and `publish` has
   `PlumbingCommit` write one commit -- the fetched tip's tree read into a temporary index, the folder's paths removed,
