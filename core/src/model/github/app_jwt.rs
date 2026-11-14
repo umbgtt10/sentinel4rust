@@ -8,7 +8,7 @@
 use alloc::format;
 use alloc::string::String;
 
-use crate::model::github::base64_url::Base64Url;
+use crate::model::github::base64::Base64;
 use crate::model::timestamp::Timestamp;
 
 /// `{"alg":"RS256","typ":"JWT"}`, encoded.
@@ -39,11 +39,11 @@ impl AppJwt {
             now + LIFETIME_SECONDS,
             self.app_id
         );
-        format!("{HEADER}.{}", Base64Url.encode(claims.as_bytes()))
+        format!("{HEADER}.{}", Base64.url(claims.as_bytes()))
     }
 
     /// The token: the signing input and its signature.
     pub fn token(&self, signing_input: &str, signature: &[u8]) -> String {
-        format!("{signing_input}.{}", Base64Url.encode(signature))
+        format!("{signing_input}.{}", Base64.url(signature))
     }
 }

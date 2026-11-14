@@ -8,6 +8,7 @@
 
 pub mod app_token;
 pub mod curl;
+pub mod git_token_runner;
 pub mod github_api;
 pub mod github_app_discovery;
 pub mod secret_dir;

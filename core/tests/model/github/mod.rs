@@ -3,5 +3,5 @@
 // SPDX-License-Identifier: MIT
 
 pub mod app_jwt_tests;
-pub mod base64_url_tests;
+pub mod base64_tests;
 pub mod discovery_error_tests;

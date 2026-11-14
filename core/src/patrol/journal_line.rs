@@ -45,13 +45,21 @@ impl JournalLine {
 
     /// The start of the journal's first line, for logs.
     pub fn startup(&self, roster: &Roster, now: Timestamp) -> String {
-        format!(
+        let mut line = format!(
             "sentinel4rust {} started at {now}: {} repositories, pause {}s, config_version {}",
             env!("CARGO_PKG_VERSION"),
             roster.repos.len(),
             roster.pause.as_secs(),
             roster.config_version
-        )
+        );
+        if roster.github_app.is_some() {
+            let _ = write!(
+                line,
+                ", discovery every {}m",
+                roster.discovery_interval.as_secs() / 60
+            );
+        }
+        line
     }
 
     /// `repo=… step=… hash=… …`.

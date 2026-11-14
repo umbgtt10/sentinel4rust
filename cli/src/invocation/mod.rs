@@ -6,6 +6,7 @@
 
 pub mod command_line;
 pub mod entry_point;
+pub mod github_access;
 pub mod startup_error;
 pub mod usage_error;
 pub mod work_dir_lock;

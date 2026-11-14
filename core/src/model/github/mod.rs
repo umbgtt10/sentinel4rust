@@ -5,6 +5,6 @@
 //! What a GitHub App needs to prove who it is, as text (`ADR-GithubAppDiscovery`).
 
 pub mod app_jwt;
-pub mod base64_url;
+pub mod base64;
 pub mod discovered_repo;
 pub mod discovery_error;

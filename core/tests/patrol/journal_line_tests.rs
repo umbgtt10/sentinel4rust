@@ -7,6 +7,7 @@ use sentinel4rust::model::counts::MutantCounts;
 use sentinel4rust::model::github::discovery_error::DiscoveryError;
 use sentinel4rust::model::onboarding::onboarded_repo::OnboardedRepo;
 use sentinel4rust::model::onboarding::roster::Roster;
+use sentinel4rust::model::onboarding::toml_roster::TomlRoster;
 use sentinel4rust::model::outcome_kind::OutcomeKind;
 use sentinel4rust::model::round_step::RoundStep;
 use sentinel4rust::model::skip_reason::SkipReason;
@@ -93,6 +94,23 @@ fn startup_names_the_version_repositories_pause_and_config_version() {
             env!("CARGO_PKG_VERSION"),
             Timestamp::from_unix(1_792_800_000)
         )
+    );
+}
+
+#[test]
+fn startup_with_a_github_app_says_how_often_it_discovers() {
+    // Arrange
+    let roster = TomlRoster
+        .parse("work_dir = \"/w\"\nresults_url = \"r\"\ngithub_app_id = 7\ngithub_app_installation_id = 8\ngithub_app_key = \"/k\"\ndiscovery_minutes = 30\n")
+        .unwrap();
+
+    // Act
+    let line = JournalLine.startup(&roster, Timestamp::from_unix(1_792_800_000));
+
+    // Assert
+    assert!(
+        line.ends_with(": 0 repositories, pause 300s, config_version 1, discovery every 30m"),
+        "{line}"
     );
 }
 

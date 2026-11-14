@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: MIT
 
 use crate::support::temp_dir::TempDir;
+use sentinel4rust::model::onboarding::github_app::GithubApp;
 use sentinel4rust::model::onboarding::onboarded_repo::OnboardedRepo;
 use sentinel4rust::model::onboarding::roster::Roster;
 use sentinel4rust::model::round_step::RoundStep;
@@ -53,6 +54,31 @@ fn compose_of_a_roster_wires_the_real_git() {
         "{steps:?}"
     );
     assert!(dir.path().join("work/repos/x.git/HEAD").is_file());
+}
+
+#[test]
+fn compose_with_a_github_app_it_cannot_sign_for_still_patrols_the_roster() {
+    // Arrange
+    let dir = TempDir::new("compose-app");
+    let mut roster = unreachable_roster(&dir);
+    roster.github_app = Some(GithubApp {
+        app_id: 7,
+        installation_id: 8,
+        key: dir
+            .path()
+            .join("missing.pem")
+            .to_string_lossy()
+            .into_owned(),
+    });
+
+    // Act
+    let steps = EntryPoint.compose(roster).run_once();
+
+    // Assert
+    assert!(
+        matches!(&steps[..], [RoundStep::Unreachable { .. }]),
+        "{steps:?}"
+    );
 }
 
 #[test]
@@ -130,6 +156,29 @@ fn run_status_of_an_unreachable_repository_exits_one() {
     // Assert
     assert_eq!(code, ExitCode::from(1));
     assert!(dir.path().join("work/status/sentinel4rust.lock").is_file());
+}
+
+#[test]
+fn run_status_with_a_github_app_it_cannot_sign_for_exits_one() {
+    // Arrange
+    let dir = TempDir::new("status-app");
+    let roster = dir.path().join("r.toml");
+    fs::write(
+        &roster,
+        format!(
+            "work_dir = \"{}/work\"\nresults_url = \"file://{}/results.git\"\ngithub_app_id = 7\ngithub_app_installation_id = 8\ngithub_app_key = \"{}/missing.pem\"\n",
+            dir.path().display(),
+            dir.path().display(),
+            dir.path().display()
+        ),
+    )
+    .unwrap();
+
+    // Act
+    let code = EntryPoint.run(&args(&["--roster", &roster.to_string_lossy(), "--status"]));
+
+    // Assert
+    assert_eq!(code, ExitCode::from(1));
 }
 
 #[test]

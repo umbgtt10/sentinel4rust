@@ -11,6 +11,7 @@ use std::process::ExitCode;
 use std::rc::Rc;
 
 use crate::invocation::command_line::CommandLine;
+use crate::invocation::github_access::GithubAccess;
 use crate::invocation::startup_error::StartupError;
 use crate::invocation::work_dir_lock::WorkDirLock;
 use crate::system::git::git_cli::GitCli;
@@ -26,6 +27,7 @@ use sentinel4rust::model::onboarding::roster::Roster;
 use sentinel4rust::model::onboarding::toml_roster::TomlRoster;
 use sentinel4rust::model::round_step::RoundStep;
 use sentinel4rust::patrol::dependencies::Dependencies;
+use sentinel4rust::patrol::discovery_refresh::DiscoveryRefresh;
 use sentinel4rust::patrol::journal_line::JournalLine;
 use sentinel4rust::patrol::sentinel::Sentinel;
 use sentinel4rust::patrol::status_report::StatusReport;
@@ -64,8 +66,11 @@ impl EntryPoint {
     pub fn compose(&self, roster: Roster) -> Sentinel {
         let runner: Rc<dyn CommandRunner> = Rc::new(SystemCommandRunner);
         let work_dir = WorkDir::new(PathBuf::from(&roster.work_dir));
+        let github = Self::github(&roster, &runner);
         let git = Rc::new(GitCli::new(
-            runner.clone(),
+            github
+                .as_ref()
+                .map_or_else(|| runner.clone(), GithubAccess::git_runner),
             work_dir.clone(),
             roster.results_url.clone(),
         ));
@@ -95,7 +100,7 @@ impl EntryPoint {
                 clock: Rc::new(SystemClock),
                 pause: Rc::new(ThreadPause),
                 journal: Rc::new(StdoutJournal::new(Box::new(io::stdout()))),
-                discovery: None,
+                discovery: github.as_ref().map(GithubAccess::discovery),
             },
             cargo_mutants_version,
         )
@@ -133,6 +138,13 @@ impl EntryPoint {
         }
     }
 
+    fn github(roster: &Roster, runner: &Rc<dyn CommandRunner>) -> Option<GithubAccess> {
+        roster
+            .github_app
+            .as_ref()
+            .map(|app| GithubAccess::new(runner.clone(), Rc::new(SystemClock), app))
+    }
+
     fn roster(roster_path: &Path) -> Result<Roster, StartupError> {
         let text = fs::read_to_string(roster_path).map_err(|e| StartupError::Unreadable {
             path: roster_path.to_path_buf(),
@@ -165,9 +177,18 @@ impl EntryPoint {
         let status_dir = Path::new(&roster.work_dir).join("status");
         let _lock = WorkDirLock::acquire(&status_dir)?;
         let runner: Rc<dyn CommandRunner> = Rc::new(SystemCommandRunner);
+        let github = Self::github(&roster, &runner);
+        let mut refresh = DiscoveryRefresh::new(
+            &roster,
+            github.as_ref().map(GithubAccess::discovery),
+            Rc::new(StdoutJournal::new(Box::new(io::stdout()))),
+        );
+        let discovered = github.is_none() || refresh.refresh(SystemClock.now());
         let report = StatusReport::new(
             Rc::new(GitCli::new(
-                runner,
+                github
+                    .as_ref()
+                    .map_or_else(|| runner.clone(), GithubAccess::git_runner),
                 WorkDir::new(status_dir),
                 roster.results_url.clone(),
             )),
@@ -175,10 +196,12 @@ impl EntryPoint {
             roster.config_version,
             roster.stale_after,
         );
-        let lines = report.check(&roster.repos);
+        let lines = report.check(refresh.repos());
         for line in &lines {
             println!("{}", line.text);
         }
-        Ok(u8::from(lines.iter().any(|line| line.needs_attention)))
+        Ok(u8::from(
+            !discovered || lines.iter().any(|line| line.needs_attention),
+        ))
     }
 }
