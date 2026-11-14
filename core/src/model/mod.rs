@@ -10,6 +10,7 @@ pub mod command;
 pub mod command_result;
 pub mod commit_hash;
 pub mod counts;
+pub mod github;
 pub mod key_changes;
 pub mod located;
 pub mod mutant_key;
