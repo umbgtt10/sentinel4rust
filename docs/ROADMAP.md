@@ -107,7 +107,9 @@ The ideas of the design's section 8 that no open point takes up, each only if re
 - **`--in-place`** with a warm `target/` instead of `--jobs` copies, if measurement favours it.
 - **Reloading the roster** without a restart.
 - **A notification** when survivors rise, if the commit messages on the results repository turn out not to be enough.
-- **Watching a private repository**, through a read-only deploy key of its own, should one need it.
+- **Watching a private repository** -- done on 2026-11-14: a read-only deploy key and host alias of its own, its
+  results in the same private results repository, and a private git dependency served from the sentinel's clone
+  (`docs/OPEN_POINTS.md` points 10 and 18).
 
 Two of its ideas became open points: re-checking new survivors once before publishing (11, done), and, instead of a
 heartbeat, a check that compares each repository's `main` with its `mutants` record (12, done: `--status`).

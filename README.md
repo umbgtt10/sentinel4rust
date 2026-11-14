@@ -24,7 +24,7 @@ README.md                what the repository is; generated, do not edit by hand
 Commit messages read `twin4rust: Mutants of 1a2b3c4: 5 missed (+1 -2), 120 caught`, and end `, 3 timed out` when
 any did. The sentinel's one key writes the results repository and nothing else
 ([`docs/ADRs/ADR-SharedResultsRepository.md`](docs/ADRs/ADR-SharedResultsRepository.md)); a watched repository must be
-public.
+public, and the results repository is private.
 
 A repository is tested only once it has a `.cargo/mutants.toml` on `main`; crate filters and accepted survivors
 (`exclude_re`, `#[mutants::skip]`) live there.

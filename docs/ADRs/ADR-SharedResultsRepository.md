@@ -69,9 +69,12 @@ GitHub will not accept one deploy key on two repositories, so one results reposi
 ## Consequences
 
 A leaked key writes the results repository and nothing else; the watched repositories are reached with no
-credential at all. Only a public repository can be watched for now: `deploy/onboard.sh` marks a private one
-`BLOCKED` (a read-only deploy key per private repository is a possible later extension). Every watched repository's
-survivors, and on failures a log tail with paths, are public in one place (`deploy/SETUP.md` section 7). All
+credential at all. A private repository is read with a read-only deploy key of its own, which cannot push at all, and
+`deploy/onboard.sh` marks one `BLOCKED` while the results repository is public. A private git dependency is served to
+the run unit from the sentinel's own clone (`deploy/SETUP.md` section 2), so the run unit still holds no key. Every watched repository's
+survivors, and on failures a log tail with paths, are in one place, which the owner made private on 2026-11-14, the day
+it was created: nothing in the design depends on its visibility (`deploy/SETUP.md` section 7). A private watched
+repository's results can go to the same place without exposing anything. All
 publications share one branch: a push rejected because `main` moved -- a hand edit, or a second sentinel -- is a
 `PublishError`, logged and backed off, and the next visit fetches the new tip and publishes again. A hand-made file
 outside the folders survives every publication. The schema is versioned: a `summary.toml` with an unknown `schema`

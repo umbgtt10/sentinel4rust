@@ -1,8 +1,8 @@
 # ~sentinel/.config/sentinel4rust/roster.toml -- every key, with its default, in docs/ARCHITECTURE.md.
 # Edit, then: sudo systemctl restart sentinel4rust
 #
-# Every watched repository's results are public in the results repository: decide per repository (deploy/SETUP.md
-# section 7). twin4rust, etheram-raft and sentinel4rust publish theirs; etheram-ibft stays off, by decision.
+# Every watched repository's results go to its folder of the private results repository (deploy/SETUP.md
+# section 7).
 
 work_dir = "/home/sentinel/sentinel4rust"   # clones, worktrees, cargo-mutants output
 results_url = "git@github-mutants:umbgtt10/mutants.git"   # required: the one repository written, one folder per repo

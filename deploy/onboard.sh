@@ -2,9 +2,11 @@
 # Onboards repositories onto the sentinel (deploy/SETUP.md section 2, deploy/PROVISION.md,
 # docs/ADRs/ADR-SharedResultsRepository.md). Once: the results repository -- a deploy key and an SSH host alias for
 # the `sentinel` user, that key on GitHub with write access to the results repository and nothing else, and
-# `results_url` in the roster. Per watched repository: that it is public, so the sentinel reads it over https with
-# no credential at all; that no deploy key titled like the sentinel's is left on it; then its [[repo]] entry in the
-# roster. The access proof, deploy/verify-access.sh, runs before anything is added to the roster. Whatever is
+# `results_url` in the roster. Per public watched repository: that it is read over https with no credential at all,
+# and that no deploy key titled like the sentinel's is left on it. Per private one -- only while the results
+# repository is private too --: a key, a host alias and a READ-ONLY deploy key of its own, and a redirect that lets a
+# build in the run unit fetch it, as a git dependency, from the sentinel's clone rather than from GitHub
+# (docs/OPEN_POINTS.md point 10). Then each one's [[repo]] entry in the roster. The access proof, deploy/verify-access.sh, runs before anything is added to the roster. Whatever is
 # already in place is left alone, so it can be re-run; it stops at the first failure.
 #
 # Run as the owner, from the checkout, after deploy/provision.sh, with sudo cached (sudo -v) and gh logged in.
@@ -12,8 +14,9 @@
 #   deploy/onboard.sh [options] <repo>...
 #
 #   --dry-run              print every action without doing any: GitHub is read, never written
-#   --apply-github         allow the one GitHub change, the deploy key on the results repository -- passed only after
-#                          the owner's go (deploy/PROVISION.md); without it, onboard.sh refuses to change anything
+#   --apply-github         allow the GitHub changes, the deploy key on the results repository and a read-only one per
+#                          private watched repository -- passed only after the owner's go (deploy/PROVISION.md);
+#                          without it, onboard.sh refuses to change anything
 #   --github-owner <name>  the repositories' owner (default umbgtt10)
 #   --results <name>       the results repository, under the same owner (default mutants)
 #   --roster <file>        the roster (default ~sentinel/.config/sentinel4rust/roster.toml)
@@ -97,8 +100,9 @@ if [ -n "$local_dir" ]; then
   sentinel_exists=1
 else
   if [ "$dry_run" -eq 0 ] && [ "$apply_github" -eq 0 ]; then
-    fail "refusing: onboarding changes GitHub -- a deploy key with write access on $owner/$results. Pass
-      --apply-github, and only after the owner's go in the chat (deploy/PROVISION.md); --dry-run prints the plan"
+    fail "refusing: onboarding changes GitHub -- a deploy key with write access on $owner/$results, and a read-only
+      one per private watched repository. Pass --apply-github, and only after the owner's go in the chat
+      (deploy/PROVISION.md); --dry-run prints the plan"
   fi
   command -v gh >/dev/null || fail "gh is not installed"
   gh auth status >/dev/null 2>&1 || fail "gh is not logged in: gh auth login"
@@ -115,7 +119,6 @@ else
 fi
 readonly ssh_dir="$sentinel_home/.ssh"
 readonly ssh_config="$ssh_dir/config"
-readonly key="$ssh_dir/sentinel_$results"
 [ -n "$roster" ] || roster="$sentinel_home/.config/sentinel4rust/roster.toml"
 readonly verify_access="$sentinel_home/src/sentinel4rust/deploy/verify-access.sh"
 
@@ -157,33 +160,36 @@ ensure_home() {
   fi
 }
 
+# ensure_key <repo>: the sentinel's key for one repository, ~/.ssh/sentinel_<repo>.
 ensure_key() {
+  local key="$ssh_dir/sentinel_$1"
   if sentinel_has "$key.pub" && sentinel_has "$key"; then
     ok "key $key: $(as_sentinel ssh-keygen -lf "$key.pub")"
   elif sentinel_has "$key"; then
     fail "$key exists without $key.pub: restore it with ssh-keygen -y, or remove both and re-run"
   else
     step "create the key $key (ed25519, no passphrase)" \
-      as_sentinel ssh-keygen -q -t ed25519 -N "" -C "sentinel4rust $results" -f "$key"
+      as_sentinel ssh-keygen -q -t ed25519 -N "" -C "sentinel4rust $1" -f "$key"
     [ "$dry_run" -eq 1 ] || ok "key $key: $(as_sentinel ssh-keygen -lf "$key.pub")"
   fi
 }
 
+# ensure_host_alias <repo>: github-<repo>, reaching GitHub with that repository's key only.
 ensure_host_alias() {
-  if sentinel_has "$ssh_config" && as_sentinel grep -qxF "Host github-$results" "$ssh_config"; then
-    ok "host alias github-$results in $ssh_config"
+  if sentinel_has "$ssh_config" && as_sentinel grep -qxF "Host github-$1" "$ssh_config"; then
+    ok "host alias github-$1 in $ssh_config"
     return
   fi
   cat > "$scratch/alias" << EOF
 
-Host github-$results
+Host github-$1
     HostName github.com
     User git
-    IdentityFile $key
+    IdentityFile $ssh_dir/sentinel_$1
     IdentitiesOnly yes
     StrictHostKeyChecking yes
 EOF
-  step "add the host alias github-$results to $ssh_config" append_as_sentinel "$scratch/alias" "$ssh_config"
+  step "add the host alias github-$1 to $ssh_config" append_as_sentinel "$scratch/alias" "$ssh_config"
   [ "$dry_run" -eq 1 ] || as_sentinel chmod 600 "$ssh_config"
 }
 
@@ -207,40 +213,51 @@ check_results_repo() {
   local info visibility permission
   info="$(gh repo view "$owner/$results" --json visibility,viewerPermission \
     --jq '.visibility + " " + .viewerPermission')" \
-    || fail "cannot read $owner/$results on GitHub: create it (gh repo create $owner/$results --public), then re-run"
+    || fail "cannot read $owner/$results on GitHub: create it (gh repo create $owner/$results --private), then re-run"
   visibility="${info% *}"
   permission="${info#* }"
   [ "$permission" = "ADMIN" ] || fail "$owner/$results: a deploy key needs admin, gh has $permission"
   ok "$owner/$results is $visibility, and gh is its admin"
+  results_visibility="$visibility"
   [ "$visibility" != "PUBLIC" ] \
     || note "every watched repository's survivors and log tails will be public there (deploy/SETUP.md section 7)"
 }
 
-# A watched repository: public, so it is read with no credential; no deploy key of a previous design left on it.
+# A watched repository. A public one is read with no credential, and must carry no deploy key titled like the
+# sentinel's; a private one needs a read-only key of its own, and is watched only while the results repository is
+# private too, since its survivors and log tails go there. Sets `private` for the caller.
 check_watched_repo() {
   local repo=$1 visibility titles
+  private=0
   visibility="$(gh repo view "$owner/$repo" --json visibility --jq '.visibility')" \
     || fail "cannot read $owner/$repo on GitHub"
-  if [ "$visibility" != "PUBLIC" ]; then
-    say "BLOCKED $owner/$repo is $visibility: the sentinel reads watched repositories over https with no credential,"
-    say "        so only a public one can be watched. Nothing was changed for it. Ask the owner: make it public, or"
-    say "        leave it off the roster (docs/ADRs/ADR-SharedResultsRepository.md)"
+  if [ "$visibility" != "PUBLIC" ] && [ "$results_visibility" = "PUBLIC" ]; then
+    say "BLOCKED $owner/$repo is $visibility, and the results repository $owner/$results is PUBLIC: its survivors and"
+    say "        log tails would be published there. Nothing was changed for it. Ask the owner: make $owner/$results"
+    say "        private, or leave $repo off the roster (docs/ADRs/ADR-SharedResultsRepository.md)"
     [ "$dry_run" -eq 1 ] || fail "$owner/$repo cannot be onboarded: stop, and ask the owner"
     blocked=1
     return
   fi
-  ok "$owner/$repo is PUBLIC: read over https, with no credential"
-  if titles="$(gh repo deploy-key list -R "$owner/$repo" --json title --jq '.[].title' 2>/dev/null)" \
-    && printf '%s\n' "$titles" | grep -qxF "$key_title"; then
-    fail "$owner/$repo has a deploy key titled '$key_title', which the sentinel no longer needs: perhaps an earlier
-      onboarding's. Delete it there (Settings, Deploy keys) and re-run; the owner decides"
+  if [ "$visibility" != "PUBLIC" ]; then
+    private=1
+    ok "$owner/$repo is $visibility: read with a read-only deploy key of its own"
+  else
+    ok "$owner/$repo is PUBLIC: read over https, with no credential"
+    if titles="$(gh repo deploy-key list -R "$owner/$repo" --json title --jq '.[].title' 2>/dev/null)" \
+      && printf '%s\n' "$titles" | grep -qxF "$key_title"; then
+      fail "$owner/$repo has a deploy key titled '$key_title', which the sentinel does not need on a public
+      repository: perhaps an earlier onboarding's. Delete it there (Settings, Deploy keys) and re-run; the owner decides"
+    fi
   fi
   gh api "repos/$owner/$repo/contents/.cargo/mutants.toml?ref=main" --silent 2>/dev/null \
     || note "$repo has no .cargo/mutants.toml on main: the sentinel skips it until it has one"
 }
 
+# ensure_deploy_key <repo> <write|read>: the sentinel's key for <repo> on GitHub, with exactly that access.
 ensure_deploy_key() {
-  local repo=$results listing ours="" title key_text read_only
+  local repo=$1 access=$2 key="$ssh_dir/sentinel_$1" listing ours="" title key_text read_only want flag=()
+  if [ "$access" = "write" ]; then want=false; flag=(--allow-write); else want=true; fi
   listing="$(gh repo deploy-key list -R "$owner/$repo" --json title,key,readOnly \
     --jq '.[] | [.title, .key, (.readOnly | tostring)] | @tsv')" \
     || fail "cannot list $owner/$repo's deploy keys"
@@ -250,9 +267,10 @@ ensure_deploy_key() {
   while IFS=$'\t' read -r title key_text read_only; do
     [ -n "$title" ] || continue
     if [ -n "$ours" ] && [ "$(printf '%s' "$key_text" | awk '{ print $1 " " $2 }')" = "$ours" ]; then
-      [ "$read_only" = "false" ] \
-        || fail "$owner/$repo has this key read-only, titled '$title': delete it there (Settings, Deploy keys), re-run"
-      ok "deploy key '$title' on $owner/$repo, with write access"
+      [ "$read_only" = "$want" ] \
+        || fail "$owner/$repo has this key, titled '$title', without the $access access it needs: delete it there
+      (Settings, Deploy keys), re-run"
+      ok "deploy key '$title' on $owner/$repo, $access access"
       return
     fi
     [ "$title" != "$key_title" ] \
@@ -262,8 +280,35 @@ ensure_deploy_key() {
   if [ "$dry_run" -eq 0 ]; then
     as_sentinel cat "$key.pub" > "$scratch/$repo.pub"
   fi
-  step "add $key.pub to $owner/$repo as the deploy key '$key_title', with write access" \
-    gh repo deploy-key add "$scratch/$repo.pub" -R "$owner/$repo" --title "$key_title" --allow-write
+  step "add $key.pub to $owner/$repo as the deploy key '$key_title', $access access" \
+    gh repo deploy-key add "$scratch/$repo.pub" -R "$owner/$repo" --title "$key_title" "${flag[@]}"
+}
+
+# ensure_cargo_redirect <repo>: a build in the run unit, which holds no key, fetches the private <repo> as a git
+# dependency from the sentinel's clone of it, through the sentinel's git configuration, with cargo using git.
+ensure_cargo_redirect() {
+  local repo=$1 work_dir from to gitconfig="$sentinel_home/.gitconfig" cargo_config="$sentinel_home/.cargo/config.toml"
+  work_dir="$(roster_value work_dir)"
+  [ -n "$work_dir" ] || fail "the roster names no work_dir"
+  from="https://github.com/$owner/$repo"
+  to="file://$work_dir/repos/$repo.git"
+  if sentinel_has "$gitconfig" \
+    && [ "$(as_sentinel git config --file "$gitconfig" --get "url.$to.insteadOf" || true)" = "$from" ]; then
+    ok "git dependencies on $from are fetched from $to"
+  else
+    step "fetch git dependencies on $from from $to, in $gitconfig" \
+      as_sentinel git config --file "$gitconfig" "url.$to.insteadOf" "$from"
+  fi
+  if sentinel_has "$cargo_config" \
+    && as_sentinel grep -qE '^[[:space:]]*git-fetch-with-cli[[:space:]]*=[[:space:]]*true' "$cargo_config"; then
+    ok "cargo fetches git dependencies with git, in $cargo_config"
+  elif sentinel_has "$cargo_config"; then
+    fail "$cargo_config has no git-fetch-with-cli = true under [net]: add it by hand, as sentinel, and re-run"
+  else
+    printf '[net]\ngit-fetch-with-cli = true\n' > "$scratch/cargo-config"
+    step "make cargo fetch git dependencies with git, in $cargo_config" \
+      write_as_sentinel "$scratch/cargo-config" "$cargo_config"
+  fi
 }
 
 # Reading every watched repository with no credential, and writing the results repository with the key.
@@ -346,6 +391,8 @@ ensure_entry() {
 watched_url() {
   if [ -n "$local_dir" ]; then
     printf 'file://%s/%s.git' "$local_dir" "$1"
+  elif [ "$2" -eq 1 ]; then
+    printf 'git@github-%s:%s/%s.git' "$1" "$owner" "$1"
   else
     printf 'https://github.com/%s/%s.git' "$owner" "$1"
   fi
@@ -356,6 +403,8 @@ blocked=0
 blocked_repos=()
 watched=()
 watched_urls=()
+private_repos=()
+results_visibility=PRIVATE
 if [ -n "$local_dir" ]; then
   results_url="file://$local_dir/$results.git"
 else
@@ -371,12 +420,13 @@ if [ -n "$local_dir" ]; then
 else
   check_results_repo
 fi
-ensure_key
-ensure_host_alias
+ensure_key "$results"
+ensure_host_alias "$results"
 
 for repo in "${repos[@]}"; do
   say "== $repo"
   blocked=0
+  private=0
   if [ -n "$local_dir" ]; then
     check_local_repo "$repo"
   else
@@ -387,17 +437,28 @@ for repo in "${repos[@]}"; do
     continue
   fi
   watched+=("$repo")
-  watched_urls+=("$(watched_url "$repo")")
+  watched_urls+=("$(watched_url "$repo" "$private")")
+  if [ "$private" -eq 1 ]; then
+    private_repos+=("$repo")
+    ensure_key "$repo"
+    ensure_host_alias "$repo"
+  fi
 done
 
 say "== GitHub and the access proof"
 if [ -z "$local_dir" ]; then
-  ensure_deploy_key
+  ensure_deploy_key "$results" write
+  for repo in "${private_repos[@]}"; do
+    ensure_deploy_key "$repo" read
+  done
   prove_access
 fi
 
 say "== the roster"
 ensure_results_url
+for repo in "${private_repos[@]}"; do
+  ensure_cargo_redirect "$repo"
+done
 for i in "${!watched[@]}"; do
   ensure_entry "${watched[$i]}" "${watched_urls[$i]}"
 done
