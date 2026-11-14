@@ -321,6 +321,27 @@ fn sync_missing_branch_and_missing_repository_are_told_apart() {
 }
 
 #[test]
+fn sync_serves_the_branch_from_the_clone_as_a_local_source() {
+    // Arrange
+    let origin = Origin::new();
+    origin.commit_crate();
+    let work = TempDir::new("work");
+    let results = Origin::new();
+    let git_cli = cli(&work, &results);
+    let repo = origin.repo("x");
+    git_cli.sync(&repo).unwrap();
+    let moved = origin.commit(&[("later.txt", "after the first sync")]);
+
+    // Act
+    git_cli.sync(&repo).unwrap();
+
+    // Assert
+    let local = format!("file://{}", work_dir(&work).bare_clone(&repo).display());
+    let listed = git(&origin.dev(), &["ls-remote", &local, "refs/heads/main"]);
+    assert_eq!(listed, format!("{moved}\trefs/heads/main"));
+}
+
+#[test]
 fn sync_with_a_path_dependency_outside_the_repository_is_not_ready() {
     // Arrange
     let origin = Origin::new();

@@ -65,15 +65,25 @@ impl GitCli {
         }
     }
 
+    // The branch is also kept at `refs/heads/<branch>`, where another repository's build can fetch it from the clone
+    // through `file://`: a private git dependency, read in the run unit with no key (`docs/OPEN_POINTS.md` point 10).
     fn fetch(&self, dir: &Path, repo: &OnboardedRepo) -> Result<(), SyncError> {
         let branch_spec = format!(
             "+refs/heads/{}:refs/remotes/origin/{}",
             repo.branch, repo.branch
         );
+        let served_spec = format!("+refs/heads/{}:refs/heads/{}", repo.branch, repo.branch);
         self.git
             .git(
                 dir,
-                &["fetch", "--quiet", "--no-tags", "origin", &branch_spec],
+                &[
+                    "fetch",
+                    "--quiet",
+                    "--no-tags",
+                    "origin",
+                    &branch_spec,
+                    &served_spec,
+                ],
                 NETWORK_TIMEOUT,
             )
             .map(|_| ())
