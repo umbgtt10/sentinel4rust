@@ -9,6 +9,7 @@ use alloc::string::String;
 use core::fmt::Write as _;
 use core::time::Duration;
 
+use crate::model::github::discovery_error::DiscoveryError;
 use crate::model::onboarding::onboarded_repo::OnboardedRepo;
 use crate::model::onboarding::roster::Roster;
 use crate::model::round_step::RoundStep;
@@ -21,6 +22,27 @@ use crate::patrol::timeout_warning::TimeoutWarning;
 pub struct JournalLine;
 
 impl JournalLine {
+    /// `discovery repos=… added=… removed=…`, the names comma-separated, `-` for none.
+    pub fn discovery(&self, repos: usize, added: &[String], removed: &[String]) -> String {
+        let names = |list: &[String]| {
+            if list.is_empty() {
+                String::from("-")
+            } else {
+                list.join(",")
+            }
+        };
+        format!(
+            "discovery repos={repos} added={} removed={}",
+            names(added),
+            names(removed)
+        )
+    }
+
+    /// `discovery failed reason="…"`.
+    pub fn discovery_failed(&self, error: &DiscoveryError) -> String {
+        format!("discovery failed reason={:?}", error.0)
+    }
+
     /// The start of the journal's first line, for logs.
     pub fn startup(&self, roster: &Roster, now: Timestamp) -> String {
         format!(

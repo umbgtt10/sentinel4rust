@@ -6,6 +6,8 @@ use sentinel4rust::model::branch::publication::Publication;
 use sentinel4rust::model::checkout_error::CheckoutError;
 use sentinel4rust::model::commit_hash::CommitHash;
 use sentinel4rust::model::counts::MutantCounts;
+use sentinel4rust::model::github::discovered_repo::DiscoveredRepo;
+use sentinel4rust::model::github::discovery_error::DiscoveryError;
 use sentinel4rust::model::mutation_run::MutationRun;
 use sentinel4rust::model::onboarding::onboarded_repo::OnboardedRepo;
 use sentinel4rust::model::publish_error::PublishError;
@@ -17,6 +19,7 @@ use sentinel4rust::traits::clock::Clock;
 use sentinel4rust::traits::journal::Journal;
 use sentinel4rust::traits::mutation_runner::MutationRunner;
 use sentinel4rust::traits::pause::Pause;
+use sentinel4rust::traits::repo_discovery::RepoDiscovery;
 use sentinel4rust::traits::repo_source::RepoSource;
 use sentinel4rust::traits::result_store::ResultStore;
 use std::cell::Cell;
@@ -37,6 +40,7 @@ pub const RUN_SECONDS: i64 = 60;
 pub struct World {
     pub now: Cell<i64>,
     pub syncs: RefCell<VecDeque<Result<Snapshot, SyncError>>>,
+    pub discoveries: RefCell<VecDeque<Result<Vec<DiscoveredRepo>, DiscoveryError>>>,
     pub checkout_error: RefCell<Option<CheckoutError>>,
     pub checkouts: Cell<usize>,
     pub committed: Cell<Option<i64>>,
@@ -53,6 +57,10 @@ pub struct World {
 }
 
 impl World {
+    pub fn queue_discovery(&self, result: Result<Vec<DiscoveredRepo>, DiscoveryError>) {
+        self.discoveries.borrow_mut().push_back(result);
+    }
+
     pub fn queue_recheck(&self, outcome: RunOutcome) {
         self.rechecks.borrow_mut().push_back(outcome);
     }
@@ -63,6 +71,15 @@ impl World {
 
     pub fn queue_sync(&self, result: Result<Snapshot, SyncError>) {
         self.syncs.borrow_mut().push_back(result);
+    }
+}
+
+impl RepoDiscovery for World {
+    fn discover(&self) -> Result<Vec<DiscoveredRepo>, DiscoveryError> {
+        self.discoveries
+            .borrow_mut()
+            .pop_front()
+            .expect("unexpected discovery")
     }
 }
 

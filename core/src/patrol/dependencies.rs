@@ -10,6 +10,7 @@ use crate::traits::clock::Clock;
 use crate::traits::journal::Journal;
 use crate::traits::mutation_runner::MutationRunner;
 use crate::traits::pause::Pause;
+use crate::traits::repo_discovery::RepoDiscovery;
 use crate::traits::repo_source::RepoSource;
 use crate::traits::result_store::ResultStore;
 
@@ -28,4 +29,6 @@ pub struct Dependencies {
     pub pause: Rc<dyn Pause>,
     /// One line per visit.
     pub journal: Rc<dyn Journal>,
+    /// Finds the repositories to watch; `None`: the roster's are all there is.
+    pub discovery: Option<Rc<dyn RepoDiscovery>>,
 }

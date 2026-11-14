@@ -13,6 +13,7 @@ use sentinel4rust::model::branch::run_record::RunRecord;
 use sentinel4rust::model::checkout_error::CheckoutError;
 use sentinel4rust::model::commit_hash::CommitHash;
 use sentinel4rust::model::counts::MutantCounts;
+use sentinel4rust::model::github::discovered_repo::DiscoveredRepo;
 use sentinel4rust::model::mutant_key::MutantKey;
 use sentinel4rust::model::onboarding::onboarded_repo::OnboardedRepo;
 use sentinel4rust::model::onboarding::roster::Roster;
@@ -27,6 +28,7 @@ use sentinel4rust::model::timestamp::Timestamp;
 use sentinel4rust::patrol::dependencies::Dependencies;
 use sentinel4rust::patrol::patrol_constants::MAX_BACKOFF;
 use sentinel4rust::patrol::sentinel::Sentinel;
+use sentinel4rust::traits::repo_discovery::RepoDiscovery;
 use std::panic::AssertUnwindSafe;
 use std::panic::catch_unwind;
 use std::rc::Rc;
@@ -93,7 +95,11 @@ fn sentinel(names: &[&str]) -> (Sentinel, Rc<World>) {
     sentinel_with(names, Some(INSTALLED))
 }
 
-fn sentinel_for(repos: Vec<OnboardedRepo>, installed: Option<&str>) -> (Sentinel, Rc<World>) {
+fn sentinel_built(
+    repos: Vec<OnboardedRepo>,
+    installed: Option<&str>,
+    discovery: Option<Duration>,
+) -> (Sentinel, Rc<World>) {
     let world = Rc::new(World::default());
     world.now.set(1_792_800_000);
     let roster = Roster {
@@ -105,7 +111,7 @@ fn sentinel_for(repos: Vec<OnboardedRepo>, installed: Option<&str>) -> (Sentinel
         stale_after: Duration::from_secs(24 * 3600),
         results_url: "r".to_string(),
         github_app: None,
-        discovery_interval: Duration::from_secs(3600),
+        discovery_interval: discovery.unwrap_or(Duration::from_secs(3600)),
         run_unit: None,
         repos,
     };
@@ -116,11 +122,24 @@ fn sentinel_for(repos: Vec<OnboardedRepo>, installed: Option<&str>) -> (Sentinel
         clock: world.clone(),
         pause: world.clone(),
         journal: world.clone(),
+        discovery: discovery.map(|_| -> Rc<dyn RepoDiscovery> { world.clone() }),
     };
     (
         Sentinel::new(roster, deps, installed.map(ToString::to_string)),
         world,
     )
+}
+
+fn sentinel_discovering(names: &[&str], interval: Duration) -> (Sentinel, Rc<World>) {
+    sentinel_built(
+        names.iter().map(|n| repo(n)).collect(),
+        Some(INSTALLED),
+        Some(interval),
+    )
+}
+
+fn sentinel_for(repos: Vec<OnboardedRepo>, installed: Option<&str>) -> (Sentinel, Rc<World>) {
+    sentinel_built(repos, installed, None)
 }
 
 fn sentinel_with(names: &[&str], installed: Option<&str>) -> (Sentinel, Rc<World>) {
@@ -572,6 +591,35 @@ fn run_once_unreadable_is_logged_once_never_run_and_recovers() {
 }
 
 #[test]
+fn run_once_with_discovery_visits_the_discovered_repositories_too() {
+    // Arrange
+    let (mut s, w) = sentinel_discovering(&["a"], Duration::from_secs(3600));
+    w.queue_discovery(Ok(vec![DiscoveredRepo {
+        name: String::from("b"),
+        url: String::from("https://github.com/o/b.git"),
+        branch: String::from("main"),
+    }]));
+    let head = hash('a');
+    for _ in 0..2 {
+        w.queue_sync(Ok(snapshot(&head, Some(record_for(&head, 1)), &[])));
+    }
+
+    // Act
+    let steps = s.run_once();
+
+    // Assert
+    assert_eq!(steps.len(), 2);
+    assert_eq!(
+        w.lines.borrow().as_slice(),
+        [
+            "discovery repos=2 added=b removed=-",
+            "repo=a step=unchanged hash=aaaaaaa duration_s=0",
+            "repo=b step=unchanged hash=aaaaaaa duration_s=0"
+        ]
+    );
+}
+
+#[test]
 fn run_once_without_the_toolchain_skips_with_rustups_message() {
     // Arrange
     let (mut s, w) = sentinel(&["a"]);
@@ -616,6 +664,24 @@ fn step_follows_the_polling_interval() {
     let lines = w.lines.borrow();
     let repos: Vec<&str> = lines.iter().map(|l| l.split(' ').next().unwrap()).collect();
     assert_eq!(repos, ["repo=a", "repo=b", "repo=a"]);
+}
+
+#[test]
+fn step_sleeps_no_later_than_the_next_discovery() {
+    // Arrange
+    let (mut s, w) = sentinel_discovering(&["a"], Duration::from_secs(60));
+    w.queue_discovery(Ok(vec![]));
+    let head = hash('a');
+    w.queue_sync(Ok(snapshot(&head, Some(record_for(&head, 1)), &[])));
+
+    // Act
+    let visited = s.step();
+    let slept = s.step();
+
+    // Assert
+    assert!(visited.is_some());
+    assert_eq!(slept, None);
+    assert_eq!(w.pauses.borrow().as_slice(), [Duration::from_secs(60)]);
 }
 
 #[test]

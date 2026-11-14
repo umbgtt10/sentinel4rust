@@ -11,6 +11,7 @@
 
 pub mod baseline_retry;
 pub mod dependencies;
+pub mod discovery_refresh;
 pub mod journal_line;
 pub mod next;
 pub mod patrol_constants;

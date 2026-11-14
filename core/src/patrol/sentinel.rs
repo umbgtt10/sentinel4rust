@@ -23,6 +23,7 @@ use crate::model::snapshot::Snapshot;
 use crate::model::sync_error::SyncError;
 use crate::patrol::baseline_retry::BaselineRetry;
 use crate::patrol::dependencies::Dependencies;
+use crate::patrol::discovery_refresh::DiscoveryRefresh;
 use crate::patrol::journal_line::JournalLine;
 use crate::patrol::next::Next;
 use crate::patrol::publication_builder::PublicationBuilder;
@@ -36,6 +37,7 @@ const MIN_SLEEP: Duration = Duration::from_secs(1);
 /// The service.
 pub struct Sentinel {
     roster: Roster,
+    refresh: DiscoveryRefresh,
     deps: Dependencies,
     schedule: Schedule,
     retry: BaselineRetry,
@@ -49,8 +51,10 @@ impl Sentinel {
         let schedule = Schedule::new(roster.pause);
         let retry = BaselineRetry::new(deps.source.clone(), deps.runner.clone());
         let currency = RecordCurrency::new(roster.config_version, cargo_mutants_version);
+        let refresh = DiscoveryRefresh::new(&roster, deps.discovery.clone(), deps.journal.clone());
         Self {
             roster,
+            refresh,
             deps,
             schedule,
             retry,
@@ -65,19 +69,23 @@ impl Sentinel {
         }
     }
 
-    /// Visits every repository once, in roster order, ignoring the schedule.
+    /// Discovers, when there is a discovery, then visits every repository once, in list order, ignoring the
+    /// schedule.
     pub fn run_once(&mut self) -> Vec<RoundStep> {
-        (0..self.roster.repos.len())
+        self.refresh.refresh(self.deps.clock.now());
+        (0..self.refresh.repos().len())
             .map(|index| self.visit_and_log(index))
             .collect()
     }
 
     /// Visits the next due repository, or sleeps until one is due.
     pub fn step(&mut self) -> Option<RoundStep> {
+        self.refresh.refresh(self.deps.clock.now());
         let now = self.deps.clock.now();
-        match self.schedule.next(&self.roster.repos, now) {
+        match self.schedule.next(self.refresh.repos(), now) {
             Next::Visit(index) => Some(self.visit_and_log(index)),
             Next::SleepUntil(at) => {
+                let at = self.refresh.due().map_or(at, |due| at.min(due));
                 self.deps.pause.pause(at.since(now).max(MIN_SLEEP));
                 None
             }
@@ -173,7 +181,7 @@ impl Sentinel {
     }
 
     fn visit_and_log(&mut self, index: usize) -> RoundStep {
-        let repo = self.roster.repos[index].clone();
+        let repo = self.refresh.repos()[index].clone();
         let started = self.deps.clock.now();
         let was_unreachable = self.schedule.is_unreachable(&repo.name);
         let was_unreadable = self.schedule.is_unreadable(&repo.name);

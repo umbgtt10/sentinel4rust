@@ -11,5 +11,6 @@ pub mod journal;
 pub mod mutants_out;
 pub mod mutation_runner;
 pub mod pause;
+pub mod repo_discovery;
 pub mod repo_source;
 pub mod result_store;

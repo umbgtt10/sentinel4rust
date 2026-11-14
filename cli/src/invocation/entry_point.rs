@@ -95,6 +95,7 @@ impl EntryPoint {
                 clock: Rc::new(SystemClock),
                 pause: Rc::new(ThreadPause),
                 journal: Rc::new(StdoutJournal::new(Box::new(io::stdout()))),
+                discovery: None,
             },
             cargo_mutants_version,
         )

@@ -4,6 +4,7 @@
 
 use sentinel4rust::model::commit_hash::CommitHash;
 use sentinel4rust::model::counts::MutantCounts;
+use sentinel4rust::model::github::discovery_error::DiscoveryError;
 use sentinel4rust::model::onboarding::onboarded_repo::OnboardedRepo;
 use sentinel4rust::model::onboarding::roster::Roster;
 use sentinel4rust::model::outcome_kind::OutcomeKind;
@@ -36,6 +37,32 @@ fn repo(name: &str) -> OnboardedRepo {
         jobs: 4,
         run_timeout: Duration::from_secs(3600),
     }
+}
+
+#[test]
+fn discovery_failed_quotes_the_reason() {
+    // Arrange
+    let error = DiscoveryError(String::from("curl: exited with 6"));
+
+    // Act
+    let line = JournalLine.discovery_failed(&error);
+
+    // Assert
+    assert_eq!(line, "discovery failed reason=\"curl: exited with 6\"");
+}
+
+#[test]
+fn discovery_names_the_count_and_what_changed() {
+    // Arrange
+    let added = [String::from("b"), String::from("c")];
+
+    // Act
+    let changed = JournalLine.discovery(3, &added, &[String::from("z")]);
+    let same = JournalLine.discovery(3, &[], &[]);
+
+    // Assert
+    assert_eq!(changed, "discovery repos=3 added=b,c removed=z");
+    assert_eq!(same, "discovery repos=3 added=- removed=-");
 }
 
 #[test]

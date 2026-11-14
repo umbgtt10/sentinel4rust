@@ -16,6 +16,7 @@ use std::fs::Permissions;
 use std::os::unix::fs::PermissionsExt;
 use std::path::PathBuf;
 use std::process::{Command, Output};
+
 const FIXTURE_LIB: &str = "\
 pub fn add(a: i32, b: i32) -> i32 {
     a + b
