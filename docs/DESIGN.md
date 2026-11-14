@@ -9,7 +9,7 @@ date. Where each of its sections lives now:
 | intro, "not a gate" | [`ADRs/ADR-NotAGate.md`](ADRs/ADR-NotAGate.md) |
 | 1. The loop | [`ARCHITECTURE.md`](ARCHITECTURE.md), the pipeline; [`ADRs/ADR-PollingPerRepository.md`](ADRs/ADR-PollingPerRepository.md) |
 | 2.1 State lives on `mutants` | [`ADRs/ADR-StateLivesOnMutants.md`](ADRs/ADR-StateLivesOnMutants.md) |
-| 2.2 `mutants` is an orphan branch | [`ADRs/ADR-OrphanMutantsBranch.md`](ADRs/ADR-OrphanMutantsBranch.md) |
+| 2.2 `mutants` is an orphan branch | [`ADRs/ADR-OrphanMutantsBranch.md`](ADRs/ADR-OrphanMutantsBranch.md), superseded by [`ADRs/ADR-SharedResultsRepository.md`](ADRs/ADR-SharedResultsRepository.md) |
 | 2.3 Mutants are identified without line numbers | [`ADRs/ADR-PositionFreeMutantKeys.md`](ADRs/ADR-PositionFreeMutantKeys.md) |
 | 2.4 Runs are against an exact commit; only `mutants` is pushed | [`ADRs/ADR-ExactCommitOnlyMutantsPushed.md`](ADRs/ADR-ExactCommitOnlyMutantsPushed.md) |
 | 2.5 Crate filters, and accepted survivors, live in each repository | [`ADRs/ADR-FiltersLiveInEachRepository.md`](ADRs/ADR-FiltersLiveInEachRepository.md) |
@@ -19,7 +19,7 @@ date. Where each of its sections lives now:
 | 3. Configuration | [`ARCHITECTURE.md`](ARCHITECTURE.md), configuration; [`../deploy/roster.example.toml`](../deploy/roster.example.toml) |
 | 4. Architecture | [`ARCHITECTURE.md`](ARCHITECTURE.md) |
 | 5. The machine, 5.2 Setting it up | [`../deploy/SETUP.md`](../deploy/SETUP.md) |
-| 5.1 Security model | [`ADRs/ADR-DeployKeyAndRuleset.md`](ADRs/ADR-DeployKeyAndRuleset.md); [`OPEN_POINTS.md`](OPEN_POINTS.md), points 5 and 15 |
+| 5.1 Security model | [`ADRs/ADR-SharedResultsRepository.md`](ADRs/ADR-SharedResultsRepository.md), which superseded [`ADRs/ADR-DeployKeyAndRuleset.md`](ADRs/ADR-DeployKeyAndRuleset.md); [`OPEN_POINTS.md`](OPEN_POINTS.md), points 5 and 15 |
 | 6. Testing | [`ARCHITECTURE.md`](ARCHITECTURE.md), testing |
 | 7. Implementation slices | done; the restructure that followed is in [`ROADMAP.md`](ROADMAP.md) |
 | 8. Ideas for later | [`ROADMAP.md`](ROADMAP.md), under consideration |
@@ -32,7 +32,8 @@ above say what does:
 
 - **2.4** says publishing uses a second worktree and `git push origin HEAD:refs/heads/mutants`. The code writes the
   commit with plumbing alone -- `hash-object`, a temporary index, `write-tree`, `commit-tree` -- and pushes
-  `<commit>:refs/heads/mutants`, with no worktree on `mutants` (`ADRs/ADR-ExactCommitOnlyMutantsPushed.md`).
+  `<commit>:refs/heads/mutants`, with no worktree on `mutants` (`ADRs/ADR-ExactCommitOnlyMutantsPushed.md`). Since
+  2026-11-14 that push goes to the results repository's `main` (`ADRs/ADR-SharedResultsRepository.md`).
 - **2.6** says the exit codes were "checked against 27.1.0 in S5". The exit-code table matches cargo-mutants 27.1.0's
   `exit_code.rs`; `outcomes.json` was never checked, and is not read: keys and counts come from the `.txt` lists.
   Exits 2, 3 and 4 now run against the real 27.1.0 in stage 2 (`ADRs/ADR-ResultsFailuresAndBackOff.md`).

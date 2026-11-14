@@ -11,20 +11,22 @@ for what changed, [CHANGELOG.md](../CHANGELOG.md); for what is known to be missi
   waiting due repository first, ties in roster order; sleeps only when none is due, never less than a second
 - `--once` visits every repository once, in roster order, and exits 1 if any visit backed off or found a repository
   unreachable
-- A visit fetches, compares `main` with the record on `mutants`, and runs only when the record is not current: a
+- A visit fetches, compares `main` with the record in the results repository, and runs only when the record is
+  not current: a
   different commit, a different `config_version`, or another cargo-mutants than the installed one (read once on
   start; when it cannot be read, it decides nothing)
 
 ### Repositories
 
-- One full bare clone per repository at `<work_dir>/repos/<name>.git`, its origin reset when the roster's URL changes
-- Explicit refspecs for the configured branch and, when the remote has it, `mutants`; a deleted `mutants` drops the
-  record
+- One full bare clone per repository at `<work_dir>/repos/<name>.git`, its origin reset when the roster's URL changes;
+  read over https with no credential, and never written
+- An explicit refspec for the configured branch; the results repository's `main` fetched on every visit into one more
+  bare clone, `<work_dir>/results.git`; a deleted folder, or a deleted `main` there, drops the record
 - Skips, publishing nothing: `no-branch` (the branch is not on the remote), `not-a-crate` (no root `Cargo.toml` at
   `head`), `no-filters` (no `.cargo/mutants.toml` at `head`), `path-outside-repo` (a manifest at `head` has a
   `path` dependency outside the repository; the journal names the manifest), `toolchain-missing` (rustc does not
   run in the checkout; the journal quotes rustup's message)
-- Git runs without prompts, in the C locale, with the system's SSH configuration
+- Git runs without prompts, in the C locale, with the system's SSH configuration (for the results repository only)
 
 ### Runs
 
@@ -43,12 +45,15 @@ for what changed, [CHANGELOG.md](../CHANGELOG.md); for what is known to be missi
 
 ### Publishing
 
-- An orphan `mutants` branch: `README.md`, `summary.toml`, `missed.txt`, `timeout.txt` (when any), `located/`
+- One results repository, named by the roster's required `results_url`: on its `main`, a root `README.md` and one
+  folder per repository, `<repo>/summary.toml`, `missed.txt`, `timeout.txt` (when any), `located/`; each commit
+  replaces exactly its repository's folder, and messages read `<repo>: Mutants of <short hash>: ...`
 - Mutants keyed without line numbers, duplicates numbered in source order; `new` and `gone` against the previous
   record
-- Commits written with plumbing only, as `sentinel4rust <sentinel4rust@localhost>`, and pushed as
-  `<commit>:refs/heads/mutants`; nothing else is ever pushed
-- A rejected push backs off; the next visit reruns
+- Commits written with plumbing only, as `sentinel4rust <sentinel4rust@localhost>`, onto the fetched tip, and pushed
+  as `<commit>:refs/heads/main` to the results repository; nothing else is ever pushed, and nothing to a watched
+  repository
+- A rejected push (the results branch moved) backs off; the next visit fetches the new tip and reruns
 
 ### Failures and back-off
 
@@ -78,13 +83,14 @@ for what changed, [CHANGELOG.md](../CHANGELOG.md); for what is known to be missi
   cargo-mutants runs in a unit of its own that cannot read `~/.ssh`, started and stopped through a polkit rule allowing
   only that; `deploy/verify-isolation.sh` proves it on the machine
 - `deploy/sentinel4rust.service`, a systemd unit, which ends a run in progress in the run unit when it stops or
-  restarts; `deploy/SETUP.md`, the machine, keys and rulesets step by step;
-  `deploy/verify-access.sh`, checking that a repository's key reads and that its rulesets refuse every branch but
-  `mutants`, and every tag; `deploy/roster.example.toml`
+  restarts; `deploy/SETUP.md`, the machine, the key and the results repository step by step;
+  `deploy/verify-access.sh`, checking that every watched repository reads with no credential and that the key writes
+  the results repository; `deploy/roster.example.toml`
 - `deploy/PROVISION.md`, the set-up for an agent on the machine, through three idempotent scripts with `--dry-run`:
   `deploy/provision.sh` (the machine, the `sentinel` user and its tools, sentinel4rust from the checkout, the units,
-  the isolation proof), `deploy/onboard.sh` (per repository the key, the rulesets in `deploy/rulesets/`, the deploy key
-  and the access proof, changing GitHub only with `--apply-github`) and `deploy/go-live.sh` (the first pass, then the
+  the isolation proof), `deploy/onboard.sh` (once the key, its host alias and its deploy key on the results repository,
+  `results_url`; per watched repository the checks that it is public and carries no key of the sentinel's; the
+  access proof and the roster entries; changing GitHub only with `--apply-github`) and `deploy/go-live.sh` (the first pass, then the
   service); `deploy/status-check.sh` watches it from another machine. Proven on the machine only once run there (open
   point 17)
 

@@ -44,4 +44,4 @@ without `caught.txt` and `missed.txt` is a tool failure.
 
 ## Related
 
-- `ADR-OrphanMutantsBranch.md`, `ADR-ResultsFailuresAndBackOff.md`.
+- `ADR-SharedResultsRepository.md`, `ADR-ResultsFailuresAndBackOff.md`.

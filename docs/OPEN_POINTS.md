@@ -11,7 +11,7 @@ be observed yet, that it is to be verified on the machine. Recorded 2026-10-24. 
 | 2 | `cargo install sentinel4rust` installs the placeholder that does nothing | closed: 0.1.0 on crates.io |
 | 3 | a large repository can hold the machine for 36 hours per commit and publish nothing | to measure on the machine |
 | 4 | an unreadable `summary.toml` silently reruns the same commit forever | closed: its own state |
-| 5 | every repository's code runs where every repository's key is | closed in the code; prove on the machine |
+| 5 | every repository's code runs where every repository's key is | closed: proven on the machine, 2026-11-14 |
 | 6 | `cargo xtask` does not exist | closed: `.cargo/config.toml` |
 | 7 | the family's gates and coding standards do not apply here yet | closed: `docs/ROADMAP.md` |
 | 8 | the design and the code disagree in four places | closed: `docs/DESIGN.md` |
@@ -20,14 +20,14 @@ be observed yet, that it is to be verified on the machine. Recorded 2026-10-24. 
 | 11 | flaky tests and machine-dependent timeouts make the lists noisy | re-check done; to watch |
 | 12 | a dead machine looks like a quiet repository | closed: `--status` |
 | 13 | `config_version` has to be bumped by hand after a cargo-mutants upgrade | closed: the version counts |
-| 14 | `verify-access.sh --include-main` force-pushes `main` | closed: `deploy/verify-access.sh` |
+| 14 | `verify-access.sh --include-main` force-pushes `main` | closed: the option is gone |
 | 15 | what public repositories publish | closed: decided per repository |
 | 16 | smaller things | closed: each fixed or recorded |
-| 17 | the automated set-up is proven only as far as the laptop allows | to prove on the machine |
-| 18 | a private repository on GitHub's free plan cannot be onboarded | open: the owner decides |
+| 17 | the automated set-up is proven only as far as the laptop allows | provisioning proven; onboarding to prove |
+| 18 | a private repository on GitHub's free plan cannot be onboarded | open: no private repository can be watched |
 | 19 | restarting the service leaves a run in the run unit running | closed in the unit; prove on the machine |
-| 20 | the ruleset covers branches, not tags | closed in `deploy/`; prove on GitHub |
-| 21 | the deploy keys depend on the GitHub CLI's authorization | recorded |
+| 20 | the ruleset covers branches, not tags | closed: no rulesets; the key writes the results repository only |
+| 21 | the deploy key depends on the GitHub CLI's authorization | recorded |
 
 ---
 
@@ -73,6 +73,10 @@ when the record reads again.
 
 ## 5. Every repository's code runs where every repository's key is
 
+Written when every onboarded repository had a write key of its own. Today there is one key, the results repository's
+(`ADR-SharedResultsRepository`), and the watched repositories are read with no credential; what follows is kept as
+it was recorded.
+
 All deploy keys live in `~sentinel/.ssh`, and cargo-mutants runs each onboarded repository's build scripts, tests
 and dependencies as the same user. One compromised dependency in one repository can read every key: it can then read
 every onboarded repository, private ones included, and write every `mutants` branch. On private repositories without
@@ -92,6 +96,10 @@ in as a job file and the result and output come back beside it (`cli/src/system/
 stand-in for systemd; the unit and the rule have not been installed on the machine, and `deploy/verify-isolation.sh`
 -- `~/.ssh` readable in the service, refused in the unit -- is the proof still to run there. `deploy/provision.sh`
 runs it after installing the unit and the rule, and sets `run_unit` only when it passes (point 17).
+
+**Proven on the machine, 2026-11-14.** `provision.sh` installed the unit and the rule and ran `verify-isolation.sh`:
+`~/.ssh` readable in the service, unreadable inside `sentinel4rust-mutants@run.service`, the unit stopped as the
+service stops it, `RESULT: ok`; `run_unit` is set in the machine's roster.
 
 ## 6. `cargo xtask` does not exist
 
@@ -135,8 +143,9 @@ repository is onboarded:
 - **Path dependencies outside the repository** (`path = "../sibling"`): closed -- readiness reads every
   `Cargo.toml` at `head` and skips the visit with `path-outside-repo`, naming the manifest, when a `path` leaves the
   repository; the run's checkout would have no sibling.
-- **Private git dependencies:** the keys are reachable only through the per-repository host aliases
-  (`github-<repo>`), and a dependency's URL names `github.com`. cargo's built-in git does not read `~/.ssh/config`
+- **Private git dependencies:** the sentinel holds no key that reads a private repository at all -- its one key is
+  the results repository's, reachable only through the host alias `github-mutants` -- and a dependency's URL names
+  `github.com`. cargo's built-in git does not read `~/.ssh/config`
   at all (it authenticates through an SSH agent), and with `net.git-fetch-with-cli` the system git still finds no
   key for `github.com`.
 - **Embedded targets:** a `.cargo/config.toml` with `build.target = "thumbv…"` (etheram-embassy and its consumers)
@@ -189,7 +198,9 @@ it decides nothing, so a broken install does not rerun every repository on every
 
 ## 14. `verify-access.sh --include-main` force-pushes `main`
 
-**Closed.** Every write the script makes to `main` now carries a lease on what it last saw there: putting `main` back
+**Closed, then gone.** Since 2026-11-14 `verify-access.sh` writes nothing to a watched repository, and the option is
+gone with the rulesets it probed: it creates and deletes a branch on the results repository, never its `main`. What
+follows is what the option did. Every write the script makes to `main` now carries a lease on what it last saw there: putting `main` back
 expects what the probe left (the probe commit, or no `main` after the delete probe), and the delete probe expects
 `main` where it was. A commit someone pushes to `main` in between is never overwritten or deleted: the lease refuses,
 the script says so, and leaves `main` alone. `--include-main` fetches `main`'s whole history, since putting `main`
@@ -198,12 +209,13 @@ repositories without and with a stand-in ruleset, and with a push landing on `ma
 
 ## 15. What public repositories publish
 
-**Closed.** On a public repository `mutants` is public: the survivor lists -- a map of the code no test pins -- and, on
+**Closed.** The results repository, `umbgtt10/mutants`, is public, so every watched repository's results are: the
+survivor lists -- a map of the code no test pins -- and, on
 failures, up to 200 lines of log tail with paths such as `/home/sentinel/...`. It is decided per repository, as
 `deploy/SETUP.md` section 7 says, and recorded in `deploy/roster.example.toml`: twin4rust, etheram-raft and
 sentinel4rust publish theirs -- sentinel4rust is tested on itself, its `.cargo/mutants.toml` leaving `xtask/` out --;
-etheram-ibft stays off, by decision. Commits on `mutants` are unsigned, so signed commits are required on `main`
-only.
+etheram-ibft stays off, by decision. Commits on the results repository are unsigned, so it must not require signed
+commits; nothing is written to a watched repository, so its own rules are untouched.
 
 ## 16. Smaller things
 
@@ -248,6 +260,18 @@ rulesets' bodies accepted as they are by `POST /repos/{owner}/{repo}/rulesets`, 
 the owner's `sudo -v` left, which depends on sudo's `timestamp_type` and on how Claude Code runs commands:
 `PROVISION.md` stops and asks when it does not.
 
+**Run on the machine, 2026-11-14.** The preconditions held but one: `sudo -n` did not see the owner's `sudo -v`,
+since sudo's default ticket is per terminal and Claude Code's commands have none, so the owner ran the steps that
+need sudo in their own terminal and the agent read the logs. `provision.sh` ran to `== done`: the packages, the
+`sentinel` user, Rust 1.99.1, cargo-mutants 27.1.0, sentinel4rust 0.1.0 from the checkout's HEAD, the units, the
+rule and the isolation proof (point 5); the service left disabled, the clock synchronised. The read-only
+`onboard.sh --dry-run` planned eleven public repositories with nothing `BLOCKED`. The first `--apply-github`, on
+braintax4rust, created both rulesets and the deploy key, and the access proof failed: the probe branch and the probe
+tag were both accepted (point 20). Onboarding stopped there, the key and the rulesets were deleted, and the design
+changed to one results repository (`ADR-SharedResultsRepository`). **Still to prove on the machine:** the deploy key
+on `umbgtt10/mutants`, `verify-access.sh` against it and the watched repositories, the first pass, the service
+enabled, a restart ending a run (point 19).
+
 ## 18. A private repository on GitHub's free plan cannot be onboarded
 
 GitHub offers rulesets on private repositories only on paid plans; without one it refuses even to list them -- HTTP
@@ -256,9 +280,11 @@ repository, which is private. `ADR-DeployKeyAndRuleset` accepts such a repositor
 only `mutants`, but `verify-access.sh` -- creating a branch must be rejected -- cannot pass there, so `onboard.sh`
 marks it `BLOCKED` and changes nothing on GitHub for it.
 
-**Open, for the owner:** make the repository public, move to a paid plan, leave it off the roster, or accept it
-without a ruleset. The last needs an `onboard.sh` option that skips the ruleset and the probe and says so in the
-roster entry.
+**Open, and wider since 2026-11-14:** with no rulesets in the design, the plan does not matter any more, and no
+private repository can be watched at all: the sentinel reads a watched repository over https with no credential, so
+`onboard.sh` marks a private one `BLOCKED` (`ADR-SharedResultsRepository`). Make it public, or leave it off the
+roster; a read-only deploy key per private repository is the way to watch one, should one need it
+(`docs/ROADMAP.md`, under consideration).
 
 ## 19. Restarting the service leaves a run in the run unit running
 
@@ -309,12 +335,21 @@ role bypasses the ruleset. A workflow that tags with `GITHUB_TOKEN` would be ref
 as a bypass actor on that repository. GitHub accepting the body, and refusing a real probe, wait for the first
 onboarding (point 17).
 
-## 21. The deploy keys depend on the GitHub CLI's authorization
+**Closed, the other way, 2026-11-14.** GitHub accepted both bodies on braintax4rust, listed both rulesets as active
+and as applying to `sentinel4rust-probe`, and then accepted the probe branch and the probe tag pushed with the write
+deploy key. GitHub's documentation says a write deploy key can do what an admin of an organisation's repository, or a
+collaborator on a personal one, can: the admin-role bypass most likely let it through, and a ruleset without that
+bypass would refuse the owner too. The key, both rulesets and the probes were deleted the same day. The rulesets and
+`deploy/rulesets/` are gone: the sentinel's one key is a deploy key on the results repository, which holds nothing
+but results, and nothing writes to a watched repository (`ADR-SharedResultsRepository`).
 
-`onboard.sh` adds each deploy key through `gh`, and `gh repo deploy-key add --help` says such a key is tied to its
-authentication token: de-authorizing the GitHub CLI app in GitHub's settings deletes the keys. `gh auth logout`, at
+## 21. The deploy key depends on the GitHub CLI's authorization
+
+`onboard.sh` adds the deploy key -- one, on the results repository, since 2026-11-14 -- through `gh`, and
+`gh repo deploy-key add --help` says such a key is tied to its authentication token: de-authorizing the GitHub CLI
+app in GitHub's settings deletes it. `gh auth logout`, at
 the end of `PROVISION.md`, only forgets the token on the machine.
 
-**Recorded:** `PROVISION.md` tells the owner at the go. A key deleted this way fails every fetch (`unreachable` in
-the service's journal), and from another machine shows only once `main` moves and its record falls behind;
-`onboard.sh` puts it back. A key added by hand in GitHub's settings is tied to no token.
+**Recorded:** `PROVISION.md` tells the owner at the go. A key deleted this way fails every fetch of the results
+repository (`unreachable` in the service's journal, for every repository), and from another machine shows only once
+a `main` moves and its record falls behind; `onboard.sh` puts it back. A key added by hand in GitHub's settings is tied to no token.
