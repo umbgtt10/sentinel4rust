@@ -1,6 +1,6 @@
 # Setting up the machine
 
-In order. Why it is set up this way: `docs/ADRs/ADR-DeployKeyAndRuleset.md`.
+In order. Why it is set up this way: `docs/ADRs/ADR-SharedResultsRepository.md`.
 
 The automated path is [`PROVISION.md`](PROVISION.md): an agent on the machine runs `deploy/provision.sh`,
 `deploy/onboard.sh` and `deploy/go-live.sh`, each idempotent and with `--dry-run`, and asks the owner before anything
@@ -24,45 +24,57 @@ sentinel4rust built from a `git archive` of the checkout's HEAD into `~sentinel/
 skeleton instead of the example, never overwritten; and GitHub's host keys refused unless each fingerprint is one
 GitHub publishes.
 
-## 2. Per repository
+## 2. The results repository and the watched repositories
 
-On the machine, as `sentinel`:
+The sentinel writes one repository, the results repository (`umbgtt10/mutants`), and only reads the watched ones.
+The results repository is created once, public, by the owner:
 
 ```sh
-ssh-keygen -t ed25519 -N "" -C "sentinel4rust <repo>" -f ~/.ssh/sentinel_<repo>
+gh repo create umbgtt10/mutants --public
+```
+
+On the machine, as `sentinel`, its one key and host alias:
+
+```sh
+ssh-keygen -t ed25519 -N "" -C "sentinel4rust mutants" -f ~/.ssh/sentinel_mutants
 chmod 700 ~/.ssh && chmod 600 ~/.ssh/sentinel_*
 cat >> ~/.ssh/config <<EOF
-Host github-<repo>
+Host github-mutants
     HostName github.com
     User git
-    IdentityFile ~/.ssh/sentinel_<repo>
+    IdentityFile ~/.ssh/sentinel_mutants
     IdentitiesOnly yes
     StrictHostKeyChecking yes
 EOF
 ```
 
-On GitHub:
+On GitHub, on the results repository only: Settings → Deploy keys → Add: `~/.ssh/sentinel_mutants.pub`, **Allow
+write access**, titled `sentinel4rust`. A write deploy key can write every ref of its repository, and rulesets do not
+hold it (`docs/ADRs/ADR-SharedResultsRepository.md`): that is why it goes on a repository that holds nothing but
+results. GitHub accepts a deploy key on one repository only.
 
-- Settings → Deploy keys → Add: `~/.ssh/sentinel_<repo>.pub`, **Allow write access**.
-- Settings → Rules → Rulesets → New branch ruleset `sentinel: only mutants`: enforcement **Active**; target
-  **all branches**, **exclude** `mutants`; **Restrict creations**, **Restrict updates**, **Restrict deletions**,
-  **Block force pushes**; bypass list: the **Repository admin** role only -- on a personal repository, you --,
-  **no deploy keys**. The same ruleset as the API's body: `deploy/rulesets/sentinel-only-mutants.json`.
-- Settings → Rules → Rulesets → New tag ruleset `sentinel: no tags`: enforcement **Active**; target **all tags**;
-  **Restrict creations**, **Restrict updates**, **Restrict deletions**; the same bypass list. A write key can write
-  every ref, tags included, and the branch ruleset does not cover them. As the API's body:
-  `deploy/rulesets/sentinel-no-tags.json`.
-- The repository needs a `.cargo/mutants.toml` on `main` (it is skipped without one).
+In the roster, before the first `[[repo]]`:
 
-Verify, then add it to the roster:
-
-```sh
-deploy/verify-access.sh git@github-<repo>:umbgtt10/<repo>.git
+```toml
+results_url = "git@github-mutants:umbgtt10/mutants.git"
 ```
 
-It tries to create a branch and a tag, and both must be rejected. `deploy/onboard.sh <repo>...` does this section,
-the rulesets before the deploy key, and appends the roster entry once the access proof passes. It changes GitHub
-only with `--apply-github`, and refuses a private repository on the free plan, on which GitHub offers no ruleset.
+A watched repository needs nothing on GitHub: it must be public, and is read over https with no credential --
+`url = "https://github.com/umbgtt10/<repo>.git"` in its `[[repo]]`. It must carry no deploy key of the sentinel's: a
+`sentinel4rust` key left from an earlier design is deleted. It needs a `.cargo/mutants.toml` on `main` (it is
+skipped without one).
+
+Verify, then add the repositories to the roster:
+
+```sh
+deploy/verify-access.sh git@github-mutants:umbgtt10/mutants.git https://github.com/umbgtt10/<repo>.git ...
+```
+
+It reads each watched repository's `main` with no credential, and proves the key writes the results repository by
+creating a branch, `sentinel4rust-probe`, and deleting it again; the results repository's `main` is never touched.
+`deploy/onboard.sh <repo>...` does this section: the key, the host alias, the deploy key, the access proof,
+`results_url` and the roster entries. It changes GitHub -- the one deploy key -- only with `--apply-github`, and
+refuses a private watched repository, which the sentinel could not read with no credential.
 
 ## 3. The service
 
@@ -120,8 +132,8 @@ the lines printed and, with `--mail`, mailed. `PROVISION.md` has a roster, a cro
 ## 6. Running cargo-mutants without the keys
 
 Every repository's build scripts, tests and dependencies run where cargo-mutants runs. To keep them away from the
-deploy keys, cargo-mutants can run in a unit of its own, `sentinel4rust-mutants@.service`, with
-`InaccessiblePaths=/home/sentinel/.ssh`; git, which needs the keys, stays in the service. The service starts the unit,
+deploy key, cargo-mutants can run in a unit of its own, `sentinel4rust-mutants@.service`, with
+`InaccessiblePaths=/home/sentinel/.ssh`; git, which needs the key, stays in the service. The service starts the unit,
 and stops it when the service stops, through a polkit rule that lets the `sentinel` user start and stop that unit's
 instances and nothing else.
 
@@ -140,13 +152,13 @@ proven on the machine: `verify-isolation.sh` is that proof, of the stop as well.
 units and the rule, with drop-ins when the work directory differs, runs the proof, and adds `run_unit` to the roster
 only if it passes.
 
-## 7. Deciding what a public repository publishes
+## 7. Deciding what a repository publishes
 
-On a public repository, `mutants` is public too: the survivor lists -- a map of the code no test pins -- and, on
-failures, up to 200 lines of log tail, with paths such as `/home/sentinel/...`. Decide per repository, before adding
-it to the roster, whether that map may be public; a repository whose survivors should not be is left off the roster,
-and nothing about it is published. Record the decision beside its roster entry, or in the roster's comments when it
-is left off.
+The results repository is public: every watched repository's survivor lists -- a map of the code no test pins --
+and, on failures, up to 200 lines of log tail, with paths such as `/home/sentinel/...`, are published there, in the
+repository's folder. Decide per repository, before adding it to the roster, whether that map may be public; a
+repository whose survivors should not be is left off the roster, and nothing about it is published. Record the
+decision beside its roster entry, or in the roster's comments when it is left off.
 
-Commits on `mutants` are unsigned, from `sentinel4rust@localhost`: a repository requiring signed commits on every
-branch rejects them, so require them on `main` only (section 2's ruleset leaves `mutants` without rules).
+Commits on the results repository are unsigned, from `sentinel4rust@localhost`: it must not require signed commits.
+Nothing is ever written to a watched repository, so its own rules are its owner's business.

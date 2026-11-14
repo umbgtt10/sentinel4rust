@@ -12,7 +12,7 @@ Four scripts do the work. Each is idempotent, has `--dry-run`, and stops at its 
 | script | run as | does |
 |---|---|---|
 | `deploy/provision.sh` | `sudo` | packages, unattended upgrades, the `sentinel` user, Rust 1.99.1, cargo-mutants 27.1.0, sentinel4rust from HEAD, the roster skeleton, GitHub's host keys, the units, the polkit rule, the isolation proof |
-| `deploy/onboard.sh` | the owner | per repository: the sentinel's key and host alias, the two rulesets and the deploy key on GitHub, the access proof, the roster entry |
+| `deploy/onboard.sh` | the owner | once: the sentinel's key and host alias, its deploy key on the results repository `umbgtt10/mutants`, `results_url`; per watched repository: the checks; then the access proof and the roster entries |
 | `deploy/go-live.sh` | `sudo` | the first `--once` pass, then the service enabled and started |
 | `deploy/status-check.sh` | anyone, elsewhere | `--status` from another machine, for cron or a timer |
 
@@ -21,9 +21,10 @@ Four scripts do the work. Each is idempotent, has `--dry-run`, and stops at its 
 1. **Never print a private key or a token.** Never `cat` a `~sentinel/.ssh/sentinel_*` file without `.pub`, never
    run `gh auth token` or `gh auth status --show-token`, never show `~/.config/gh/`. Public keys and fingerprints are
    fine.
-2. **GitHub changes only after the owner's explicit go in the chat.** Step 5 shows the plan -- per repository,
-   exactly what will change on GitHub -- and asks; pass `--apply-github` to `onboard.sh` only after the owner has
-   answered with a go naming the repositories. A go covers those repositories and that plan, nothing else: another
+2. **GitHub changes only after the owner's explicit go in the chat.** Step 5 shows the plan -- exactly what will
+   change on GitHub, which is the one deploy key on the results repository, and which repositories will be watched --
+   and asks; pass `--apply-github` to `onboard.sh` only after the owner has answered with a go naming the
+   repositories. A go covers those repositories and that plan, nothing else: another
    repository, or a plan that changed, needs a new one. Nothing else in this file changes GitHub.
 3. **Keep the checkout as it is.** Do not edit, commit, pull or push in it, and do not edit the scripts, the units or
    the rule to get past a failure. The machine runs exactly what the owner pushed.
@@ -96,9 +97,11 @@ timedatectl show -p NTPSynchronized --value                                    #
 Unless the owner's request named them, ask which repositories to onboard. For each one, the owner decides, and you
 tell them, before step 5:
 
-- **whether its `mutants` branch may be public** -- on a public repository it is: the surviving mutants, a map of the
-  code no test pins, and on failures a log tail with paths (SETUP.md section 7). A repository whose survivors should
-  not be public stays off the roster.
+- **whether its results may be public** -- they are, in its folder of the public results repository `umbgtt10/mutants`:
+  the surviving mutants, a map of the code no test pins, and on failures a log tail with paths (SETUP.md section 7).
+  A repository whose survivors should not be public stays off the roster.
+- that it is public: the sentinel reads a watched repository over https with no credential, so a private one cannot
+  be watched.
 - whether it has a `.cargo/mutants.toml` on `main`: without one the sentinel skips it, harmlessly, until it has one.
   The dry run in step 4 says.
 - for a large repository, whether to measure one run first (SETUP.md section 4) to size `jobs` and
@@ -110,32 +113,32 @@ tell them, before step 5:
 deploy/onboard.sh --dry-run <repo>... > ~/sentinel-onboard-plan.log 2>&1; echo "exit=$?"
 ```
 
-It reads GitHub and writes nothing, anywhere. Per repository it says whether it is public or private, whether
-`.cargo/mutants.toml` is there, and, as `ok` or `would`, each of: the two rulesets, the sentinel's key and host alias,
-the deploy key, the access proof, the roster entry. A repository marked `BLOCKED` is one on which GitHub offers no
-ruleset -- a private repository on the free plan: nothing would keep its write key off `main`. Leave it out of
-step 5 and put the owner's choices to them: make it public, move to a paid plan, or leave it off the roster
-(`docs/ADRs/ADR-DeployKeyAndRuleset.md`).
+It reads GitHub and writes nothing, anywhere. For the results repository it says whether it is there and public, and,
+as `ok` or `would`, the sentinel's key, its host alias and its deploy key. Per watched repository it says whether it
+is public and whether `.cargo/mutants.toml` is there; then, as `ok` or `would`, the access proof, `results_url` and
+the roster entries. A repository marked `BLOCKED` is a private one: the sentinel could not read it with no credential.
+Leave it out of step 5 and put the owner's choices to them: make it public, or leave it off the roster
+(`docs/ADRs/ADR-SharedResultsRepository.md`). The plan fails, too, on a watched repository that still carries a deploy
+key titled `sentinel4rust` -- an earlier design's: the owner deletes it.
 
 ## 5. The owner's go
 
-Show the owner, in the chat, exactly what will change, per repository, from the plan:
+Show the owner, in the chat, exactly what will change, from the plan:
 
 ```text
-umbgtt10/<repo> (PUBLIC|PRIVATE), mutants branch public: yes|no
+umbgtt10/mutants (PUBLIC), the results repository
   GitHub:
-  - ruleset "sentinel: only mutants" created, from deploy/rulesets/sentinel-only-mutants.json: on every branch
-    but mutants, creating, updating, deleting and force-pushing restricted to repository admins   | already there
-  - ruleset "sentinel: no tags" created, from deploy/rulesets/sentinel-no-tags.json: on every tag, creating,
-    updating and deleting restricted to repository admins                                         | already there
-  - deploy key "sentinel4rust" added, WITH WRITE ACCESS: the sentinel's key sentinel_<repo>      | already there
-  - probe pushes of a branch and a tag, both sentinel4rust-probe, which the rulesets must reject
+  - deploy key "sentinel4rust" added, WITH WRITE ACCESS: the sentinel's key sentinel_mutants      | already there
+  - a probe branch sentinel4rust-probe created and deleted again; main is not touched
   This machine:
-  - key ~sentinel/.ssh/sentinel_<repo>, host alias github-<repo>, the [[repo]] entry in the roster
+  - key ~sentinel/.ssh/sentinel_mutants, host alias github-mutants, results_url in the roster
+umbgtt10/<repo> (PUBLIC), watched; its results public in umbgtt10/mutants/<repo>/
+  GitHub: nothing -- read over https, with no credential
+  This machine: the [[repo]] entry in the roster
 ```
 
 and tell them one consequence once: gh adds a deploy key under its own authorization, so **revoking the GitHub CLI's
-access in GitHub's settings (Applications) deletes these keys** -- `gh repo deploy-key add --help` says so. `gh auth
+access in GitHub's settings (Applications) deletes that key** -- `gh repo deploy-key add --help` says so. `gh auth
 logout` in step 9 revokes nothing and does not touch them.
 
 Then ask for a go and wait. Do nothing on GitHub until it comes. A go for some of the repositories covers those.
@@ -146,16 +149,17 @@ Then ask for a go and wait. Do nothing on GitHub until it comes. A go for some o
 deploy/onboard.sh --apply-github <the repositories of the go> > ~/sentinel-onboard.log 2>&1; echo "exit=$?"
 ```
 
-Exit 0; for each repository `RESULT: ok` from the access proof and an `append [[repo]]` or an `ok ... on the
-roster`. Check the roster -- it holds no secret:
+Exit 0; `RESULT: ok` from the access proof, `results_url` set or `ok`, and for each repository an `append [[repo]]`
+or an `ok ... on the roster`. Check the roster -- it holds no secret:
 
 ```sh
 sudo -n -u sentinel -H cat /home/sentinel/.config/sentinel4rust/roster.toml
 ```
 
-**Stop** when the access proof fails (`creating a branch was ACCEPTED` or `creating a tag was ACCEPTED`: that
-ruleset is not in force), when a deploy key titled `sentinel4rust` is there that is not this machine's (a previous
-machine's, perhaps: the owner deletes it), or on anything `BLOCKED`. Do not change anything on GitHub by other means
+**Stop** when the access proof fails (`cannot read main` from a watched repository, or `creating a branch was
+REJECTED` on the results repository: the key cannot write it), when a deploy key titled `sentinel4rust` is on the
+results repository that is not this machine's (a previous machine's, perhaps: the owner deletes it) or on a watched
+repository at all, or on anything `BLOCKED`. Do not change anything on GitHub by other means
 to get past it.
 
 ## 7. Go live
@@ -200,7 +204,8 @@ gh auth logout --hostname github.com --user umbgtt10
 gh auth status    # You are not logged into any GitHub hosts
 ```
 
-The sentinel needs none of it: it reaches GitHub only with its deploy keys. Tell the owner the server no longer holds
+The sentinel needs none of it: it reads the watched repositories with no credential and writes the results
+repository with its deploy key. Tell the owner the server no longer holds
 their GitHub credential, that the logout only removed it locally, and that a later onboarding needs `gh auth login`
 again.
 
@@ -222,7 +227,7 @@ proof, a failed isolation proof.
 Everything is idempotent. `provision.sh` leaves what is in place, and on a HEAD it has not built yet it rebuilds
 sentinel4rust from it -- that is how an upgrade goes, when the owner asks for one: `git pull --ff-only` in the
 checkout (after `gh auth login`: the checkout is fetched with the owner's credential), `sudo deploy/provision.sh`,
-then the restart below. `onboard.sh` leaves keys, host aliases, rulesets, deploy keys and entries that are there. `go-live.sh` only
+then the restart below. `onboard.sh` leaves the key, the host alias, the deploy key, `results_url` and entries that are there. `go-live.sh` only
 says so once the service is live.
 
 ## Restarting the service
@@ -242,7 +247,8 @@ journalctl -u sentinel4rust -n 3 --no-pager               # the start-up line: N
 
 The owner runs `gh auth login` and `sudo -v` again, starts you in the checkout and asks you to onboard
 `<repo>` as this file says. Then: step 0's checks, steps 3 to 6 for that repository, the restart above, the
-`--status` of step 8, and step 9.
+`--status` of step 8, and step 9. The results repository's key, host alias and deploy key are already in place, so
+the plan shows them as `ok`: nothing changes on GitHub, and the go covers the new roster entry.
 
 ## Reading the service's state
 
@@ -256,22 +262,23 @@ otherwise prefix it with `sudo -n`.
 | the run unit | `journalctl -u sentinel4rust-mutants@run.service -n 20 --no-pager` (cargo-mutants' own output stays in `<work_dir>/jobs/run/`) |
 | how far behind | `sudo -u sentinel -H /home/sentinel/.cargo/bin/sentinel4rust --roster /home/sentinel/.config/sentinel4rust/roster.toml --status` (exit 1: one needs attention) |
 | upgrades, reboots | `systemctl list-timers 'apt-daily*'`, `ls /var/run/reboot-required`, `last -n 5 reboot` |
-| the results | `git log -p origin/mutants` in any clone of a repository |
+| the results | `git log -p -- <repo>/` in a clone of `umbgtt10/mutants` |
 
 ## Watching it from another machine
 
 A dead sentinel looks like quiet repositories, so the owner's laptop, say, runs `--status` on a timer through
-`deploy/status-check.sh`, with its own access -- https, or the owner's SSH key -- never the sentinel's keys. On that
+`deploy/status-check.sh`, with its own access -- https, or the owner's SSH key -- never the sentinel's key. On that
 machine, from a checkout -- at `~/sentinel4rust` below --: `cargo install --path cli --locked`, then a roster of
 its own, e.g. `~/.config/sentinel4rust/status.toml`:
 
 ```toml
 work_dir = "/home/<you>/.cache/sentinel4rust-status"   # its clones, under <work_dir>/status
+results_url = "https://github.com/umbgtt10/mutants.git" # read only: --status never pushes
 stale_after_hours = 24                                  # as on the machine
 
 [[repo]]
 name = "twin4rust"
-url = "https://github.com/umbgtt10/twin4rust.git"      # a private one: git@github.com:umbgtt10/<repo>.git
+url = "https://github.com/umbgtt10/twin4rust.git"
 ```
 
 `status-check.sh` prints nothing while every record is current or has waited less than `stale_after_hours`;
