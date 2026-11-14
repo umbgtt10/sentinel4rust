@@ -2,7 +2,8 @@
 
 ## Meaning
 
-`sentinel4rust` hunts mutants around the clock. It runs on a dedicated machine, walks a roster of repositories, and
+`sentinel4rust` hunts mutants around the clock. It runs on a dedicated machine, finds the repositories that ask to be
+tested -- through a read-only GitHub App, every one with a `.cargo/mutants.toml` -- or walks a roster of them, and
 whenever a repository's `main` moves it runs full mutation testing with cargo-mutants against that exact commit and
 publishes the surviving mutants in the repository's folder of one shared results repository, `umbgtt10/mutants`.
 
@@ -37,9 +38,10 @@ A workspace of three members, with a virtual root that holds no package:
 | `cli/` | package `sentinel4rust`: the `sentinel4rust` binary and a library, `sentinel4rust_cli` -- the command line, `EntryPoint` and every implementation of the core's contracts. Depends on the core only. |
 | `xtask/` | gate orchestration, run as `cargo xtask`. `publish = false`. |
 
-`core/src/` is `traits/`, `model/` (`branch/`, `onboarding/`, `toml/`), `patrol/` (the loop) and `protocol/`
-(`git/`, `mutants/`, `unit/`: what the tools answer, read as text); `cli/src/` is `invocation/` (the command line,
-`EntryPoint`) and `system/` (`process/`, `git/`, `mutants/`, `unit/` and `work_dir.rs`); each `tests/` mirrors its
+`core/src/` is `traits/`, `model/` (`branch/`, `github/`, `onboarding/`, `toml/`), `patrol/` (the loop and discovery)
+and `protocol/` (`git/`, `mutants/`, `unit/`: what the tools answer, read as text); `cli/src/` is `invocation/` (the
+command line, `EntryPoint`, `GithubAccess`) and `system/` (`process/`, `git/`, `github/`, `mutants/`, `unit/` and
+`work_dir.rs`); each `tests/` mirrors its
 `src/`. The binary is installed with `cargo install --path cli --locked`. `deploy/` holds the systemd unit, the set-up
 notes, the access check and the example roster.
 
@@ -147,7 +149,8 @@ where a clone asks it to: `just hooks`, once a clone, on each machine.
 - Only `ResultsClone` pushes, and only the results repository's `main`; nothing is ever pushed to a watched
   repository. Tests assert the watched repository's refs are byte-identical after every publish.
 - The core has no dependencies: keep it that way unless a dependency removes real code. TOML goes through
-  `core/src/model/toml/`. `cli` depends on the core alone. The dev-only `xtask` uses `serde`, `serde_json` and `syn`,
+  `core/src/model/toml/`. `cli` depends on the core and `serde_json`, for the GitHub API's answers
+  (`ADR-NoDependencies`). The dev-only `xtask` uses `serde`, `serde_json` and `syn`,
   and `tempfile` for its tests, from `[workspace.dependencies]`.
 - The core is technology-free: `#![no_std]`, and nothing under `core/` touches the file system, a process, a thread,
   the environment or stdout. Every external effect goes through a trait in `core/src/traits/`; `Sentinel` gets them

@@ -2,11 +2,12 @@
 
 Sentinels hunt mutants.
 
-`sentinel4rust` runs on a dedicated machine, around the clock: it walks a list of repositories, and whenever a
+`sentinel4rust` runs on a dedicated machine, around the clock: it finds the repositories that ask to be tested --
+through a read-only GitHub App, every repository of the account with a `.cargo/mutants.toml` -- and whenever a
 repository's `main` moves it runs full mutation testing with [cargo-mutants](https://mutants.rs) against that exact
 commit, then publishes the surviving mutants, with the commit hash, in the repository's folder of one shared results
 repository, [`umbgtt10/mutants`](https://github.com/umbgtt10/mutants). It is not a gate: nothing waits for it, and it
-never writes to the repositories it watches -- it reads them over https, with no credential.
+never writes to the repositories it watches -- it reads them over https, with the App's read-only token.
 
 ## What the results repository holds
 
@@ -23,11 +24,12 @@ README.md                what the repository is; generated, do not edit by hand
 
 Commit messages read `twin4rust: Mutants of 1a2b3c4: 5 missed (+1 -2), 120 caught`, and end `, 3 timed out` when
 any did. The sentinel's one key writes the results repository and nothing else
-([`docs/ADRs/ADR-SharedResultsRepository.md`](docs/ADRs/ADR-SharedResultsRepository.md)); a watched repository must be
-public, and the results repository is private.
+([`docs/ADRs/ADR-SharedResultsRepository.md`](docs/ADRs/ADR-SharedResultsRepository.md)); the results repository is
+private, and the App that finds and reads the watched ones, public or private, can write nothing
+([`docs/ADRs/ADR-GithubAppDiscovery.md`](docs/ADRs/ADR-GithubAppDiscovery.md)).
 
-A repository is tested only once it has a `.cargo/mutants.toml` on `main`; crate filters and accepted survivors
-(`exclude_re`, `#[mutants::skip]`) live there.
+A repository is tested exactly when it has a `.cargo/mutants.toml` on its default branch: adding one is all it takes,
+within an hour, with no restart. Crate filters and accepted survivors (`exclude_re`, `#[mutants::skip]`) live there.
 
 ## Running it
 

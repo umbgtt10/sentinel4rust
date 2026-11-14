@@ -28,6 +28,7 @@ be observed yet, that it is to be verified on the machine. Recorded 2026-10-24. 
 | 19 | restarting the service leaves a run in the run unit running | closed in the unit; prove on the machine |
 | 20 | the ruleset covers branches, not tags | closed: no rulesets; the key writes the results repository only |
 | 21 | the deploy key depends on the GitHub CLI's authorization | recorded |
+| 22 | a git dependency on an unwatched repository of the owner's fails in the run unit | recorded |
 
 ---
 
@@ -145,11 +146,14 @@ repository is onboarded:
   repository; the run's checkout would have no sibling.
 - **Private git dependencies:** closed on 2026-11-14 for a dependency that is itself watched. The run unit holds no
   key, so its build cannot fetch a private dependency from GitHub; instead the sentinel's clone of it, which keeps
-  the branch at `refs/heads/<branch>`, serves it through `file://`: `onboard.sh` redirects the dependency's https URL
-  there in `~sentinel/.gitconfig` and sets `net.git-fetch-with-cli` in `~sentinel/.cargo/config.toml`, so cargo
-  fetches with git, which follows the redirect (`deploy/SETUP.md` section 2). Proven against a scratch crate: the
-  build resolves through the clone and `Cargo.lock` keeps naming the original URL. A private dependency that is not
-  watched is still unsolved.
+  the branch at `refs/heads/<branch>`, serves it through `file://`. First per repository, a redirect `onboard.sh`
+  wrote in `~sentinel/.gitconfig` (etheram-ibft built against etheram-core that way, published 152d0de); then
+  generically (`ADR-GithubAppDiscovery`): the run unit reads a git configuration of its own,
+  `~sentinel/.config/sentinel4rust/run-unit.gitconfig`, which `deploy/provision.sh` writes with one rule sending
+  `https://github.com/<owner>/` to `file://<work_dir>/repos/`, and `~sentinel/.cargo/config.toml` sets
+  `net.git-fetch-with-cli`, so cargo fetches with git, which follows it (`deploy/SETUP.md` section 2a). Proven against
+  a scratch crate: the build resolves through the clone and `Cargo.lock` keeps naming the original URL. A dependency
+  on a repository that is not watched is point 22.
 - **Embedded targets:** a `.cargo/config.toml` with `build.target = "thumbv…"` (etheram-embassy and its consumers)
   cannot run tests on the host; such crates must be excluded in `.cargo/mutants.toml`, or the repository left out.
 - **Pinned toolchains:** closed in the code -- `rustc --version`, run in the checkout for the record, failing means
@@ -292,7 +296,8 @@ repository's results can go to the same place without exposing anything.
 
 **Closed on 2026-11-14:** `deploy/onboard.sh` gives a private watched repository a read-only deploy key and host
 alias of its own, and refuses one only while the results repository is public. etheram-core, etheram-ibft and
-etheram-raft were the first.
+etheram-raft were the first. With a GitHub App in the roster (`ADR-GithubAppDiscovery`) a private repository needs no key
+of its own at all: the App's read-only installation token reads it, as every other.
 
 ## 19. Restarting the service leaves a run in the run unit running
 
@@ -361,3 +366,17 @@ the end of `PROVISION.md`, only forgets the token on the machine.
 **Recorded:** `PROVISION.md` tells the owner at the go. A key deleted this way fails every fetch of the results
 repository (`unreachable` in the service's journal, for every repository), and from another machine shows only once
 a `main` moves and its record falls behind; `onboard.sh` puts it back. A key added by hand in GitHub's settings is tied to no token.
+
+## 22. A git dependency on an unwatched repository of the owner's fails in the run unit
+
+The run unit's git configuration (`ADR-GithubAppDiscovery`) sends every `https://github.com/<owner>/` URL to the
+sentinel's clones, whichever repository it names. A repository of the owner's that is not watched -- no
+`.cargo/mutants.toml`, archived, or not covered by the App's installation -- has no clone, so a watched repository
+depending on it as a git dependency fails its baseline in the unit, where before it was fetched from GitHub with no
+credential when public. Build order is not guaranteed either: a dependant visited before its dependency's first clone
+exists fails, backs off, and succeeds on a later visit.
+
+**Recorded.** No watched repository depends on an unwatched one of the owner's today: etheram-ibft and etheram-raft
+depend on etheram-core, which is watched. Should one, either the dependency gets a `.cargo/mutants.toml` -- even one
+that excludes all its code is enough to be cloned -- or the rule is narrowed in `run-unit.gitconfig` to the
+repositories that are watched.

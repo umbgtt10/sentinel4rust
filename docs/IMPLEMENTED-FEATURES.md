@@ -18,8 +18,21 @@ for what changed, [CHANGELOG.md](../CHANGELOG.md); for what is known to be missi
 
 ### Repositories
 
-- One full bare clone per repository at `<work_dir>/repos/<name>.git`, its origin reset when the roster's URL changes;
-  read over https with no credential, and never written
+- Discovery through a GitHub App, when the roster names one (`github_app_id`, `github_app_installation_id`,
+  `github_app_key`): every repository its installation covers, not archived, with `.cargo/mutants.toml` on its
+  default branch, never the results repository; at start, then every `discovery_minutes` (60 by default), with no
+  restart; a failure keeps the last list and is tried again after the pause; one `discovery repos=… added=…
+  removed=…` journal line each time, and the start-up line says `discovery every <n>m`. The roster's own `[[repo]]`
+  entries come first and win over a discovered one of the same name. `--status` discovers too, and exits 1 when it
+  cannot
+- The App's installation token: its JWT signed by `openssl`, exchanged by `curl`, kept until five minutes before it
+  expires; every secret in mode-600 files beside the App's key, none on a command line; git's network commands get
+  it through the environment, cargo-mutants never
+
+- One full bare clone per repository at `<work_dir>/repos/<name>.git`, its origin reset when the URL changes; read
+  over https -- with the App's token, or with no credential -- and never written; its branch also kept at
+  `refs/heads/<branch>`, where a build in the run unit fetches it as a git dependency through the unit's own git
+  configuration, `run-unit.gitconfig`, holding no key
 - An explicit refspec for the configured branch; the results repository's `main` fetched on every visit into one more
   bare clone, `<work_dir>/results.git`; a deleted folder, or a deleted `main` there, drops the record
 - Skips, publishing nothing: `no-branch` (the branch is not on the remote), `not-a-crate` (no root `Cargo.toml` at
@@ -89,8 +102,9 @@ for what changed, [CHANGELOG.md](../CHANGELOG.md); for what is known to be missi
 - `deploy/PROVISION.md`, the set-up for an agent on the machine, through three idempotent scripts with `--dry-run`:
   `deploy/provision.sh` (the machine, the `sentinel` user and its tools, sentinel4rust from the checkout, the units,
   the isolation proof), `deploy/onboard.sh` (once the key, its host alias and its deploy key on the results repository,
-  `results_url`; per watched repository the checks that it is public and carries no key of the sentinel's; the
-  access proof and the roster entries; changing GitHub only with `--apply-github`) and `deploy/go-live.sh` (the first pass, then the
+  `results_url`, alone when a GitHub App finds the repositories; without one, per watched repository the checks, a
+  read-only key for a private one, and the roster entries; the access proof; changing GitHub only with
+  `--apply-github`) and `deploy/go-live.sh` (the first pass, then the
   service); `deploy/status-check.sh` watches it from another machine. Proven on the machine only once run there (open
   point 17)
 
@@ -102,4 +116,4 @@ for what changed, [CHANGELOG.md](../CHANGELOG.md); for what is known to be missi
 ### No dependencies
 
 - The core depends on nothing, not even the standard library (`#![no_std]`), with its own TOML subset for the roster
-  and `summary.toml`; `cli` depends on the core alone
+  and `summary.toml`; `cli` depends on the core and `serde_json`, which reads the GitHub API's answers
