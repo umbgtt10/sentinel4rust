@@ -20,6 +20,10 @@ same day.
   to the run unit from the sentinel's clone, which now also keeps its branch at `refs/heads/<branch>`, through a
   redirect in `~sentinel/.gitconfig` and cargo's `net.git-fetch-with-cli`.
 
+### Fixed
+- `deploy/onboard.sh` reads deploy keys through GitHub's REST API: `gh repo deploy-key list` answered `readOnly =
+  null` for a write key, so a re-run refused the results repository's key as lacking write access.
+
 ### Changed
 - Results are published to the results repository the roster's new, required `results_url` names, on its `main`, one
   folder per watched repository: `<repo>/summary.toml`, `missed.txt`, `timeout.txt` (when any) and `located/`, with

@@ -244,7 +244,7 @@ check_watched_repo() {
     ok "$owner/$repo is $visibility: read with a read-only deploy key of its own"
   else
     ok "$owner/$repo is PUBLIC: read over https, with no credential"
-    if titles="$(gh repo deploy-key list -R "$owner/$repo" --json title --jq '.[].title' 2>/dev/null)" \
+    if titles="$(gh api "repos/$owner/$repo/keys" --paginate --jq '.[].title' 2>/dev/null)" \
       && printf '%s\n' "$titles" | grep -qxF "$key_title"; then
       fail "$owner/$repo has a deploy key titled '$key_title', which the sentinel does not need on a public
       repository: perhaps an earlier onboarding's. Delete it there (Settings, Deploy keys) and re-run; the owner decides"
@@ -258,8 +258,9 @@ check_watched_repo() {
 ensure_deploy_key() {
   local repo=$1 access=$2 key="$ssh_dir/sentinel_$1" listing ours="" title key_text read_only want flag=()
   if [ "$access" = "write" ]; then want=false; flag=(--allow-write); else want=true; fi
-  listing="$(gh repo deploy-key list -R "$owner/$repo" --json title,key,readOnly \
-    --jq '.[] | [.title, .key, (.readOnly | tostring)] | @tsv')" \
+  # The REST API, not `gh repo deploy-key list`: the latter answered readOnly = null for a write key on 2026-11-14.
+  listing="$(gh api "repos/$owner/$repo/keys" --paginate \
+    --jq '.[] | [.title, .key, (.read_only | tostring)] | @tsv')" \
     || fail "cannot list $owner/$repo's deploy keys"
   if sentinel_has "$key.pub"; then
     ours="$(as_sentinel cat "$key.pub" | awk '{ print $1 " " $2 }')"
