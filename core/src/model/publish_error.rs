@@ -2,12 +2,12 @@
 // Licensed under the MIT License
 // SPDX-License-Identifier: MIT
 
-//! Why a publication did not reach `mutants`.
+//! Why a publication did not reach the results repository.
 
 use alloc::string::String;
 use core::fmt;
 
-/// Why a publication did not reach `mutants`: the step that failed and how.
+/// Why a publication did not reach the results repository: the step that failed and how.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PublishError(pub String);
 

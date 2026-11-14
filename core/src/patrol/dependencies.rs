@@ -20,7 +20,7 @@ pub struct Dependencies {
     pub source: Rc<dyn RepoSource>,
     /// Runs cargo-mutants.
     pub runner: Rc<dyn MutationRunner>,
-    /// Publishes on `mutants`.
+    /// Publishes to the results repository.
     pub store: Rc<dyn ResultStore>,
     /// The time.
     pub clock: Rc<dyn Clock>,

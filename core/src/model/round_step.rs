@@ -13,7 +13,7 @@ use alloc::string::String;
 /// What one visit to a repository did.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum RoundStep {
-    /// The record on `mutants` is current for `head`.
+    /// The record in the results repository is current for `head`.
     Unchanged {
         /// `main`'s commit.
         head: CommitHash,
@@ -46,7 +46,7 @@ pub enum RoundStep {
         /// Why.
         reason: SkipReason,
     },
-    /// The record on `mutants` does not parse; the repository waits until it does.
+    /// The record in the results repository does not parse; the repository waits until it does.
     Unreadable {
         /// Why it does not parse.
         reason: String,

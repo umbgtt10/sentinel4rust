@@ -2,16 +2,16 @@
 // Licensed under the MIT License
 // SPDX-License-Identifier: MIT
 
-//! What the fetched `mutants` branch says about its record.
+//! What the fetched results repository says about a repository's record.
 
 use crate::model::branch::record_error::RecordError;
 use crate::model::branch::run_record::RunRecord;
 use alloc::boxed::Box;
 
-/// What `summary.toml` on the fetched `mutants` branch holds (`ADR-StateLivesOnMutants`).
+/// What a repository's `summary.toml` on the fetched results branch holds (`ADR-StateLivesOnMutants`).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum RecordState {
-    /// No `mutants`, no `summary.toml` on it, or one in a schema this version does not know: the commit is run.
+    /// No results branch, no `summary.toml` in the repository's folder, or one in a schema this version does not know: the commit is run.
     Absent,
     /// A record that parsed.
     Present(Box<RunRecord>),

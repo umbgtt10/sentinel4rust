@@ -2,7 +2,7 @@
 // Licensed under the MIT License
 // SPDX-License-Identifier: MIT
 
-//! cargo-mutants run in a systemd unit of its own, without the deploy keys (`ADR-DeployKeyAndRuleset`).
+//! cargo-mutants run in a systemd unit of its own, without the deploy key (`ADR-SharedResultsRepository`).
 //!
 //! The service writes the command as a job file, starts `<unit>@run.service` with `systemctl start --wait`, and
 //! reads back the result and output the unit's `sentinel4rust --run-job` wrote beside it.

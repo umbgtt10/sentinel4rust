@@ -2,7 +2,7 @@
 // Licensed under the MIT License
 // SPDX-License-Identifier: MIT
 
-//! The files the service and its run unit hand each other (`ADR-DeployKeyAndRuleset`): `job.toml`, the command,
+//! The files the service and its run unit hand each other (`ADR-SharedResultsRepository`): `job.toml`, the command,
 //! and `result.toml`, how it ended.
 
 pub mod job_error;

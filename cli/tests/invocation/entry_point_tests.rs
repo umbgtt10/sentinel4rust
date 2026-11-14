@@ -24,6 +24,7 @@ fn unreachable_roster(dir: &TempDir) -> Roster {
         run_timeout: Duration::from_secs(60),
         config_version: 1,
         stale_after: Duration::from_secs(24 * 3600),
+        results_url: format!("file://{}/results.git", dir.path().display()),
         run_unit: None,
         repos: vec![OnboardedRepo {
             name: String::from("x"),
@@ -78,7 +79,8 @@ fn run_once_with_an_unreachable_repository_exits_one() {
     fs::write(
         &roster,
         format!(
-            "work_dir = \"{}/work\"\n[[repo]]\nname = \"x\"\nurl = \"file://{}/nowhere.git\"\n",
+            "work_dir = \"{}/work\"\nresults_url = \"file://{}/results.git\"\n[[repo]]\nname = \"x\"\nurl = \"file://{}/nowhere.git\"\n",
+            dir.path().display(),
             dir.path().display(),
             dir.path().display()
         ),
@@ -112,7 +114,8 @@ fn run_status_of_an_unreachable_repository_exits_one() {
     fs::write(
         &roster,
         format!(
-            "work_dir = \"{}/work\"\n[[repo]]\nname = \"x\"\nurl = \"file://{}/nowhere.git\"\n",
+            "work_dir = \"{}/work\"\nresults_url = \"file://{}/results.git\"\n[[repo]]\nname = \"x\"\nurl = \"file://{}/nowhere.git\"\n",
+            dir.path().display(),
             dir.path().display(),
             dir.path().display()
         ),

@@ -10,9 +10,9 @@ use core::time::Duration;
 /// One onboarded repository.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct OnboardedRepo {
-    /// Unique; names the local clone.
+    /// Unique; names the local clone and the repository's folder in the results repository.
     pub name: String,
-    /// What git fetches from and pushes to.
+    /// What git fetches from; nothing is ever pushed there.
     pub url: String,
     /// The branch tested; `main` by default.
     pub branch: String,

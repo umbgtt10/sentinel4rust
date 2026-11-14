@@ -2,14 +2,14 @@
 // Licensed under the MIT License
 // SPDX-License-Identifier: MIT
 
-//! One file written on the `mutants` branch.
+//! One file written in the results repository.
 
 use alloc::string::String;
 
-/// One file written on the `mutants` branch.
+/// One file written in the results repository.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BranchFile {
-    /// The path inside the branch.
+    /// The path from the results repository's root.
     pub path: String,
     /// What the file holds.
     pub contents: String,

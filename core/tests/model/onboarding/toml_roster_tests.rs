@@ -7,6 +7,7 @@ use std::time::Duration;
 
 const FULL: &str = r#"
     work_dir = "/srv/s"
+    results_url = "git@github-mutants:umbgtt10/mutants.git"
     pause_seconds = 60
     jobs = 6
     run_timeout_hours = 2
@@ -30,6 +31,10 @@ fn parse_full_roster_reads_settings_and_repos_in_order() {
 
     // Assert
     assert_eq!(roster.work_dir, "/srv/s");
+    assert_eq!(
+        roster.results_url,
+        "git@github-mutants:umbgtt10/mutants.git"
+    );
     assert_eq!(roster.pause, Duration::from_secs(60));
     assert_eq!(roster.run_timeout, Duration::from_secs(7200));
     assert_eq!(roster.config_version, 3);
@@ -47,27 +52,43 @@ fn parse_invalid_rosters_fails_naming_the_problem() {
     let repo = "[[repo]]\nname = \"a\"\nurl = \"u\"\n";
     let cases = [
         (repo.to_string(), "work_dir"),
-        ("work_dir = \"/w\"".to_string(), "no [[repo]]"),
+        (format!("work_dir = \"/w\"\n{repo}"), "results_url"),
         (
-            format!("work_dir = \"/w\"\ntypo = 1\n{repo}"),
+            format!("work_dir = \"/w\"\nresults_url = \" \"\n{repo}"),
+            "empty `results_url`",
+        ),
+        (
+            "work_dir = \"/w\"\nresults_url = \"r\"".to_string(),
+            "no [[repo]]",
+        ),
+        (
+            format!("work_dir = \"/w\"\nresults_url = \"r\"\ntypo = 1\n{repo}"),
             "unknown key",
         ),
-        (format!("work_dir = \"/w\"\n{repo}{repo}"), "duplicate name"),
-        (format!("work_dir = \"/w\"\njobs = 0\n{repo}"), "positive"),
         (
-            format!("work_dir = \"/w\"\n{repo}branch = \"mutants\""),
+            format!("work_dir = \"/w\"\nresults_url = \"r\"\n{repo}{repo}"),
+            "duplicate name",
+        ),
+        (
+            format!("work_dir = \"/w\"\nresults_url = \"r\"\njobs = 0\n{repo}"),
+            "positive",
+        ),
+        (
+            format!("work_dir = \"/w\"\nresults_url = \"r\"\n{repo}branch = \"mutants\""),
             "invalid branch",
         ),
         (
-            "work_dir = \"/w\"\n[[repo]]\nname = \"../x\"\nurl = \"u\"".to_string(),
+            "work_dir = \"/w\"\nresults_url = \"r\"\n[[repo]]\nname = \"../x\"\nurl = \"u\""
+                .to_string(),
             "invalid name",
         ),
         (
-            "work_dir = \"/w\"\n[[repo]]\nname = \"a\"\nurl = \" \"".to_string(),
+            "work_dir = \"/w\"\nresults_url = \"r\"\n[[repo]]\nname = \"a\"\nurl = \" \""
+                .to_string(),
             "empty url",
         ),
         (
-            format!("work_dir = \"/w\"\n{repo}[[other]]\nx = 1"),
+            format!("work_dir = \"/w\"\nresults_url = \"r\"\n{repo}[[other]]\nx = 1"),
             "unknown section",
         ),
     ];
@@ -83,7 +104,7 @@ fn parse_invalid_rosters_fails_naming_the_problem() {
 fn parse_minimal_roster_applies_the_defaults() {
     // Arrange & Act
     let roster = TomlRoster
-        .parse("work_dir = \"/w\"\n[[repo]]\nname = \"a\"\nurl = \"u\"")
+        .parse("work_dir = \"/w\"\nresults_url = \"r\"\n[[repo]]\nname = \"a\"\nurl = \"u\"")
         .unwrap();
 
     // Assert
@@ -97,7 +118,7 @@ fn parse_minimal_roster_applies_the_defaults() {
 fn parse_repo_run_timeout_overrides_the_global_cap() {
     // Arrange
     let text = "\
-        work_dir = \"/w\"
+        work_dir = \"/w\"\nresults_url = \"r\"
         run_timeout_hours = 2
 
         [[repo]]
@@ -117,7 +138,7 @@ fn parse_repo_run_timeout_overrides_the_global_cap() {
     assert_eq!(roster.repos[0].run_timeout, Duration::from_secs(2 * 3600));
     assert_eq!(roster.repos[1].run_timeout, Duration::from_secs(30 * 3600));
     let zero = TomlRoster
-        .parse("work_dir = \"/w\"\n[[repo]]\nname = \"a\"\nurl = \"u\"\nrun_timeout_hours = 0")
+        .parse("work_dir = \"/w\"\nresults_url = \"r\"\n[[repo]]\nname = \"a\"\nurl = \"u\"\nrun_timeout_hours = 0")
         .unwrap_err()
         .0;
     assert!(zero.contains("positive"), "{zero}");
@@ -126,9 +147,9 @@ fn parse_repo_run_timeout_overrides_the_global_cap() {
 #[test]
 fn parse_run_unit_names_the_unit_runs_go_through() {
     // Arrange
-    let none = "work_dir = \"/w\"\n[[repo]]\nname = \"a\"\nurl = \"u\"";
-    let named = "work_dir = \"/w\"\nrun_unit = \"sentinel4rust-mutants\"\n[[repo]]\nname = \"a\"\nurl = \"u\"";
-    let odd = "work_dir = \"/w\"\nrun_unit = \"x; rm -rf\"\n[[repo]]\nname = \"a\"\nurl = \"u\"";
+    let none = "work_dir = \"/w\"\nresults_url = \"r\"\n[[repo]]\nname = \"a\"\nurl = \"u\"";
+    let named = "work_dir = \"/w\"\nresults_url = \"r\"\nrun_unit = \"sentinel4rust-mutants\"\n[[repo]]\nname = \"a\"\nurl = \"u\"";
+    let odd = "work_dir = \"/w\"\nresults_url = \"r\"\nrun_unit = \"x; rm -rf\"\n[[repo]]\nname = \"a\"\nurl = \"u\"";
 
     // Act
     let direct = TomlRoster.parse(none).unwrap();
@@ -147,8 +168,8 @@ fn parse_run_unit_names_the_unit_runs_go_through() {
 #[test]
 fn parse_stale_after_hours_defaults_to_a_day() {
     // Arrange
-    let minimal = "work_dir = \"/w\"\n[[repo]]\nname = \"a\"\nurl = \"u\"";
-    let set = "work_dir = \"/w\"\nstale_after_hours = 6\n[[repo]]\nname = \"a\"\nurl = \"u\"";
+    let minimal = "work_dir = \"/w\"\nresults_url = \"r\"\n[[repo]]\nname = \"a\"\nurl = \"u\"";
+    let set = "work_dir = \"/w\"\nresults_url = \"r\"\nstale_after_hours = 6\n[[repo]]\nname = \"a\"\nurl = \"u\"";
 
     // Act
     let default = TomlRoster.parse(minimal).unwrap();

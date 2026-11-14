@@ -10,5 +10,5 @@ use std::time::Duration;
 pub const NETWORK_TIMEOUT: Duration = Duration::from_secs(5 * 60);
 /// Deadline for other git commands.
 pub const LOCAL_TIMEOUT: Duration = Duration::from_secs(60);
-/// Where the fetched `mutants` branch is kept in the bare clone.
-pub const MUTANTS_REMOTE_REF: &str = "refs/remotes/origin/mutants";
+/// Where the results repository's fetched branch is kept in its bare clone.
+pub const RESULTS_REMOTE_REF: &str = "refs/remotes/origin/main";

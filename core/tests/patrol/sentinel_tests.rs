@@ -103,6 +103,7 @@ fn sentinel_for(repos: Vec<OnboardedRepo>, installed: Option<&str>) -> (Sentinel
         run_timeout: Duration::from_secs(3600),
         config_version: 1,
         stale_after: Duration::from_secs(24 * 3600),
+        results_url: "r".to_string(),
         run_unit: None,
         repos,
     };
@@ -378,8 +379,8 @@ fn run_once_second_baseline_failure_publishes_baseline_failed() {
     assert_eq!(p.missed, Vec::<MutantKey>::new());
     assert_eq!(p.record.log_tail.as_deref(), Some("test x ... FAILED"));
     assert_eq!(
-        BranchLayout.message(p),
-        "Mutants of aaaaaaa: baseline failed"
+        BranchLayout.message("a", p),
+        "a: Mutants of aaaaaaa: baseline failed"
     );
 }
 

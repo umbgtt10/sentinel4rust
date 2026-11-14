@@ -41,6 +41,29 @@ fn work_dir(work: &TempDir) -> WorkDir {
 }
 
 #[test]
+fn ensure_at_of_no_clone_inits_a_bare_repository_there_with_origin() {
+    // Arrange
+    let work = TempDir::new("bare-clone-at");
+    let runner = Rc::new(ScriptedRunner::new(vec![ok(""), ok("")]));
+    let dir = work_dir(&work).results_clone();
+
+    // Act
+    let result = bare_clone(&runner, &work).ensure_at(&dir, "file:///srv/mutants.git");
+
+    // Assert
+    assert_eq!(result, Ok(dir.clone()));
+    let dir_text = dir.to_string_lossy().into_owned();
+    assert_eq!(
+        runner.args(),
+        [
+            vec!["init", "--quiet", "--bare", dir_text.as_str()],
+            vec!["remote", "add", "origin", "file:///srv/mutants.git"],
+        ]
+    );
+    assert_eq!(Path::new(runner.commands()[0].dir()), work.path());
+}
+
+#[test]
 fn ensure_failing_is_transient() {
     // Arrange
     let work = TempDir::new("bare-clone-fail");

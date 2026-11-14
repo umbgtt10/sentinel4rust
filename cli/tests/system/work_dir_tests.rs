@@ -59,6 +59,15 @@ fn mutants_out_of_a_repo_is_under_out() {
 }
 
 #[test]
+fn results_clone_is_one_bare_clone_beside_the_repos() {
+    // Arrange & Act
+    let path = work_dir().results_clone();
+
+    // Assert
+    assert_eq!(path, Path::new("/srv/s/results.git"));
+}
+
+#[test]
 fn root_is_the_directory_given() {
     // Arrange & Act
     let work_dir = work_dir();

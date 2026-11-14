@@ -10,7 +10,7 @@ use sentinel4rust::model::outcome_kind::OutcomeKind;
 
 fn paths(p: &Publication) -> Vec<String> {
     BranchLayout
-        .files(p)
+        .files("twin4rust", p)
         .into_iter()
         .map(|file| file.path)
         .collect()
@@ -35,6 +35,34 @@ fn publication(outcome: OutcomeKind, timed_out: bool) -> Publication {
 }
 
 #[test]
+fn files_of_any_run_lead_with_the_shared_readme_at_the_root() {
+    // Arrange
+    let completed = publication(OutcomeKind::Completed, false);
+
+    // Act
+    let readme = BranchLayout
+        .files("twin4rust", &completed)
+        .into_iter()
+        .next()
+        .unwrap();
+
+    // Assert
+    assert_eq!(readme.path, "README.md");
+    assert!(
+        readme
+            .contents
+            .contains("One folder per watched repository"),
+        "{}",
+        readme.contents
+    );
+    assert!(
+        readme.contents.contains("git log -p -- <repo>/"),
+        "{}",
+        readme.contents
+    );
+}
+
+#[test]
 fn files_of_completed_run_list_timeouts_only_when_present() {
     // Arrange
     let with = publication(OutcomeKind::Completed, true);
@@ -44,18 +72,18 @@ fn files_of_completed_run_list_timeouts_only_when_present() {
         paths(&publication(OutcomeKind::Completed, false)),
         [
             "README.md",
-            "summary.toml",
-            "missed.txt",
-            "located/missed.txt"
+            "twin4rust/summary.toml",
+            "twin4rust/missed.txt",
+            "twin4rust/located/missed.txt"
         ]
     );
     assert_eq!(paths(&with).len(), 6);
 
     // Act
     let missed = BranchLayout
-        .files(&with)
+        .files("twin4rust", &with)
         .into_iter()
-        .find(|file| file.path == "missed.txt")
+        .find(|file| file.path == "twin4rust/missed.txt")
         .unwrap();
 
     // Assert
@@ -75,7 +103,7 @@ fn files_of_failed_run_write_no_lists() {
 
     // Assert
     for written_paths in written {
-        assert_eq!(written_paths, ["README.md", "summary.toml"]);
+        assert_eq!(written_paths, ["README.md", "twin4rust/summary.toml"]);
     }
 }
 
@@ -88,25 +116,31 @@ fn message_of_a_completed_run_with_no_timeout_leaves_them_out() {
     publication.record.counts.timeout = 0;
 
     // Act
-    let message = BranchLayout.message(&publication);
+    let message = BranchLayout.message("twin4rust", &publication);
 
     // Assert
-    assert_eq!(message, "Mutants of abababa: 2 missed (+1 -0), 10 caught");
+    assert_eq!(
+        message,
+        "twin4rust: Mutants of abababa: 2 missed (+1 -0), 10 caught"
+    );
 }
 
 #[test]
 fn message_of_each_outcome_follows_the_design() {
     // Arrange & Act & Assert
     assert_eq!(
-        BranchLayout.message(&publication(OutcomeKind::Completed, false)),
-        "Mutants of abababa: 2 missed (+1 -0), 10 caught, 1 timed out"
+        BranchLayout.message("twin4rust", &publication(OutcomeKind::Completed, false)),
+        "twin4rust: Mutants of abababa: 2 missed (+1 -0), 10 caught, 1 timed out"
     );
     assert_eq!(
-        BranchLayout.message(&publication(OutcomeKind::BaselineFailed, false)),
-        "Mutants of abababa: baseline failed"
+        BranchLayout.message(
+            "twin4rust",
+            &publication(OutcomeKind::BaselineFailed, false)
+        ),
+        "twin4rust: Mutants of abababa: baseline failed"
     );
     assert_eq!(
-        BranchLayout.message(&publication(OutcomeKind::ToolFailed, false)),
-        "Mutants of abababa: tool failed"
+        BranchLayout.message("twin4rust", &publication(OutcomeKind::ToolFailed, false)),
+        "twin4rust: Mutants of abababa: tool failed"
     );
 }

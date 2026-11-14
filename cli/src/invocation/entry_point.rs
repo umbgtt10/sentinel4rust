@@ -64,7 +64,11 @@ impl EntryPoint {
     pub fn compose(&self, roster: Roster) -> Sentinel {
         let runner: Rc<dyn CommandRunner> = Rc::new(SystemCommandRunner);
         let work_dir = WorkDir::new(PathBuf::from(&roster.work_dir));
-        let git = Rc::new(GitCli::new(runner.clone(), work_dir.clone()));
+        let git = Rc::new(GitCli::new(
+            runner.clone(),
+            work_dir.clone(),
+            roster.results_url.clone(),
+        ));
         git.prune(&roster.repos);
         let mutants_runner: Rc<dyn CommandRunner> = match &roster.run_unit {
             Some(unit) => Rc::new(UnitCommandRunner::new(
@@ -161,7 +165,11 @@ impl EntryPoint {
         let _lock = WorkDirLock::acquire(&status_dir)?;
         let runner: Rc<dyn CommandRunner> = Rc::new(SystemCommandRunner);
         let report = StatusReport::new(
-            Rc::new(GitCli::new(runner, WorkDir::new(status_dir))),
+            Rc::new(GitCli::new(
+                runner,
+                WorkDir::new(status_dir),
+                roster.results_url.clone(),
+            )),
             Rc::new(SystemClock),
             roster.config_version,
             roster.stale_after,

@@ -25,6 +25,9 @@ pub struct Roster {
     pub config_version: i64,
     /// How long `main`'s head may wait for a record before `--status` calls the repository stale.
     pub stale_after: Duration,
+    /// The shared repository every publication is pushed to, one folder per watched repository
+    /// (`ADR-SharedResultsRepository`).
+    pub results_url: String,
     /// The systemd template unit cargo-mutants runs in, away from the deploy keys; `None`: in the service itself.
     pub run_unit: Option<String>,
     /// The repositories, in roster order.
