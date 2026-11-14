@@ -4,14 +4,17 @@
 # the `sentinel` user, that key on GitHub with write access to the results repository and nothing else, and
 # `results_url` in the roster. Per public watched repository: that it is read over https with no credential at all,
 # and that no deploy key titled like the sentinel's is left on it. Per private one -- only while the results
-# repository is private too --: a key, a host alias and a READ-ONLY deploy key of its own, and a redirect that lets a
-# build in the run unit fetch it, as a git dependency, from the sentinel's clone rather than from GitHub
-# (docs/OPEN_POINTS.md point 10). Then each one's [[repo]] entry in the roster. The access proof, deploy/verify-access.sh, runs before anything is added to the roster. Whatever is
+# repository is private too --: a key, a host alias and a READ-ONLY deploy key of its own; a build in the run unit
+# fetches it as a git dependency from the sentinel's clone, through the run unit's own git configuration, which
+# deploy/provision.sh writes (docs/OPEN_POINTS.md point 10). Then each one's [[repo]] entry in the roster. The access proof, deploy/verify-access.sh, runs before anything is added to the roster. Whatever is
 # already in place is left alone, so it can be re-run; it stops at the first failure.
 #
 # Run as the owner, from the checkout, after deploy/provision.sh, with sudo cached (sudo -v) and gh logged in.
 #
-#   deploy/onboard.sh [options] <repo>...
+#   deploy/onboard.sh [options] [<repo>...]
+#
+# With no repository, it sets up the results repository alone -- as a GitHub App, which discovers the repositories
+# itself, needs (ADR-GithubAppDiscovery).
 #
 #   --dry-run              print every action without doing any: GitHub is read, never written
 #   --apply-github         allow the GitHub changes, the deploy key on the results repository and a read-only one per
@@ -82,7 +85,6 @@ while [ $# -gt 0 ]; do
   shift
 done
 
-[ "${#repos[@]}" -gt 0 ] || usage
 for repo in "$results" "${repos[@]}"; do
   [[ "$repo" =~ ^[A-Za-z0-9_-][A-Za-z0-9._-]*$ ]] \
     || fail "invalid repository name '$repo' (letters, digits, '-', '_', '.', not starting with '.')"
@@ -285,33 +287,6 @@ ensure_deploy_key() {
     gh repo deploy-key add "$scratch/$repo.pub" -R "$owner/$repo" --title "$key_title" "${flag[@]}"
 }
 
-# ensure_cargo_redirect <repo>: a build in the run unit, which holds no key, fetches the private <repo> as a git
-# dependency from the sentinel's clone of it, through the sentinel's git configuration, with cargo using git.
-ensure_cargo_redirect() {
-  local repo=$1 work_dir from to gitconfig="$sentinel_home/.gitconfig" cargo_config="$sentinel_home/.cargo/config.toml"
-  work_dir="$(roster_value work_dir)"
-  [ -n "$work_dir" ] || fail "the roster names no work_dir"
-  from="https://github.com/$owner/$repo"
-  to="file://$work_dir/repos/$repo.git"
-  if sentinel_has "$gitconfig" \
-    && [ "$(as_sentinel git config --file "$gitconfig" --get "url.$to.insteadOf" || true)" = "$from" ]; then
-    ok "git dependencies on $from are fetched from $to"
-  else
-    step "fetch git dependencies on $from from $to, in $gitconfig" \
-      as_sentinel git config --file "$gitconfig" "url.$to.insteadOf" "$from"
-  fi
-  if sentinel_has "$cargo_config" \
-    && as_sentinel grep -qE '^[[:space:]]*git-fetch-with-cli[[:space:]]*=[[:space:]]*true' "$cargo_config"; then
-    ok "cargo fetches git dependencies with git, in $cargo_config"
-  elif sentinel_has "$cargo_config"; then
-    fail "$cargo_config has no git-fetch-with-cli = true under [net]: add it by hand, as sentinel, and re-run"
-  else
-    printf '[net]\ngit-fetch-with-cli = true\n' > "$scratch/cargo-config"
-    step "make cargo fetch git dependencies with git, in $cargo_config" \
-      write_as_sentinel "$scratch/cargo-config" "$cargo_config"
-  fi
-}
-
 # Reading every watched repository with no credential, and writing the results repository with the key.
 prove_access() {
   if [ "$dry_run" -eq 1 ]; then
@@ -457,9 +432,6 @@ fi
 
 say "== the roster"
 ensure_results_url
-for repo in "${private_repos[@]}"; do
-  ensure_cargo_redirect "$repo"
-done
 for i in "${!watched[@]}"; do
   ensure_entry "${watched[$i]}" "${watched_urls[$i]}"
 done

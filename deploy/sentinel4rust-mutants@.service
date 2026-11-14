@@ -9,6 +9,9 @@ Group=sentinel
 # The instance names the job directory the service wrote (deploy/SETUP.md section 6).
 ExecStart=/home/sentinel/.cargo/bin/sentinel4rust --run-job /home/sentinel/sentinel4rust/jobs/%i
 Environment=PATH=/home/sentinel/.cargo/bin:/usr/local/bin:/usr/bin:/bin
+# git here reads this file instead of ~/.gitconfig: it fetches a git dependency on one of the owner's repositories
+# from the sentinel's clone of it, holding no key (deploy/provision.sh writes it; ADR-GithubAppDiscovery).
+Environment=GIT_CONFIG_GLOBAL=/home/sentinel/.config/sentinel4rust/run-unit.gitconfig
 
 # The repositories' code runs here; the deploy keys stay with the service.
 InaccessiblePaths=/home/sentinel/.ssh

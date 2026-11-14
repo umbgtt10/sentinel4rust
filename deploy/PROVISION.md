@@ -12,20 +12,21 @@ Four scripts do the work. Each is idempotent, has `--dry-run`, and stops at its 
 | script | run as | does |
 |---|---|---|
 | `deploy/provision.sh` | `sudo` | packages, unattended upgrades, the `sentinel` user, Rust 1.99.1, cargo-mutants 27.1.0, sentinel4rust from HEAD, the roster skeleton, GitHub's host keys, the units, the polkit rule, the isolation proof |
-| `deploy/onboard.sh` | the owner | once: the sentinel's key and host alias, its deploy key on the results repository `umbgtt10/mutants`, `results_url`; per watched repository: the checks; then the access proof and the roster entries |
+| `deploy/onboard.sh` | the owner | the sentinel's key and host alias, its deploy key on the results repository `umbgtt10/mutants`, `results_url`, the access proof; without a GitHub App, per watched repository too: the checks, a read-only key for a private one, and the roster entries |
 | `deploy/go-live.sh` | `sudo` | the first `--once` pass, then the service enabled and started |
 | `deploy/status-check.sh` | anyone, elsewhere | `--status` from another machine, for cron or a timer |
 
 ## Rules
 
-1. **Never print a private key or a token.** Never `cat` a `~sentinel/.ssh/sentinel_*` file without `.pub`, never
+1. **Never print a private key or a token.** Never `cat` a `~sentinel/.ssh/sentinel_*` file without `.pub`, nor
+   `sentinel4rust-app.pem` or anything in `~sentinel/.ssh/sentinel4rust-github/`, never
    run `gh auth token` or `gh auth status --show-token`, never show `~/.config/gh/`. Public keys and fingerprints are
    fine.
 2. **GitHub changes only after the owner's explicit go in the chat.** Step 5 shows the plan -- exactly what will
-   change on GitHub, which is the one deploy key on the results repository, and which repositories will be watched --
-   and asks; pass `--apply-github` to `onboard.sh` only after the owner has answered with a go naming the
-   repositories. A go covers those repositories and that plan, nothing else: another
-   repository, or a plan that changed, needs a new one. Nothing else in this file changes GitHub.
+   change on GitHub -- the deploy key on the results repository, the GitHub App the owner creates, and without an App
+   a read-only key per private repository -- and asks; pass `--apply-github` to `onboard.sh` only after the owner has
+   answered with a go. A go covers that plan, nothing else: a plan that changed needs a new one. Nothing else in this
+   file changes GitHub; the App is created by the owner, never by you.
 3. **Keep the checkout as it is.** Do not edit, commit, pull or push in it, and do not edit the scripts, the units or
    the rule to get past a failure. The machine runs exactly what the owner pushed.
 4. **sudo is cached, not given.** Use `sudo -n` so that nothing waits for a password. When `sudo -n true` fails,
@@ -92,33 +93,37 @@ timedatectl show -p NTPSynchronized --value                                    #
   `run_unit` stays unset without it.
 - the clock is still not synchronised a few minutes later.
 
-## 3. The repositories
+## 3. The repositories and the GitHub App
 
-Unless the owner's request named them, ask which repositories to onboard. For each one, the owner decides, and you
-tell them, before step 5:
+By default the sentinel finds the repositories itself, through a GitHub App the owner creates
+(`docs/ADRs/ADR-GithubAppDiscovery.md`, SETUP.md section 2a): it watches every repository the App can read that is not
+archived and has a `.cargo/mutants.toml` on its default branch, public or private. Tell the owner, before step 5:
 
-- that its results go to its folder of the private results repository `umbgtt10/mutants`: the surviving mutants, a
-  map of the code no test pins, and on failures a log tail with paths (SETUP.md section 7).
-- whether it is public or private: a public one is read over https with no credential, a private one with a
-  read-only deploy key of its own; a private one is watched only while the results repository is private.
-- whether it has a `.cargo/mutants.toml` on `main`: without one the sentinel skips it, harmlessly, until it has one.
-  The dry run in step 4 says.
+- that every watched repository's results go to its folder of the private results repository `umbgtt10/mutants`:
+  the surviving mutants, a map of the code no test pins, and on failures a log tail with paths (SETUP.md section 7).
+- that a repository is watched exactly when it has `.cargo/mutants.toml` on its default branch: adding one later is
+  all it takes, within `discovery_minutes`, with no restart.
 - for a large repository, whether to measure one run first (SETUP.md section 4) to size `jobs` and
-  `run_timeout_hours`.
+  `run_timeout_hours`, and give it a `[[repo]]` entry of its own to carry them.
+
+Without an App -- when the owner asks for that -- the repositories are onboarded one by one: ask which, and steps 4 to
+6 take them as arguments (`deploy/onboard.sh <repo>...`); a public one is read over https with no credential, a
+private one with a read-only deploy key of its own, and it is watched only while the results repository is private.
 
 ## 4. Onboarding plan
 
 ```sh
-deploy/onboard.sh --dry-run <repo>... > ~/sentinel-onboard-plan.log 2>&1; echo "exit=$?"
+deploy/onboard.sh --dry-run > ~/sentinel-onboard-plan.log 2>&1; echo "exit=$?"
 ```
 
-It reads GitHub and writes nothing, anywhere. For the results repository it says whether it is there and public, and,
-as `ok` or `would`, the sentinel's key, its host alias and its deploy key. Per watched repository it says whether it
-is public and whether `.cargo/mutants.toml` is there; then, as `ok` or `would`, the access proof, `results_url` and
-the roster entries. A repository marked `BLOCKED` is a private one while the results repository is public: its
-survivors would be published. Leave it out of step 5 and put the owner's choices to them: make the results repository
-private, or leave the repository off the roster (`docs/ADRs/ADR-SharedResultsRepository.md`). The plan fails, too, on a watched repository that still carries a deploy
-key titled `sentinel4rust` -- an earlier design's: the owner deletes it.
+With no repository it plans the results repository alone. It reads GitHub and writes nothing, anywhere: whether the
+results repository is there and private, and, as `ok` or `would`, the sentinel's key, its host alias, its deploy key,
+the access proof and `results_url`. Without an App, with the repositories as arguments, it also says per repository
+whether it is public and whether `.cargo/mutants.toml` is there, and the roster entries; a repository marked `BLOCKED`
+is a private one while the results repository is public -- its survivors would be published: leave it out of step 5
+and put the owner's choices to them, make the results repository private or leave the repository off the roster. The
+plan fails, too, on a public watched repository that still carries a deploy key titled `sentinel4rust`: the owner
+deletes it.
 
 ## 5. The owner's go
 
@@ -131,38 +136,63 @@ umbgtt10/mutants (PRIVATE), the results repository
   - a probe branch sentinel4rust-probe created and deleted again; main is not touched
   This machine:
   - key ~sentinel/.ssh/sentinel_mutants, host alias github-mutants, results_url in the roster
+The GitHub App -- created and installed by the owner, in their browser (SETUP.md section 2a):
+  - Contents: Read-only on All repositories of the account, only on this account; no write, no webhook
+  This machine:
+  - its private key at /home/sentinel/.ssh/sentinel4rust-app.pem, placed by the owner;
+    github_app_id, github_app_installation_id, github_app_key in the roster
+```
+
+Without an App, per repository as well:
+
+```text
 umbgtt10/<repo> (PUBLIC), watched; its results in the private umbgtt10/mutants/<repo>/
   GitHub: nothing -- read over https, with no credential
   This machine: the [[repo]] entry in the roster
 umbgtt10/<repo> (PRIVATE), watched; its results in the private umbgtt10/mutants/<repo>/
   GitHub: deploy key "sentinel4rust" added, READ-ONLY: the sentinel's key sentinel_<repo>         | already there
-  This machine: key ~sentinel/.ssh/sentinel_<repo>, host alias github-<repo>, the cargo redirect to its clone,
-  the [[repo]] entry in the roster
+  This machine: key ~sentinel/.ssh/sentinel_<repo>, host alias github-<repo>, the [[repo]] entry in the roster
 ```
 
 and tell them one consequence once: gh adds a deploy key under its own authorization, so **revoking the GitHub CLI's
 access in GitHub's settings (Applications) deletes that key** -- `gh repo deploy-key add --help` says so. `gh auth
-logout` in step 9 revokes nothing and does not touch them.
+logout` in step 9 revokes nothing and does not touch them. The App is the owner's own and is not affected.
 
-Then ask for a go and wait. Do nothing on GitHub until it comes. A go for some of the repositories covers those.
+Then ask for a go and wait. Do nothing on GitHub until it comes.
 
 ## 6. Onboard
 
 ```sh
-deploy/onboard.sh --apply-github <the repositories of the go> > ~/sentinel-onboard.log 2>&1; echo "exit=$?"
+deploy/onboard.sh --apply-github > ~/sentinel-onboard.log 2>&1; echo "exit=$?"
 ```
 
-Exit 0; `RESULT: ok` from the access proof, `results_url` set or `ok`, and for each repository an `append [[repo]]`
-or an `ok ... on the roster`. Check the roster -- it holds no secret:
+(without an App: `deploy/onboard.sh --apply-github <the repositories of the go>`). Exit 0; `RESULT: ok` from the access
+proof, `results_url` set or `ok`, and, per repository without an App, an `append [[repo]]` or an `ok ... on the
+roster`.
+
+Then the App. The owner creates and installs it, and places its key, as SETUP.md section 2a says; ask them for the App
+ID and the installation id, and check the key is there and private -- never print it:
+
+```sh
+sudo -n stat -c '%U %a %n' /home/sentinel/.ssh/sentinel4rust-app.pem     # sentinel 600 ...
+```
+
+Add the three keys to the roster, as `sentinel`, before its first `[[repo]]` if there is one -- by hand, with
+`sudo -n -u sentinel -H` and an editor or `sed -i`, since no script writes them -- then check the roster, which holds
+no secret, and that discovery works:
 
 ```sh
 sudo -n -u sentinel -H cat /home/sentinel/.config/sentinel4rust/roster.toml
+sudo -n -u sentinel -H /home/sentinel/.cargo/bin/sentinel4rust --roster /home/sentinel/.config/sentinel4rust/roster.toml --status
 ```
+
+`--status` prints `discovery repos=<n> added=<names> removed=-` first, then one line per repository; on a fresh machine
+each is `state=no-record` until go-live publishes it (and `--status` exits 1 for it). `discovery failed` is a stop: show its reason.
 
 **Stop** when the access proof fails (`cannot read main` from a watched repository, or `creating a branch was
 REJECTED` on the results repository: the key cannot write it), when a deploy key titled `sentinel4rust` is on the
-results repository that is not this machine's (a previous machine's, perhaps: the owner deletes it) or on a watched
-repository at all, or on anything `BLOCKED`. Do not change anything on GitHub by other means
+results repository that is not this machine's (a previous machine's, perhaps: the owner deletes it) or on a public
+watched repository, when discovery fails, or on anything `BLOCKED`. Do not change anything on GitHub by other means
 to get past it.
 
 ## 7. Go live
@@ -197,8 +227,8 @@ off: show the lines and ask. Do not enable the service by hand.
 sudo -n -u sentinel -H /home/sentinel/.cargo/bin/sentinel4rust --roster /home/sentinel/.config/sentinel4rust/roster.toml --status
 ```
 
-Read-only, beside the running service: one line per repository, `state=current` for each the pass published,
-`skipped` for the skipped ones; exit 0.
+Read-only, beside the running service: with an App, the discovery line first; then one line per repository,
+`state=current` for each the pass published, `skipped` for the skipped ones; exit 0.
 
 ## 9. Log out of GitHub
 
@@ -207,8 +237,8 @@ gh auth logout --hostname github.com --user umbgtt10
 gh auth status    # You are not logged into any GitHub hosts
 ```
 
-The sentinel needs none of it: it reads the watched repositories with no credential and writes the results
-repository with its deploy key. Tell the owner the server no longer holds
+The sentinel needs none of it: it reads the watched repositories through the App, or with no credential, and writes
+the results repository with its deploy key. Tell the owner the server no longer holds
 their GitHub credential, that the logout only removed it locally, and that a later onboarding needs `gh auth login`
 again.
 
@@ -248,10 +278,51 @@ journalctl -u sentinel4rust -n 3 --no-pager               # the start-up line: N
 
 ## Onboarding one more repository later
 
-The owner runs `gh auth login` and `sudo -v` again, starts you in the checkout and asks you to onboard
+With a GitHub App: nothing to do on the machine. The owner adds a `.cargo/mutants.toml` to the repository's default
+branch; discovery picks it up within `discovery_minutes` -- the journal says `discovery ... added=<repo>` -- with no
+restart. Removing the file, or archiving the repository, drops it the same way; its folder in the results repository
+stays.
+
+Without an App: the owner runs `gh auth login` and `sudo -v` again, starts you in the checkout and asks you to onboard
 `<repo>` as this file says. Then: step 0's checks, steps 3 to 6 for that repository, the restart above, the
 `--status` of step 8, and step 9. The results repository's key, host alias and deploy key are already in place, so
-the plan shows them as `ok`: nothing changes on GitHub, and the go covers the new roster entry.
+the plan shows them as `ok`.
+
+## Moving to the GitHub App
+
+For a machine whose repositories were onboarded one by one. The records do not move -- each repository's folder in
+the results repository keeps its name -- so nothing runs again.
+
+1. Upgrade: `git pull --ff-only` in the checkout (after `gh auth login`), then
+   `sudo deploy/provision.sh > ~/sentinel-provision.log 2>&1`. It writes the run unit's git configuration,
+   `~sentinel/.config/sentinel4rust/run-unit.gitconfig`, and **warns** about each redirect of
+   `https://github.com/umbgtt10/` left in `~sentinel/.gitconfig` by the earlier onboarding.
+2. The owner creates and installs the App and places its key (SETUP.md section 2a), and gives you the App ID and the
+   installation id.
+3. As `sentinel`, edit the roster: add `github_app_id`, `github_app_installation_id` and
+   `github_app_key = "/home/sentinel/.ssh/sentinel4rust-app.pem"` before the first `[[repo]]`, and delete every
+   `[[repo]]` entry for a GitHub repository -- discovery finds those with `.cargo/mutants.toml`. Keep an entry only to
+   give a repository settings of its own, with its https URL.
+4. Remove the per-repository redirects, which would turn the service's own https fetches onto its clones -- on
+   metalslug those of etheram-core, etheram-ibft and etheram-raft:
+
+   ```sh
+   sudo -n -u sentinel git config --file /home/sentinel/.gitconfig --remove-section 'url.file:///home/sentinel/sentinel4rust/repos/<repo>.git'
+   ```
+
+5. Check, beside the running service:
+
+   ```sh
+   sudo -n -u sentinel -H /home/sentinel/.cargo/bin/sentinel4rust --roster /home/sentinel/.config/sentinel4rust/roster.toml --status
+   ```
+
+   `discovery repos=<n> ...`, then every repository `state=current`; exit 0.
+6. Restart the service while no run is in progress (above). Its start-up line ends `, discovery every <n>m`, and its
+   first journal line after it is the discovery.
+7. Optional, with the owner's go: delete the read-only deploy keys titled `sentinel4rust` on the private repositories
+   (`gh repo deploy-key list -R umbgtt10/<repo>`, then `gh repo deploy-key delete <id> -R umbgtt10/<repo>`), their
+   keys `~sentinel/.ssh/sentinel_<repo>` and `.pub`, and their `Host github-<repo>` blocks in `~sentinel/.ssh/config`.
+   The results repository's key and alias stay.
 
 ## Reading the service's state
 
@@ -270,7 +341,9 @@ otherwise prefix it with `sudo -n`.
 ## Watching it from another machine
 
 A dead sentinel looks like quiet repositories, so the owner's laptop, say, runs `--status` on a timer through
-`deploy/status-check.sh`, with its own access -- https, or the owner's SSH key -- never the sentinel's key. On that
+`deploy/status-check.sh`, with its own access -- https, or the owner's SSH key -- never the sentinel's key nor the
+App's. Without the App's key it cannot discover, so its roster names the repositories in explicit `[[repo]]` entries,
+a private one through a URL the owner's own credential reads. On that
 machine, from a checkout -- at `~/sentinel4rust` below --: `cargo install --path cli --locked`, then a roster of
 its own, e.g. `~/.config/sentinel4rust/status.toml`:
 
