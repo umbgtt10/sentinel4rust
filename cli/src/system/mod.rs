@@ -5,6 +5,7 @@
 //! The real implementations of the contracts.
 
 pub mod git;
+pub mod github;
 pub mod mutants;
 pub mod process;
 pub mod unit;
