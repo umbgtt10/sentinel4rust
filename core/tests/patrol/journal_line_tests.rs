@@ -4,8 +4,10 @@
 
 use sentinel4rust::model::commit_hash::CommitHash;
 use sentinel4rust::model::counts::MutantCounts;
+use sentinel4rust::model::github::discovery_error::DiscoveryError;
 use sentinel4rust::model::onboarding::onboarded_repo::OnboardedRepo;
 use sentinel4rust::model::onboarding::roster::Roster;
+use sentinel4rust::model::onboarding::toml_roster::TomlRoster;
 use sentinel4rust::model::outcome_kind::OutcomeKind;
 use sentinel4rust::model::round_step::RoundStep;
 use sentinel4rust::model::skip_reason::SkipReason;
@@ -39,6 +41,32 @@ fn repo(name: &str) -> OnboardedRepo {
 }
 
 #[test]
+fn discovery_failed_quotes_the_reason() {
+    // Arrange
+    let error = DiscoveryError(String::from("curl: exited with 6"));
+
+    // Act
+    let line = JournalLine.discovery_failed(&error);
+
+    // Assert
+    assert_eq!(line, "discovery failed reason=\"curl: exited with 6\"");
+}
+
+#[test]
+fn discovery_names_the_count_and_what_changed() {
+    // Arrange
+    let added = [String::from("b"), String::from("c")];
+
+    // Act
+    let changed = JournalLine.discovery(3, &added, &[String::from("z")]);
+    let same = JournalLine.discovery(3, &[], &[]);
+
+    // Assert
+    assert_eq!(changed, "discovery repos=3 added=b,c removed=z");
+    assert_eq!(same, "discovery repos=3 added=- removed=-");
+}
+
+#[test]
 fn startup_names_the_version_repositories_pause_and_config_version() {
     // Arrange
     let roster = Roster {
@@ -49,6 +77,8 @@ fn startup_names_the_version_repositories_pause_and_config_version() {
         config_version: 2,
         stale_after: Duration::from_secs(24 * 3600),
         results_url: "r".to_string(),
+        github_app: None,
+        discovery_interval: Duration::from_secs(3600),
         run_unit: None,
         repos: vec![repo("a"), repo("b")],
     };
@@ -64,6 +94,23 @@ fn startup_names_the_version_repositories_pause_and_config_version() {
             env!("CARGO_PKG_VERSION"),
             Timestamp::from_unix(1_792_800_000)
         )
+    );
+}
+
+#[test]
+fn startup_with_a_github_app_says_how_often_it_discovers() {
+    // Arrange
+    let roster = TomlRoster
+        .parse("work_dir = \"/w\"\nresults_url = \"r\"\ngithub_app_id = 7\ngithub_app_installation_id = 8\ngithub_app_key = \"/k\"\ndiscovery_minutes = 30\n")
+        .unwrap();
+
+    // Act
+    let line = JournalLine.startup(&roster, Timestamp::from_unix(1_792_800_000));
+
+    // Assert
+    assert!(
+        line.ends_with(": 0 repositories, pause 300s, config_version 1, discovery every 30m"),
+        "{line}"
     );
 }
 

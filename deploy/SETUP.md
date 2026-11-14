@@ -26,7 +26,9 @@ GitHub publishes.
 
 ## 2. The results repository and the watched repositories
 
-The sentinel writes one repository, the results repository (`umbgtt10/mutants`), and only reads the watched ones.
+The sentinel writes one repository, the results repository (`umbgtt10/mutants`), and only reads the watched ones --
+by default through a GitHub App, which finds them as well (section 2a); without one, through the roster's `[[repo]]`
+entries, onboarded one by one as the rest of this section says.
 The results repository is created once, private, by the owner:
 
 ```sh
@@ -59,6 +61,8 @@ In the roster, before the first `[[repo]]`:
 results_url = "git@github-mutants:umbgtt10/mutants.git"
 ```
 
+### Without a GitHub App: onboarding per repository
+
 A public watched repository needs nothing on GitHub: it is read over https with no credential --
 `url = "https://github.com/umbgtt10/<repo>.git"` in its `[[repo]]` -- and must carry no deploy key of the sentinel's:
 a `sentinel4rust` key left from an earlier design is deleted.
@@ -69,17 +73,8 @@ A private watched repository is read with a key of its own, `~/.ssh/sentinel_<re
 results go to the results repository like any other's, so it is watched only while the results repository is private.
 When another watched repository depends on it as a git dependency (`etheram-core = { git =
 "https://github.com/umbgtt10/etheram-core" }`), the build in the run unit, which holds no key, fetches it from the
-sentinel's clone instead: in `~sentinel/.gitconfig`,
-
-```ini
-[url "file:///home/sentinel/sentinel4rust/repos/etheram-core.git"]
-    insteadOf = https://github.com/umbgtt10/etheram-core
-```
-
-and, in `~sentinel/.cargo/config.toml`, `[net] git-fetch-with-cli = true`, so cargo fetches with git, which follows
-the redirect. The clone keeps the branch at `refs/heads/<branch>` for this; the dependency's locked commit must be on
-that branch, and the dependency must itself be on the roster, earlier than its dependants. `insteadOf` matches a
-prefix: the redirect for `etheram-core` would catch an `etheram-core-x` too.
+sentinel's clone through the run unit's own git configuration (section 2a), App or not. A redirect an earlier
+`onboard.sh` wrote per private repository in `~sentinel/.gitconfig` is no longer needed; `provision.sh` warns of one.
 
 Every watched repository needs a `.cargo/mutants.toml` on `main` (it is skipped without one).
 
@@ -93,9 +88,73 @@ It reads each watched repository's `main` -- a public one with no credential, a 
 proves the key writes the results repository by
 creating a branch, `sentinel4rust-probe`, and deleting it again; the results repository's `main` is never touched.
 `deploy/onboard.sh <repo>...` does this section: the key, the host alias, the deploy key, the access proof,
-`results_url`, the redirects and the roster entries. It changes GitHub -- the deploy key on the results repository
+`results_url` and the roster entries. It changes GitHub -- the deploy key on the results repository
 and a read-only one per private watched repository -- only with `--apply-github`, and refuses a private watched
 repository while the results repository is public.
+
+## 2a. The GitHub App
+
+The default way to watch repositories (`docs/ADRs/ADR-GithubAppDiscovery.md`): a GitHub App, installed on all the
+owner's repositories with read-only access to their contents, lets the sentinel find every repository that has a
+`.cargo/mutants.toml` and read it, public or private, with no onboarding per repository and no restart to add one.
+
+The owner creates it once, in a browser:
+
+1. GitHub → Settings → Developer settings → GitHub Apps → **New GitHub App**. Name: unique on GitHub, e.g.
+   `sentinel4rust-umbgtt10`. Homepage URL: `https://github.com/umbgtt10/sentinel4rust`. Webhook: untick **Active**.
+   Repository permissions: **Contents: Read-only** (Metadata: Read-only comes with it); nothing else. Where can it be
+   installed: **Only on this account**. Create it, and note its **App ID**.
+2. On the App's page, **Generate a private key**: a `.pem` file downloads. It is the App's only secret.
+3. **Install App** → the account → **All repositories**, so that repositories created later are covered too. The
+   installation id is the number at the end of the page's URL, `.../settings/installations/<id>`.
+4. On the machine, the key where only `sentinel` reads it, under `~/.ssh`, which the run unit cannot read:
+
+   ```sh
+   sudo install -o sentinel -g sentinel -m 600 <file>.pem /home/sentinel/.ssh/sentinel4rust-app.pem
+   ```
+
+In the roster, before the first `[[repo]]` if there is one:
+
+```toml
+github_app_id = 123456
+github_app_installation_id = 7890123
+github_app_key = "/home/sentinel/.ssh/sentinel4rust-app.pem"
+discovery_minutes = 60                       # how often discovery runs again (60 by default)
+```
+
+All three `github_app_*` keys, or none. With them, `[[repo]]` entries are optional: an explicit entry is watched as
+before and wins over a discovered repository of the same name -- that is how one gets its own `jobs`,
+`run_timeout_hours`, branch or URL.
+
+**What is watched.** At start, then every `discovery_minutes`, the sentinel lists the repositories the installation
+covers and keeps each that is not archived and has `.cargo/mutants.toml` on its default branch, never the results
+repository; it reads it at its https URL, tests its default branch, and journals
+`discovery repos=<n> added=<names> removed=<names>`. A discovery that fails keeps the last list, journals
+`discovery failed reason="…"` and is tried again after `pause_seconds`. Adding a repository is adding a
+`.cargo/mutants.toml` to it; removing one is removing the file, or archiving the repository.
+
+**The token.** The sentinel signs the App's JWT with the key, by `openssl`, and exchanges it with `curl` for an
+installation token, read-only and valid an hour, renewed five minutes before it expires. Its files are mode 600 in
+`~/.ssh/sentinel4rust-github/`, beside the key; the token reaches curl through a file and git through the
+environment, never a command line, and never the run unit.
+
+**Git dependencies on the owner's repositories.** The run unit reads a git configuration of its own,
+`~/.config/sentinel4rust/run-unit.gitconfig`, which `deploy/provision.sh` writes:
+
+```ini
+[url "file:///home/sentinel/sentinel4rust/repos/"]
+    insteadOf = https://github.com/umbgtt10/
+```
+
+with `[net] git-fetch-with-cli = true` in `~/.cargo/config.toml`, so cargo fetches with git, which follows it. A build
+in the run unit gets a git dependency on any watched repository of the owner's -- private ones included -- from the
+sentinel's clone of it, which keeps the branch at `refs/heads/<branch>` for this, holding no key. The dependency's
+locked commit must be on that branch; a dependency on a repository of the owner's that is not watched has no clone
+and fails (`docs/OPEN_POINTS.md` point 22). The rule applies in the run unit only: in `~/.gitconfig` it would turn the
+service's own https fetches onto its own clones, and `provision.sh` warns of any such redirect left there.
+
+The results repository is set up as section 2 says -- `deploy/onboard.sh` with no repository does it -- and writes
+stay with its deploy key: an App's permissions span every repository it is installed on, so it is never given write.
 
 ## 3. The service
 

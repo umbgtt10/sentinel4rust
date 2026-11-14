@@ -7,6 +7,7 @@ pub mod checkout_error_tests;
 pub mod command_result_tests;
 pub mod command_tests;
 pub mod commit_hash_tests;
+pub mod github;
 pub mod located_tests;
 pub mod mutant_key_tests;
 pub mod onboarding;

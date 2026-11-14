@@ -113,6 +113,7 @@ name = "sentinel4rust"
 version = "0.1.0"
 dependencies = [
  "sentinel4rust-core",
+ "serde_json",
 ]
 
 [[package]]

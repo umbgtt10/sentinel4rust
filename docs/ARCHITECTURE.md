@@ -18,8 +18,10 @@ cli/src/main.rs
       │                                        --version; else
       │                                        UsageError, exit 2
       ├─ run_job                               --run-job: JobRunner, inside the run unit
-      ├─ status                                --status: StatusReport over its own clones in <work_dir>/status,
+      ├─ status                                --status: discovery once, when the roster names a GitHub App,
+      │                                        then StatusReport over its own clones in <work_dir>/status,
       │                                        one StatusLine per repository; exit 1 if one needs attention
+      │                                        or discovery failed
       └─ start                                 any StartupError: exit 1
           1. TomlRoster::parse                 the roster file -> Roster
           2. WorkDirLock::acquire              <work_dir>/sentinel4rust.lock, held for the life of the process
@@ -30,8 +32,11 @@ cli/src/main.rs
              Sentinel::run_forever             otherwise: step, forever
 
 Sentinel::step                                 core/src/patrol/sentinel.rs
-  Schedule::next(repos, now)
-    SleepUntil(t) -> Pause::pause(t - now, at least a second)
+  DiscoveryRefresh::refresh(now)               when due -- at start, then every discovery_minutes, after a failure
+                                               again after the pause: RepoDiscovery::discover, merged by WatchList
+                                               with the roster's own repositories; one `discovery ...` journal line
+  Schedule::next(DiscoveryRefresh::repos, now)
+    SleepUntil(t) -> Pause::pause(min(t, the next discovery) - now, at least a second)
     Visit(i)      -> visit, then one JournalLine::visit on the Journal (an unreachable or unreadable repeat stays
                      quiet)
 
@@ -49,7 +54,7 @@ Sentinel::visit(repo) -> RoundStep
                                   the results repository) -> Published, or BackedOff if rejected
 ```
 
-`EntryPoint::compose` is the only place real parts are built, and where a crash's leftovers are pruned. One `SystemCommandRunner` serves git and cargo; one
+`EntryPoint::compose` is the only place real parts are built, and where a crash's leftovers are pruned. One `SystemCommandRunner` serves git, cargo, curl and openssl; with a GitHub App in the roster, `GithubAccess` wraps it for git in a `GitTokenRunner` and provides the `RepoDiscovery`; one
 `GitCli`, given the roster's `results_url`, fills both `RepoSource` and `ResultStore` through `Rc` coercion; `CargoMutantsCli` is the `MutationRunner`;
 `SystemClock`, `ThreadPause` and a `StdoutJournal` over stdout complete `Dependencies`, which `Sentinel::new` takes
 whole.
@@ -61,12 +66,16 @@ the service has always printed. `WorkDirLock` holds an exclusive `File::try_lock
 so a `--once` beside the running service exits at once. `EntryPoint` turns all of it into an `ExitCode`: 0, 1 for a
 start-up failure or a failed `--once` visit, 2 for a bad command line. The usage text and the log-tail sizes (200
 lines, 16 KiB) are its constants. It is where the core's text paths -- the roster's `work_dir` -- become `Path`s.
+`GithubAccess` turns the roster's GitHub App into its parts, sharing one `AppToken`: the runner git uses
+(`GitTokenRunner`) and the discovery (`GithubAppDiscovery` over a `GithubApi`), their files in `sentinel4rust-github/`
+beside the App's key ([ADR-GithubAppDiscovery](ADRs/ADR-GithubAppDiscovery.md)).
 
 ## core: `traits/` -- the contracts
 
 One trait per file, no default bodies: `CommandRunner` (run a `Command` to completion or its deadline), `Clock`,
 `Pause`, `Journal`, `RepoSource` (`sync`, `checkout`, `remove_checkout`, `committed_at`), `MutationRunner` (`run`,
-`recheck`), `ResultStore` (`publish`) and `MutantsOut` (the text of one list a cargo-mutants run left in `mutants.out`).
+`recheck`), `ResultStore` (`publish`), `RepoDiscovery` (`discover`: the repositories that ask to be watched) and
+`MutantsOut` (the text of one list a cargo-mutants run left in `mutants.out`).
 The checkout `RepoSource` hands `MutationRunner` is its path, as text. Every external effect goes through one of them,
 so the loop is tested with fakes and no clock ([ADR-InjectedTime](ADRs/ADR-InjectedTime.md)).
 
@@ -84,8 +93,12 @@ so the loop is tested with fakes and no clock ([ADR-InjectedTime](ADRs/ADR-Injec
   parse, schema 1), `RecordCurrency`, `BranchLayout`
   (the root README and the files under the repository's folder, as `BranchFile`s, and the commit message led by the
   folder), `RecordError`, and `KIND_FULL`.
-- **`onboarding/`** -- the roster: `Roster` (its `work_dir` and `results_url` as text) and `OnboardedRepo` records, `TomlRoster` (parse
-  and validate) and `RosterError`.
+- **`onboarding/`** -- the roster: `Roster` (its `work_dir` and `results_url` as text), `OnboardedRepo` and
+  `GithubApp` records, `TomlRoster` (parse and validate), `GithubAppToml` (the three `github_app_*` keys, all or
+  none), `RepoNames` (what may name a repository and its branch) and `RosterError`.
+- **`github/`** -- what a GitHub App needs, as text ([ADR-GithubAppDiscovery](ADRs/ADR-GithubAppDiscovery.md)):
+  `AppJwt` (the RS256 header and claims, short of the signature), `Base64` (the standard alphabet, padded, and the
+  URL one, not), the `DiscoveredRepo` record and `DiscoveryError`.
 - **`toml/`** -- the dependency-free TOML subset ([ADR-NoDependencies](ADRs/ADR-NoDependencies.md)): `TomlParser`
   builds a `Document` (a root `Table` and arrays of tables) with `DocumentBuilder`, after `CommentStripper` (a
   `QuoteState` machine) has removed comments; `BasicString` reads escapes; `TomlWriter` quotes; `TomlError` names the
@@ -101,7 +114,10 @@ commit, unreachable, unreadable -- and answers `Next`
 ([ADR-PollingPerRepository](ADRs/ADR-PollingPerRepository.md),
 [ADR-ResultsFailuresAndBackOff](ADRs/ADR-ResultsFailuresAndBackOff.md)). `PublicationBuilder` turns a `MutationRun` into
 a `Publication`: keys, sorted located lists, new and gone against the previous record. `JournalLine` formats the
-start-up line and one `repo=… step=… …` line per visit. `Dependencies` is the record of the six injected parts;
+start-up line, one `repo=… step=… …` line per visit and one `discovery …` line per discovery. `WatchList` merges the
+roster's repositories with the discovered ones -- the roster's first, winning over a discovered one of the same name,
+then the rest by name, never the results repository -- and `DiscoveryRefresh` owns the list watched now and when
+discovery runs next. `Dependencies` is the record of the six injected parts and the optional `RepoDiscovery`;
 `MAX_BACKOFF` (6 hours) is shared from `patrol_constants.rs`. `StatusReport` is the `--status` pass: it syncs
 each repository, runs and publishes nothing, and turns what it finds -- and, through `RepoSource::committed_at`, how
 long `main`'s head has waited -- into a `StatusLine` that says whether it needs attention. `TimeoutWarning` judges a
@@ -135,12 +151,12 @@ Text in, the core's data out; no tool is run here.
   and `ResultsClone`, with the core's `RemoteListing`, `OutsidePaths` and `UnreachableClassifier`. A watched
   repository's clone fetches its branch and nothing else -- into `refs/remotes/origin/<branch>`, and into
   `refs/heads/<branch>`, where a build in the run unit can fetch it as a private git dependency through `file://`
-  (`deploy/SETUP.md` section 2) -- and nothing is ever pushed to it. `ResultsClone` is the
+  (`deploy/SETUP.md` section 2a) -- and nothing is ever pushed to it. `ResultsClone` is the
   results repository's bare clone, `results.git`: `fetch` takes its `main` (or drops the local copy when there is
   none yet), `record` and `previous_missed` read the repository's folder through `RecordReader`, and `publish` has
   `PlumbingCommit` write one commit -- the fetched tip's tree read into a temporary index, the folder's paths removed,
-  the new blobs added, `commit-tree` onto the tip -- and pushes it. The deadlines and the results branch and its
-  remote ref (`RESULTS_BRANCH`, `RESULTS_REMOTE_REF`) are in `git_constants.rs`. Only the results repository's `main`
+  the new blobs added, `commit-tree` onto the tip -- and pushes it. The deadlines and the results branch's remote ref
+  (`RESULTS_REMOTE_REF`) are in `git_constants.rs`, the branch itself in `results_clone.rs`. Only the results repository's `main`
   is ever pushed ([ADR-ExactCommitOnlyMutantsPushed](ADRs/ADR-ExactCommitOnlyMutantsPushed.md),
   [ADR-SharedResultsRepository](ADRs/ADR-SharedResultsRepository.md)).
 - **`mutants/`** -- `CargoMutantsCli` re-checks named mutants with an anchored `--re`, and records `cargo mutants --version` and `rustc --version`, runs
@@ -148,12 +164,23 @@ Text in, the core's data out; no tool is run here.
   (its `prune` empties `tmp/` on start), and hands the result to the core's
   `OutcomeInterpreter`, with a `MutantsOutDir` reading the run's `mutants.out` on disk.
 
+- **`github/`** -- the GitHub App, over `openssl` and `curl` through the `CommandRunner`
+  ([ADR-GithubAppDiscovery](ADRs/ADR-GithubAppDiscovery.md)): `AppToken` signs the JWT with `openssl dgst -sha256
+  -sign`, exchanges it for an installation token through `Curl` and keeps it until five minutes before it expires;
+  `GithubApi` GETs with it and checks a URL's status; `GithubAppDiscovery` pages through
+  `/installation/repositories` and keeps each not archived with `.cargo/mutants.toml` on its default branch;
+  `GitTokenRunner` gives git's network commands the token through the environment; `SecretDir` writes every secret
+  mode 600 in a mode-700 directory, so none reaches a command line; `TokenSource` is the seam the API and git share.
+  `serde_json` reads the answers.
+
 - **`unit/`** -- when the roster names a `run_unit`, `CargoMutantsCli` runs its commands through
   `UnitCommandRunner`: each is written as `jobs/run/job.toml` (the core's `JobToml`), the template unit started with
   `systemctl start --wait <unit>@run.service`, and the `result.toml` (`ResultToml`), `stdout` and `stderr` the unit
   left are read back into a `CommandResult`. The unit's `ExecStart` is `sentinel4rust --run-job <dir>`: `JobRunner`
-  runs the job with the `SystemCommandRunner` and writes those files. Git never runs there, so the results
-  repository's key stays out of the unit ([OPEN_POINTS.md](OPEN_POINTS.md), point 5).
+  runs the job with the `SystemCommandRunner` and writes those files. The sentinel's own git never runs there, so the
+  results repository's key and the App's stay out of the unit ([OPEN_POINTS.md](OPEN_POINTS.md), point 5); the git
+  that cargo runs there reads the unit's own configuration, `run-unit.gitconfig`, which sends the owner's GitHub URLs
+  to the sentinel's clones.
 
 ## Configuration
 
@@ -168,7 +195,10 @@ The roster is TOML, read once on start ([`deploy/roster.example.toml`](../deploy
 | `run_timeout_hours` | 12 | the cap on one cargo-mutants run |
 | `config_version` | 1 | bump to rerun every repository |
 | `stale_after_hours` | 24 | how long `main` may wait for a record before `--status` exits 1 |
-| `run_unit` | none | the systemd template unit cargo-mutants runs in, away from the deploy key |
+| `run_unit` | none | the systemd template unit cargo-mutants runs in, away from the keys |
+| `github_app_id`, `github_app_installation_id`, `github_app_key` | none | the GitHub App that discovers and reads the repositories, its installation, and the path of its private key; all three or none |
+| `discovery_minutes` | 60 | how often discovery runs again |
+| `[[repo]]` | none with an App; at least one without | a repository watched as given, before and over a discovered one of the same name |
 | `[[repo]]` `name`, `url` | required | a unique name (letters, digits, `-`, `_`, `.`), which names its folder in the results repository, and what git fetches from, `https://github.com/<owner>/<repo>.git` |
 | `[[repo]]` `branch` | `main` | the branch tested; never `mutants` |
 | `[[repo]]` `jobs` | the global `jobs` | this repository's `--jobs` |

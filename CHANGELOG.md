@@ -15,6 +15,18 @@ repositories are only read, and every result goes to one results repository, `um
 same day.
 
 ### Added
+- Discovery through a GitHub App (`docs/ADRs/ADR-GithubAppDiscovery.md`): with `github_app_id`,
+  `github_app_installation_id` and `github_app_key` in the roster, every repository the App's installation covers,
+  not archived, with a `.cargo/mutants.toml` on its default branch is watched, found again every `discovery_minutes`
+  (60) with no restart, and read over https with an installation token the sentinel mints -- its JWT signed by
+  `openssl`, exchanged by `curl`, its secrets in mode-600 files and never on a command line, git getting it through
+  the environment. `[[repo]]` entries become optional and win over a discovered repository of the same name.
+  `--status` discovers too. New journal lines `discovery repos=… added=… removed=…` and `discovery failed`; the
+  start-up line says `discovery every <n>m`. `serde_json` reads the API's answers in `cli`.
+- The run unit's own git configuration, `~sentinel/.config/sentinel4rust/run-unit.gitconfig`, written by
+  `deploy/provision.sh`: a git dependency on any watched repository of the owner's is fetched from the sentinel's
+  clone in the run unit; `provision.sh` warns of redirects left in `~sentinel/.gitconfig`. `deploy/onboard.sh` sets up
+  the results repository alone when given no repository. `deploy/PROVISION.md` gains "Moving to the GitHub App".
 - Private watched repositories: `deploy/onboard.sh` gives one a read-only deploy key and host alias of its own, and
   refuses one only while the results repository is public. A private git dependency that is itself watched is served
   to the run unit from the sentinel's clone, which now also keeps its branch at `refs/heads/<branch>`, through a

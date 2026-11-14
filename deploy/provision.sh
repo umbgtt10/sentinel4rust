@@ -26,7 +26,9 @@ readonly CARGO_MUTANTS_VERSION=27.1.0
 readonly COMPONENTS=(rustfmt clippy llvm-tools)
 readonly REBOOT_TIME=04:30
 readonly RUN_UNIT=sentinel4rust-mutants
-readonly PACKAGES=(ca-certificates curl git build-essential pkg-config openssh-client polkitd unattended-upgrades)
+readonly PACKAGES=(ca-certificates curl git build-essential pkg-config openssh-client openssl polkitd unattended-upgrades)
+# Whose repositories the run unit fetches git dependencies on from the sentinel's own clones.
+readonly GITHUB_OWNER=umbgtt10
 # GitHub's SSH host key fingerprints as GitHub publishes them, at
 # https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/githubs-ssh-key-fingerprints and in
 # https://api.github.com/meta (ssh_key_fingerprints); both read on 2026-10-25. Update them only from those pages.
@@ -40,6 +42,8 @@ readonly cargo_bin="$SENTINEL_HOME/.cargo/bin"
 readonly src_dir="$SENTINEL_HOME/src/sentinel4rust"
 readonly installed_marker="$src_dir/INSTALLED_COMMIT"
 readonly roster="$SENTINEL_HOME/.config/sentinel4rust/roster.toml"
+readonly run_unit_gitconfig="$SENTINEL_HOME/.config/sentinel4rust/run-unit.gitconfig"
+readonly cargo_config="$SENTINEL_HOME/.cargo/config.toml"
 readonly known_hosts="$SENTINEL_HOME/.ssh/known_hosts"
 readonly units_dir=/etc/systemd/system
 readonly polkit_rule=/etc/polkit-1/rules.d/50-sentinel4rust-mutants.rules
@@ -507,6 +511,38 @@ run_unit_roster() {
     END { if (!done) print line }'
 }
 
+# The run unit's own git configuration, and cargo fetching with git, so that a build there resolves a git dependency
+# on one of the owner's repositories through the sentinel's clone of it (ADR-GithubAppDiscovery). A redirect left in
+# ~/.gitconfig by an earlier onboard.sh would turn the service's own https fetch of that repository onto its clone.
+run_unit_git() {
+  say "== git dependencies in the run unit"
+  printf '# deploy/provision.sh: git in the run unit fetches git dependencies on %s'"'"'s repositories from the\n# sentinel'"'"'s own clones, holding no key (ADR-GithubAppDiscovery).\n[url "file://%s/repos/"]\n\tinsteadOf = https://github.com/%s/\n' \
+    "$GITHUB_OWNER" "$work_dir" "$GITHUB_OWNER" > "$scratch/run-unit-gitconfig"
+  if probe test -f "$run_unit_gitconfig" \
+    && [ "$(as_sentinel cat "$run_unit_gitconfig")" = "$(cat "$scratch/run-unit-gitconfig")" ]; then
+    ok "$run_unit_gitconfig"
+  else
+    step "write $run_unit_gitconfig" sentinel_write "$run_unit_gitconfig" < "$scratch/run-unit-gitconfig"
+  fi
+  if probe test -f "$cargo_config" \
+    && as_sentinel grep -qE '^[[:space:]]*git-fetch-with-cli[[:space:]]*=[[:space:]]*true' "$cargo_config"; then
+    ok "cargo fetches git dependencies with git ($cargo_config)"
+  elif probe test -f "$cargo_config"; then
+    warn "$cargo_config has no git-fetch-with-cli = true under [net]: add it, as sentinel"
+  else
+    printf '[net]\ngit-fetch-with-cli = true\n' > "$scratch/cargo-config"
+    step "make cargo fetch git dependencies with git ($cargo_config)" sentinel_write "$cargo_config" < "$scratch/cargo-config"
+  fi
+  local redirects
+  redirects="$(probe git config --file "$SENTINEL_HOME/.gitconfig" --get-regexp '^url\..*\.insteadof$' 2> /dev/null \
+    | grep -F "https://github.com/$GITHUB_OWNER/" || true)"
+  if [ -n "$redirects" ]; then
+    warn "$SENTINEL_HOME/.gitconfig redirects GitHub URLs, which turns the service's own https fetches onto its"
+    warn "clones; the run unit has its own now. Remove them, as sentinel (deploy/PROVISION.md, the GitHub App):"
+    printf '%s\n' "$redirects" | sed 's/^/        /'
+  fi
+}
+
 sentinel4rust_installed=0
 preflight
 packages
@@ -518,6 +554,7 @@ sentinel4rust_binary
 roster_skeleton
 known_hosts
 units
+run_unit_git
 isolation
 
 say "== done"

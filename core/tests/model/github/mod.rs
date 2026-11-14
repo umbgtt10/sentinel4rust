@@ -1,0 +1,7 @@
+// Copyright 2026 Umberto Gotti <umberto.gotti@umbertogotti.dev>
+// Licensed under the MIT License
+// SPDX-License-Identifier: MIT
+
+pub mod app_jwt_tests;
+pub mod base64_tests;
+pub mod discovery_error_tests;

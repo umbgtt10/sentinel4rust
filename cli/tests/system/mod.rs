@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: MIT
 
 pub mod git;
+pub mod github;
 pub mod mutants;
 pub mod process;
 pub mod unit;

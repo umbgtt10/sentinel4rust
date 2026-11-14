@@ -11,20 +11,20 @@ jobs = 6                                     # cargo-mutants --jobs, for every r
 run_timeout_hours = 12                       # cap on one cargo-mutants run
 config_version = 1                           # bump to rerun every repository (upgrading cargo-mutants reruns them too)
 stale_after_hours = 24                       # --status exits 1 when main has waited longer than this
-# run_unit = "sentinel4rust-mutants"        # run cargo-mutants away from the key (deploy/SETUP.md section 6)
+# run_unit = "sentinel4rust-mutants"        # run cargo-mutants away from the keys (deploy/SETUP.md section 6)
 
-[[repo]]
-name = "twin4rust"                           # unique; names the local clone and the folder in the results repository
-url = "https://github.com/umbgtt10/twin4rust.git"   # public, read with no credential; nothing is pushed here
-# read verified: YYYY-MM-DD (deploy/verify-access.sh)
+# The default way: a GitHub App finds and reads the repositories (deploy/SETUP.md section 2a). Every repository it is
+# installed on, not archived, with a .cargo/mutants.toml on its default branch, is watched -- no [[repo]] needed.
+github_app_id = 123456                       # the App's id, on its settings page
+github_app_installation_id = 7890123         # the end of .../settings/installations/<id>
+github_app_key = "/home/sentinel/.ssh/sentinel4rust-app.pem"   # its private key, mode 600, where the run unit cannot read
+discovery_minutes = 60                       # how often discovery runs again
 
+# An explicit entry is watched as before, and wins over a discovered repository of the same name: the way to give one
+# settings of its own. Without an App, the [[repo]] entries are all that is watched (deploy/SETUP.md section 2).
 [[repo]]
-name = "etheram-raft"
-url = "https://github.com/umbgtt10/etheram-raft.git"
-branch = "main"                              # default
+name = "etheram-ibft"                        # unique; names the local clone and the folder in the results repository
+url = "https://github.com/umbgtt10/etheram-ibft.git"   # read with the App's token; nothing is pushed here
+branch = "main"                              # default: main (a discovered repository: its default branch)
 jobs = 2                                     # per-repo override, e.g. tests not safe in parallel
 run_timeout_hours = 24                       # per-repo cap, sized as deploy/SETUP.md section 4 says
-
-[[repo]]
-name = "sentinel4rust"                       # tested on itself; its .cargo/mutants.toml leaves xtask/ out
-url = "https://github.com/umbgtt10/sentinel4rust.git"

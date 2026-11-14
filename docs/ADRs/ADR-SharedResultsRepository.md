@@ -96,3 +96,5 @@ repository that still carries a deploy key titled `sentinel4rust`.
 
 - `ADR-StateLivesOnMutants.md` -- what the record is for; `ADR-ExactCommitOnlyMutantsPushed.md` -- how it is written.
 - `ADR-DeployKeyAndRuleset.md`, `ADR-OrphanMutantsBranch.md` -- the design this replaces.
+- `ADR-GithubAppDiscovery.md` -- with a GitHub App in the roster, the watched repositories, public and private, are
+  found and read through it, with a read-only installation token; the results repository keeps its write deploy key.

@@ -11,6 +11,7 @@
 
 pub mod baseline_retry;
 pub mod dependencies;
+pub mod discovery_refresh;
 pub mod journal_line;
 pub mod next;
 pub mod patrol_constants;
@@ -22,3 +23,4 @@ pub mod status_line;
 pub mod status_report;
 pub mod survivor_recheck;
 pub mod timeout_warning;
+pub mod watch_list;
