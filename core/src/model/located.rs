@@ -58,13 +58,15 @@ impl Located {
         let (line, rest) = text.split_once(':')?;
         let (column, rest) = rest.split_once(':')?;
         let description = rest.strip_prefix(' ')?;
-        let digits = |s: &str| !s.is_empty() && s.bytes().all(|b| b.is_ascii_digit());
-        if !digits(line) || !digits(column) {
-            return None;
-        }
+        let number = |s: &str| {
+            s.bytes()
+                .all(|b| b.is_ascii_digit())
+                .then(|| s.parse().ok())
+                .flatten()
+        };
         let position = Position {
-            line: line.parse().ok()?,
-            column: column.parse().ok()?,
+            line: number(line)?,
+            column: number(column)?,
         };
         Some((position, description))
     }

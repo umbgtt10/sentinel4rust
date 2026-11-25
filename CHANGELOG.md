@@ -87,6 +87,9 @@ same day.
   `Sentinel::step_at`, new, which `Sentinel::step` calls with the clock's time; the test fake `World` panics after
   `clock_limit` clock reads, so a mutant that empties the step fails at once where it left a loop that touched
   nothing a test could stop. `step_at` is public, not private, so that `sentinel.rs` stays under the file-risk ceiling.
+- `Located::position` checks and parses a line or column in one step, all ASCII digits and then parsed, where it
+  checked for digits and for emptiness and then parsed again: `parse` already refused an empty one, so the emptiness
+  check could never decide. A sign is still refused; behaviour unchanged.
 - `rust-version` is 1.91, for `str::ceil_char_boundary`. Durations are written in the largest whole unit,
   `Duration::from_hours(6)` for `MAX_BACKOFF`, as clippy asks from that version on.
 
