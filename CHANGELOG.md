@@ -6,6 +6,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.2.0] — 2026-11-25
+
+### The second release
+
+Both packages on crates.io at 0.2.0. The watched repositories are only read, and every result goes to one shared
+results repository; a GitHub App finds the repositories that ask to be tested, private ones included. Then the
+sentinel's run of its own core at 8301391 was answered: its survivors killed by tests or restated, and what they
+pointed at fixed -- no loop a mutant can stall, booleans out of the TOML subset, raw control characters in strings and
+dates the calendar does not have refused. `sentinel4rust-core`'s API changes where Changed and Removed say, as a 0.x
+minor release may; `rust-version` is 1.91.
+
 ### One shared results repository
 
 On 2026-11-14 the first real onboarding, of braintax4rust, showed the rulesets do not hold a write deploy key: GitHub
