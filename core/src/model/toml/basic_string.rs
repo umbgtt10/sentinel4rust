@@ -9,7 +9,8 @@ use alloc::format;
 use alloc::string::String;
 use core::str::CharIndices;
 
-/// Reads the inside of a basic string, after its opening quote.
+/// Reads the inside of a basic string, after its opening quote; a control character other than a tab must be
+/// escaped.
 #[derive(Debug, Clone, Copy, Default)]
 pub struct BasicString;
 
@@ -25,6 +26,12 @@ impl BasicString {
                     let (decoded, rest) = Self::escape(chars, line_no)?;
                     out.push(decoded);
                     chars = rest;
+                }
+                c if c != '\t' && c.is_ascii_control() => {
+                    return Err(Self::error(
+                        line_no,
+                        format!("unescaped control character `U+{:04X}`", u32::from(c)),
+                    ));
                 }
                 c => out.push(c),
             }

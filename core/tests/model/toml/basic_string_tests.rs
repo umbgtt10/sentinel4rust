@@ -5,6 +5,42 @@
 use sentinel4rust::model::toml::basic_string::BasicString;
 
 #[test]
+fn read_a_raw_control_character_fails_naming_it() {
+    // Arrange
+    let cases = [
+        ("\u{0}\"", "unescaped control character `U+0000`"),
+        ("a\u{7}b\"", "unescaped control character `U+0007`"),
+        ("a\rb\"", "unescaped control character `U+000D`"),
+        ("a\u{1f}\"", "unescaped control character `U+001F`"),
+        ("a\u{7f}\"", "unescaped control character `U+007F`"),
+    ];
+
+    // Act
+    let errors: Vec<_> = cases
+        .iter()
+        .map(|(text, _)| BasicString.read(text, 4).unwrap_err())
+        .collect();
+
+    // Assert
+    for ((text, message), error) in cases.iter().zip(&errors) {
+        assert_eq!(error.line, 4, "{text:?}");
+        assert_eq!(error.message, *message, "{text:?}");
+    }
+}
+
+#[test]
+fn read_a_raw_tab_or_other_character_keeps_it() {
+    // Arrange
+    let text = "a\tb\u{80}\u{a0}\"";
+
+    // Act
+    let read = BasicString.read(text, 1);
+
+    // Assert
+    assert_eq!(read, Ok((String::from("a\tb\u{80}\u{a0}"), 8)));
+}
+
+#[test]
 fn read_an_escape_cut_short_fails_naming_it() {
     // Arrange
     let cases = [

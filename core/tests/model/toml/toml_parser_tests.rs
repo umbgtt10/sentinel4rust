@@ -5,6 +5,35 @@
 use sentinel4rust::model::toml::toml_parser::TomlParser;
 
 #[test]
+fn parse_a_raw_control_character_in_a_string_names_its_line() {
+    // Arrange
+    let cases = [
+        (
+            "a = 1\nb = \"x\u{7}y\"",
+            2,
+            "unescaped control character `U+0007`",
+        ),
+        (
+            "a = 1\nb = 2\n\"k\u{1b}\" = 3",
+            3,
+            "unescaped control character `U+001B`",
+        ),
+    ];
+
+    // Act
+    let errors: Vec<_> = cases
+        .iter()
+        .map(|(text, _, _)| TomlParser.parse(text).unwrap_err())
+        .collect();
+
+    // Assert
+    for ((text, line, message), err) in cases.iter().zip(&errors) {
+        assert_eq!(err.line, *line, "{text:?}");
+        assert_eq!(err.message, *message, "{text:?}");
+    }
+}
+
+#[test]
 fn parse_bare_keys_with_dashes_and_underscores_reads_them() {
     // Arrange & Act
     let doc = TomlParser.parse("a-b_c = 1\n[[x-y_z]]\nk = 2").unwrap();

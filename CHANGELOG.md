@@ -47,6 +47,9 @@ same day.
 - `OutsidePaths` no longer reads a key that ends in a second `path`, `pathpath = "../x"`, as a `path` key: its scan
   judged the character before each `path` from where the one before had ended, so the second of two adjacent ones
   looked like a whole key. Found while restating the scan, below.
+- A raw control character in a basic string -- U+0000 to U+001F but the tab, and U+007F -- is refused, as TOML 1.0
+  has it, with "unescaped control character `U+0007`" on its own line; the parser used to read it as text.
+  `TomlWriter` already escaped every one.
 
 ### Changed
 - Results are published to the results repository the roster's new, required `results_url` names, on its `main`, one
