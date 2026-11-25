@@ -13,6 +13,7 @@ use core::time::Duration;
 pub struct Timestamp(i64);
 
 /// A proleptic Gregorian date.
+#[derive(PartialEq, Eq)]
 struct CivilDate {
     pub year: i64,
     pub month: i64,
@@ -25,7 +26,7 @@ impl Timestamp {
         Self(seconds)
     }
 
-    /// Parses `YYYY-MM-DDTHH:MM:SSZ`.
+    /// Parses `YYYY-MM-DDTHH:MM:SSZ`: every field unsigned digits, and the date one its month has.
     pub fn parse(text: &str) -> Option<Self> {
         let b = text.as_bytes();
         if b.len() != 20
@@ -38,22 +39,24 @@ impl Timestamp {
         {
             return None;
         }
-        let num = |range: Range<usize>| text.get(range)?.parse::<i64>().ok();
+        let num = |range: Range<usize>| {
+            let field = text.get(range)?;
+            field
+                .bytes()
+                .all(|byte| byte.is_ascii_digit())
+                .then(|| field.parse::<i64>().ok())
+                .flatten()
+        };
         let date = CivilDate {
             year: num(0..4)?,
             month: num(5..7)?,
             day: num(8..10)?,
         };
         let (hour, minute, second) = (num(11..13)?, num(14..16)?, num(17..19)?);
-        if !(1..=12).contains(&date.month)
-            || !(1..=31).contains(&date.day)
-            || hour > 23
-            || minute > 59
-            || second > 59
-        {
+        let days = Self::days_from_civil(&date);
+        if Self::civil_from_days(days) != date || hour > 23 || minute > 59 || second > 59 {
             return None;
         }
-        let days = Self::days_from_civil(&date);
         Some(Self(days * 86_400 + hour * 3600 + minute * 60 + second))
     }
 

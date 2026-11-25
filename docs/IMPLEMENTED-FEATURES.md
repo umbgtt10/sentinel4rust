@@ -3,7 +3,7 @@
 What `sentinel4rust` does today. For why, see [ADRs/](ADRs/README.md); for how, [ARCHITECTURE.md](ARCHITECTURE.md);
 for what changed, [CHANGELOG.md](../CHANGELOG.md); for what is known to be missing, [OPEN_POINTS.md](OPEN_POINTS.md).
 
-## Unreleased (0.1.0)
+## 0.2.0
 
 ### The loop
 

@@ -76,7 +76,7 @@ Ten to thirty minutes: rustup, the toolchain, and cargo-mutants and sentinel4rus
 and `The service is not enabled`. Then check:
 
 ```sh
-sudo -n -u sentinel -H /home/sentinel/.cargo/bin/sentinel4rust --version     # sentinel4rust 0.1.0
+sudo -n -u sentinel -H /home/sentinel/.cargo/bin/sentinel4rust --version     # sentinel4rust 0.2.0
 sudo -n -u sentinel -H /home/sentinel/.cargo/bin/cargo mutants --version       # cargo-mutants 27.1.0
 sudo -n cat /home/sentinel/src/sentinel4rust/INSTALLED_COMMIT                  # git rev-parse HEAD
 sudo -n grep -n '^run_unit' /home/sentinel/.config/sentinel4rust/roster.toml   # run_unit = "sentinel4rust-mutants"

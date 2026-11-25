@@ -18,7 +18,7 @@ use sentinel4rust::traits::command_runner::CommandRunner;
 /// The instance of the template unit, and the job directory it reads.
 const INSTANCE: &str = "run";
 /// How much longer than the command's own deadline `systemctl` may wait for the unit.
-const MARGIN: Duration = Duration::from_secs(10 * 60);
+const MARGIN: Duration = Duration::from_mins(10);
 
 /// Runs each command in `<unit>@run.service`: the job is written under `jobs`, the unit started and waited for
 /// through `inner`, and its result read back. One command at a time, as the sentinel runs them.

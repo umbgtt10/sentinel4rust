@@ -23,6 +23,14 @@ impl OutsidePaths {
             .any(|value| Self::leaves(depth, value))
     }
 
+    /// Whether a `path` after `before` is a whole key, not the end of a longer one.
+    fn is_key(before: &str) -> bool {
+        before
+            .chars()
+            .next_back()
+            .is_none_or(|c| !(c.is_alphanumeric() || matches!(c, '_' | '-' | '.' | '"')))
+    }
+
     fn leaves(depth: usize, value: &str) -> bool {
         if value.starts_with('/') {
             return true;
@@ -40,24 +48,17 @@ impl OutsidePaths {
     }
 
     fn path_values(line: &str) -> Vec<&str> {
-        let mut values = Vec::new();
-        let mut rest = line;
-        while let Some(at) = rest.find("path") {
-            let keyed = rest[..at]
-                .chars()
-                .next_back()
-                .is_none_or(|c| !(c.is_alphanumeric() || matches!(c, '_' | '-' | '.' | '"')));
-            let after = rest[at + "path".len()..].trim_start();
-            if keyed && let Some(value) = after.strip_prefix('=').map(str::trim_start) {
-                let quote = value.chars().next().filter(|c| matches!(c, '"' | '\''));
-                if let Some(quote) = quote
-                    && let Some(end) = value[1..].find(quote)
-                {
-                    values.push(&value[1..=end]);
-                }
-            }
-            rest = &rest[at + "path".len()..];
-        }
-        values
+        line.match_indices("path")
+            .filter(|(at, _)| Self::is_key(&line[..*at]))
+            .filter_map(|(at, key)| Self::quoted_value(&line[at + key.len()..]))
+            .collect()
+    }
+
+    /// The quoted value of the `= "value"` that `after` starts with.
+    fn quoted_value(after: &str) -> Option<&str> {
+        let value = after.trim_start().strip_prefix('=')?.trim_start();
+        let quote = value.chars().next().filter(|c| matches!(c, '"' | '\''))?;
+        let end = value[1..].find(quote)?;
+        Some(&value[1..=end])
     }
 }

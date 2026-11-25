@@ -74,6 +74,11 @@ stern4rust allows a directory five subfolders, so `process/`, `git/` and `mutant
 On 2026-11-13, both packages on crates.io -- `sentinel4rust` in place of the 0.0.1 placeholder, and
 `sentinel4rust-core` -- and the repository made public ([CHANGELOG.md](../CHANGELOG.md)).
 
+### Released: 0.2.0
+
+On 2026-11-25, both packages on crates.io: the shared results repository, discovery through a GitHub App, private
+repositories, and the fixes the sentinel's run of its own core at 8301391 pointed at ([CHANGELOG.md](../CHANGELOG.md)).
+
 ## Under way: the open points, one test-first slice each
 
 In this order: 2 (install with `--path`), 14 (`--force-with-lease`), 1 (`TMPDIR` under `work_dir`), 4 (an unreadable

@@ -6,6 +6,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.2.0] — 2026-11-25
+
+### The second release
+
+Both packages on crates.io at 0.2.0. The watched repositories are only read, and every result goes to one shared
+results repository; a GitHub App finds the repositories that ask to be tested, private ones included. Then the
+sentinel's run of its own core at 8301391 was answered: its survivors killed by tests or restated, and what they
+pointed at fixed -- no loop a mutant can stall, booleans out of the TOML subset, raw control characters in strings and
+dates the calendar does not have refused. `sentinel4rust-core`'s API changes where Changed and Removed say, as a 0.x
+minor release may; `rust-version` is 1.91.
+
 ### One shared results repository
 
 On 2026-11-14 the first real onboarding, of braintax4rust, showed the rulesets do not hold a write deploy key: GitHub
@@ -44,6 +55,15 @@ same day.
 ### Fixed
 - `deploy/onboard.sh` reads deploy keys through GitHub's REST API: `gh repo deploy-key list` answered `readOnly =
   null` for a write key, so a re-run refused the results repository's key as lacking write access.
+- `OutsidePaths` no longer reads a key that ends in a second `path`, `pathpath = "../x"`, as a `path` key: its scan
+  judged the character before each `path` from where the one before had ended, so the second of two adjacent ones
+  looked like a whole key. Found while restating the scan, below.
+- A raw control character in a basic string -- U+0000 to U+001F but the tab, and U+007F -- is refused, as TOML 1.0
+  has it, with "unescaped control character `U+0007`" on its own line; the parser used to read it as text.
+  `TomlWriter` already escaped every one.
+- `Timestamp::parse` refuses a day its month does not have -- `02-31` was read as `03-03`, `02-29` of a common year
+  as `03-01` -- and a sign in any field, `+` or `-`, which it read as part of the number. It reads the times in
+  `summary.toml` and the GitHub App token's expiry, both written well-formed, so nothing the tool reads changes.
 
 ### Changed
 - Results are published to the results repository the roster's new, required `results_url` names, on its `main`, one
@@ -73,10 +93,26 @@ same day.
   behaviour unchanged: `Base64` builds each three-byte group with `u32::from_be_bytes` instead of OR-ing disjoint
   bits (where `^` did the same as `|`), and `OutsidePaths::escapes` strips comments with `CommentStripper::code`
   instead of computing a line number for an error it discarded.
+- The loops that moved their position by hand are driven by the standard library, so no mutant can stall them: the
+  sentinel's run of its own core at 8301391 had 14 timeouts there, each a full test timeout on the server per run.
+  `Located::parse` walks `match_indices(':')`, `BasicString::read` is driven by `char_indices`, `OutsidePaths` finds
+  its keys with `match_indices("path")`, and `LogTail::of` cuts at `str::ceil_char_boundary`; behaviour unchanged but
+  for the `OutsidePaths` fix above. `Sentinel::run_forever` reads the clock itself each round and hands the time to
+  `Sentinel::step_at`, new, which `Sentinel::step` calls with the clock's time; the test fake `World` panics after
+  `clock_limit` clock reads, so a mutant that empties the step fails at once where it left a loop that touched
+  nothing a test could stop. `step_at` is public, not private, so that `sentinel.rs` stays under the file-risk ceiling.
+- `Located::position` checks and parses a line or column in one step, all ASCII digits and then parsed, where it
+  checked for digits and for emptiness and then parsed again: `parse` already refused an empty one, so the emptiness
+  check could never decide. A sign is still refused; behaviour unchanged.
+- `rust-version` is 1.91, for `str::ceil_char_boundary`. Durations are written in the largest whole unit,
+  `Duration::from_hours(6)` for `MAX_BACKOFF`, as clippy asks from that version on.
 
 ### Removed
 - `deploy/rulesets/` and both rulesets, `sentinel: only mutants` and `sentinel: no tags`: a write deploy key got
   through them.
+- Booleans from the TOML subset, and `Value::Boolean` with them: nothing read one, so `jobs = true` in a roster
+  failed as "`jobs` must be an integer" on its table's first line. `true` and `false` are now refused as an
+  unsupported value, on their own line. The test that pinned `false` being read now pins its refusal.
 
 ## [0.1.0] — 2026-11-13
 

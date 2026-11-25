@@ -29,10 +29,10 @@ cli/src/main.rs
           4. EntryPoint::compose(roster)       builds every real part, prunes a crash's leftovers, reads
                                                `cargo mutants --version` once -> Sentinel
           5. Sentinel::run_once                --once: each repository once; exit 1 if a visit failed
-             Sentinel::run_forever             otherwise: step, forever
+             Sentinel::run_forever             otherwise: step_at the clock's time, forever
 
-Sentinel::step                                 core/src/patrol/sentinel.rs
-  DiscoveryRefresh::refresh(now)               when due -- at start, then every discovery_minutes, after a failure
+Sentinel::step_at(started)                     core/src/patrol/sentinel.rs; step is step_at the clock's time
+  DiscoveryRefresh::refresh(started)           when due -- at start, then every discovery_minutes, after a failure
                                                again after the pause: RepoDiscovery::discover, merged by WatchList
                                                with the roster's own repositories; one `discovery ...` journal line
   Schedule::next(DiscoveryRefresh::repos, now)

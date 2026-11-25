@@ -35,10 +35,13 @@ pub const RUN_SECONDS: i64 = 60;
 // none queued confirms every mutant it was given --; everything else is
 // recorded.
 // With `pause_limit` set, the pause after that many panics, so a loop that
-// never returns can be stopped.
+// never returns can be stopped; with `clock_limit` set, so does the clock
+// read after that many, so a loop that never pauses is stopped too.
 #[derive(Default)]
 pub struct World {
     pub now: Cell<i64>,
+    pub clock_reads: Cell<usize>,
+    pub clock_limit: Cell<Option<usize>>,
     pub syncs: RefCell<VecDeque<Result<Snapshot, SyncError>>>,
     pub discoveries: RefCell<VecDeque<Result<Vec<DiscoveredRepo>, DiscoveryError>>>,
     pub checkout_error: RefCell<Option<CheckoutError>>,
@@ -155,6 +158,17 @@ impl ResultStore for World {
 
 impl Clock for World {
     fn now(&self) -> Timestamp {
+        self.clock_reads.set(self.clock_reads.get() + 1);
+        if self
+            .clock_limit
+            .get()
+            .is_some_and(|limit| self.clock_reads.get() > limit)
+        {
+            panic!(
+                "stopped after {} clock reads",
+                self.clock_limit.get().unwrap()
+            );
+        }
         Timestamp::from_unix(self.now.get())
     }
 }

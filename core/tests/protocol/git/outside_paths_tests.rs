@@ -16,6 +16,18 @@ fn escapes_from_a_nested_manifest_counts_from_its_directory() {
 }
 
 #[test]
+fn escapes_with_a_key_ending_in_a_second_path_is_false() {
+    // Arrange
+    let text = "[dependencies]\nx = { pathpath = \"../x\" }\n";
+
+    // Act
+    let escapes = OutsidePaths.escapes("Cargo.toml", text);
+
+    // Assert
+    assert!(!escapes);
+}
+
+#[test]
 fn escapes_with_a_path_down_and_back_up_is_false() {
     // Arrange
     let text = "[dependencies]\nb = { path = \"crates/a/../b\" }\n";
@@ -25,6 +37,18 @@ fn escapes_with_a_path_down_and_back_up_is_false() {
 
     // Assert
     assert!(!escapes);
+}
+
+#[test]
+fn escapes_with_a_second_path_on_a_line_reads_it() {
+    // Arrange
+    let text = "[dependencies]\na = { path = \"crates/a\" }, b = { path = \"../b\" }\n";
+
+    // Act
+    let escapes = OutsidePaths.escapes("Cargo.toml", text);
+
+    // Assert
+    assert!(escapes);
 }
 
 #[test]

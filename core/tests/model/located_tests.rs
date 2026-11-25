@@ -5,6 +5,18 @@
 use sentinel4rust::model::located::Located;
 
 #[test]
+fn base_of_a_file_name_with_a_colon_keeps_the_colon_in_the_file() {
+    // Arrange
+    let located = Located::parse("a:b.rs:7:3: replace a::b with c");
+
+    // Act
+    let base = located.base();
+
+    // Assert
+    assert_eq!(base, "a:b.rs: replace a::b with c");
+}
+
+#[test]
 fn base_of_a_line_without_a_position_is_its_trimmed_text() {
     // Arrange
     let located = Located::parse("  no position here ");
@@ -34,6 +46,24 @@ fn base_of_a_signed_line_or_column_is_the_whole_line() {
     let lines = [
         "src/x.rs:+7:3: replace a with b",
         "src/x.rs:7:+3: replace a with b",
+    ];
+
+    // Act
+    let bases: Vec<String> = lines
+        .iter()
+        .map(|line| Located::parse(line).base())
+        .collect();
+
+    // Assert
+    assert_eq!(bases, lines);
+}
+
+#[test]
+fn base_of_an_empty_line_or_column_is_the_whole_line() {
+    // Arrange
+    let lines = [
+        "src/x.rs::3: replace a with b",
+        "src/x.rs:7:: replace a with b",
     ];
 
     // Act

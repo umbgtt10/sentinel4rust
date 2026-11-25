@@ -75,7 +75,7 @@ fn startup_names_the_version_repositories_pause_and_config_version() {
         jobs: 1,
         run_timeout: Duration::from_secs(3600),
         config_version: 2,
-        stale_after: Duration::from_secs(24 * 3600),
+        stale_after: Duration::from_hours(24),
         results_url: "r".to_string(),
         github_app: None,
         discovery_interval: Duration::from_secs(3600),

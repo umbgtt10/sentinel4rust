@@ -24,7 +24,7 @@ fn unreachable_roster(dir: &TempDir) -> Roster {
         jobs: 1,
         run_timeout: Duration::from_secs(60),
         config_version: 1,
-        stale_after: Duration::from_secs(24 * 3600),
+        stale_after: Duration::from_hours(24),
         results_url: format!("file://{}/results.git", dir.path().display()),
         github_app: None,
         discovery_interval: Duration::from_secs(3600),

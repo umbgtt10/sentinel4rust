@@ -7,30 +7,33 @@
 use crate::model::toml::toml_error::TomlError;
 use alloc::format;
 use alloc::string::String;
-use alloc::vec::Vec;
+use core::str::CharIndices;
 
-/// Reads the inside of a basic string, after its opening quote.
+/// Reads the inside of a basic string, after its opening quote; a control character other than a tab must be
+/// escaped.
 #[derive(Debug, Clone, Copy, Default)]
 pub struct BasicString;
 
 impl BasicString {
     /// The decoded value and the bytes consumed, closing quote included.
     pub fn read(&self, text: &str, line_no: usize) -> Result<(String, usize), TomlError> {
-        let chars: Vec<(usize, char)> = text.char_indices().collect();
+        let mut chars = text.char_indices();
         let mut out = String::new();
-        let mut at = 0;
-        while let Some(&(i, c)) = chars.get(at) {
+        while let Some((i, c)) = chars.next() {
             match c {
                 '"' => return Ok((out, i + 1)),
                 '\\' => {
-                    let (decoded, next) = Self::escape(&chars, at + 1, line_no)?;
+                    let (decoded, rest) = Self::escape(chars, line_no)?;
                     out.push(decoded);
-                    at = next;
+                    chars = rest;
                 }
-                c => {
-                    out.push(c);
-                    at += 1;
+                c if c != '\t' && c.is_ascii_control() => {
+                    return Err(Self::error(
+                        line_no,
+                        format!("unescaped control character `U+{:04X}`", u32::from(c)),
+                    ));
                 }
+                c => out.push(c),
             }
         }
         Err(Self::error(line_no, String::from("unterminated string")))
@@ -40,14 +43,13 @@ impl BasicString {
         TomlError { line, message }
     }
 
-    /// The character the escape at `at` stands for, and the index after it.
+    /// The character the escape after a backslash stands for, and the characters after it.
     fn escape(
-        chars: &[(usize, char)],
-        at: usize,
+        mut chars: CharIndices<'_>,
         line_no: usize,
-    ) -> Result<(char, usize), TomlError> {
-        let &(_, escape) = chars
-            .get(at)
+    ) -> Result<(char, CharIndices<'_>), TomlError> {
+        let (_, escape) = chars
+            .next()
             .ok_or_else(|| Self::error(line_no, String::from("unterminated escape")))?;
         let decoded = match escape {
             'n' => '\n',
@@ -55,24 +57,22 @@ impl BasicString {
             'r' => '\r',
             '"' => '"',
             '\\' => '\\',
-            'u' => return Self::unicode(chars, at + 1, line_no),
+            'u' => return Self::unicode(chars, line_no),
             other => return Err(Self::error(line_no, format!("invalid escape `\\{other}`"))),
         };
-        Ok((decoded, at + 1))
+        Ok((decoded, chars))
     }
 
-    /// The `\uXXXX` escape whose digits start at `at`.
+    /// The `\uXXXX` escape whose digits come next, and the characters after them.
     fn unicode(
-        chars: &[(usize, char)],
-        at: usize,
+        mut chars: CharIndices<'_>,
         line_no: usize,
-    ) -> Result<(char, usize), TomlError> {
-        let hex: String = chars.iter().skip(at).take(4).map(|(_, c)| *c).collect();
-        let consumed = hex.chars().count();
+    ) -> Result<(char, CharIndices<'_>), TomlError> {
+        let hex: String = chars.by_ref().take(4).map(|(_, c)| c).collect();
         u32::from_str_radix(&hex, 16)
             .ok()
             .and_then(char::from_u32)
-            .map(|decoded| (decoded, at + consumed))
+            .map(|decoded| (decoded, chars))
             .ok_or_else(|| Self::error(line_no, format!("invalid escape `\\u{hex}`")))
     }
 }

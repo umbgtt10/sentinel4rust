@@ -7,4 +7,4 @@
 use core::time::Duration;
 
 /// Cap on the back-off, and the wait after "unreachable".
-pub const MAX_BACKOFF: Duration = Duration::from_secs(6 * 3600);
+pub const MAX_BACKOFF: Duration = Duration::from_hours(6);

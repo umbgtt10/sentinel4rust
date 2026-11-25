@@ -9,7 +9,7 @@ use sentinel4rust::model::toml::value::Value;
 fn finish_without_arrays_returns_the_root_on_line_one() {
     // Arrange
     let mut builder = DocumentBuilder::new();
-    builder.insert("a", Value::Boolean(true), 3).unwrap();
+    builder.insert("a", Value::Integer(1), 3).unwrap();
 
     // Act
     let document = builder.finish();

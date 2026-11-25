@@ -4,8 +4,8 @@
 
 //! A small subset of TOML: enough for the roster and `summary.toml`, so the tool needs no dependencies.
 //!
-//! Supported: comments, bare and quoted keys, basic and literal strings, integers, booleans, and arrays of
-//! tables (`[[repo]]`). Anything else is rejected with the line number.
+//! Supported: comments, bare and quoted keys, basic and literal strings, integers, and arrays of tables
+//! (`[[repo]]`). Anything else, booleans included, is rejected with the line number.
 
 pub mod basic_string;
 pub mod comment_stripper;

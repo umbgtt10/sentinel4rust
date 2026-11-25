@@ -21,7 +21,7 @@ use std::rc::Rc;
 use std::time::Duration;
 
 const COMMITTED: i64 = 1_792_800_000;
-const DAY: Duration = Duration::from_secs(24 * 3600);
+const DAY: Duration = Duration::from_hours(24);
 
 fn hash(c: char) -> CommitHash {
     CommitHash::parse(&c.to_string().repeat(40)).unwrap()
