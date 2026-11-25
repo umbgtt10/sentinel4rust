@@ -50,6 +50,9 @@ same day.
 - A raw control character in a basic string -- U+0000 to U+001F but the tab, and U+007F -- is refused, as TOML 1.0
   has it, with "unescaped control character `U+0007`" on its own line; the parser used to read it as text.
   `TomlWriter` already escaped every one.
+- `Timestamp::parse` refuses a day its month does not have -- `02-31` was read as `03-03`, `02-29` of a common year
+  as `03-01` -- and a sign in any field, `+` or `-`, which it read as part of the number. It reads the times in
+  `summary.toml` and the GitHub App token's expiry, both written well-formed, so nothing the tool reads changes.
 
 ### Changed
 - Results are published to the results repository the roster's new, required `results_url` names, on its `main`, one

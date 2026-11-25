@@ -6,6 +6,50 @@ use sentinel4rust::model::timestamp::Timestamp;
 use std::time::Duration;
 
 #[test]
+fn parse_a_day_past_the_end_of_its_month_returns_none() {
+    // Arrange
+    let texts = [
+        "2026-02-31T00:00:00Z",
+        "2026-04-31T00:00:00Z",
+        "2026-11-31T00:00:00Z",
+        "2026-02-29T00:00:00Z",
+        "2100-02-29T00:00:00Z",
+        "2026-11-00T00:00:00Z",
+    ];
+
+    // Act
+    let parsed: Vec<Option<Timestamp>> = texts.iter().map(|text| Timestamp::parse(text)).collect();
+
+    // Assert
+    for (text, t) in texts.iter().zip(parsed) {
+        assert_eq!(t, None, "{text}");
+    }
+}
+
+#[test]
+fn parse_a_signed_field_returns_none() {
+    // Arrange
+    let texts = [
+        "+026-11-25T10:00:00Z",
+        "-026-11-25T10:00:00Z",
+        "2026-+1-25T10:00:00Z",
+        "2026-11-+5T10:00:00Z",
+        "2026-11-25T+1:00:00Z",
+        "2026-11-25T-1:00:00Z",
+        "2026-11-25T10:+0:00Z",
+        "2026-11-25T10:00:+0Z",
+    ];
+
+    // Act
+    let parsed: Vec<Option<Timestamp>> = texts.iter().map(|text| Timestamp::parse(text)).collect();
+
+    // Assert
+    for (text, t) in texts.iter().zip(parsed) {
+        assert_eq!(t, None, "{text}");
+    }
+}
+
+#[test]
 fn parse_displayed_instants_round_trips() {
     // Arrange
     let instants: Vec<Timestamp> = [0, 59, 951_782_400, 1_792_812_345, 4_102_444_799]
@@ -61,6 +105,30 @@ fn parse_text_wrong_in_one_place_only_returns_none() {
     // Assert
     for (text, t) in texts.iter().zip(parsed) {
         assert_eq!(t, None, "{text}");
+    }
+}
+
+#[test]
+fn parse_the_last_day_of_each_month_reads_it() {
+    // Arrange
+    let texts = [
+        "2026-01-31T00:00:00Z",
+        "2026-02-28T00:00:00Z",
+        "2024-02-29T00:00:00Z",
+        "2000-02-29T00:00:00Z",
+        "2026-04-30T00:00:00Z",
+        "2026-12-31T23:59:59Z",
+    ];
+
+    // Act
+    let shown: Vec<Option<String>> = texts
+        .iter()
+        .map(|text| Timestamp::parse(text).map(|t| t.to_string()))
+        .collect();
+
+    // Assert
+    for (text, back) in texts.iter().zip(shown) {
+        assert_eq!(back.as_deref(), Some(*text));
     }
 }
 
