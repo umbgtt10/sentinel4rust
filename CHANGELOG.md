@@ -31,6 +31,8 @@ same day.
   refuses one only while the results repository is public. A private git dependency that is itself watched is served
   to the run unit from the sentinel's clone, which now also keeps its branch at `refs/heads/<branch>`, through a
   redirect in `~sentinel/.gitconfig` and cargo's `net.git-fetch-with-cli`.
+- `CommentStripper::code`: a line up to its comment, `None` when a string is left open, for a reader with no line to
+  name; `strip` is `code` with the line named in its error.
 
 ### Fixed
 - `deploy/onboard.sh` reads deploy keys through GitHub's REST API: `gh repo deploy-key list` answered `readOnly =
@@ -60,6 +62,10 @@ same day.
 - `deploy/SETUP.md`, `deploy/PROVISION.md`, `deploy/roster.example.toml`, the README, `docs/ARCHITECTURE.md`,
   `docs/IMPLEMENTED-FEATURES.md`, `docs/ROADMAP.md` and `docs/OPEN_POINTS.md` (points 5, 14, 15, 17, 18, 20 and 21)
   follow; `ADR-DeployKeyAndRuleset` and `ADR-OrphanMutantsBranch` are superseded by `ADR-SharedResultsRepository`.
+- Two survivors the sentinel found in its own core at 8301391 were equivalent, and their code is restated, its
+  behaviour unchanged: `Base64` builds each three-byte group with `u32::from_be_bytes` instead of OR-ing disjoint
+  bits (where `^` did the same as `|`), and `OutsidePaths::escapes` strips comments with `CommentStripper::code`
+  instead of computing a line number for an error it discarded.
 
 ### Removed
 - `deploy/rulesets/` and both rulesets, `sentinel: only mutants` and `sentinel: no tags`: a write deploy key got

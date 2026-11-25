@@ -32,9 +32,9 @@ impl Base64 {
     fn encode(alphabet: &[u8; 64], bytes: &[u8]) -> String {
         let mut text = String::with_capacity(bytes.len().div_ceil(3) * 4);
         for chunk in bytes.chunks(3) {
-            let group = chunk.iter().enumerate().fold(0u32, |acc, (i, byte)| {
-                acc | u32::from(*byte) << (16 - 8 * i)
-            });
+            let mut word = [0u8; 4];
+            word[1..=chunk.len()].copy_from_slice(chunk);
+            let group = u32::from_be_bytes(word);
             for sextet in 0..=chunk.len() {
                 let index = (group >> (18 - 6 * sextet)) & 0x3f;
                 text.push(char::from(alphabet[index as usize]));
