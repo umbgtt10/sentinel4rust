@@ -16,6 +16,18 @@ fn escapes_from_a_nested_manifest_counts_from_its_directory() {
 }
 
 #[test]
+fn escapes_with_a_path_down_and_back_up_is_false() {
+    // Arrange
+    let text = "[dependencies]\nb = { path = \"crates/a/../b\" }\n";
+
+    // Act
+    let escapes = OutsidePaths.escapes("Cargo.toml", text);
+
+    // Assert
+    assert!(!escapes);
+}
+
+#[test]
 fn escapes_with_a_sibling_path_dependency_is_true() {
     // Arrange
     let text = "[package]\nname = \"x\"\n\n[dependencies]\nsibling = { path = \"../sibling\", version = \"1\" }\n";
@@ -36,6 +48,17 @@ fn escapes_with_an_absolute_or_single_quoted_path_reads_them_both() {
     // Act & Assert
     assert!(OutsidePaths.escapes("Cargo.toml", absolute));
     assert!(OutsidePaths.escapes("Cargo.toml", single));
+}
+
+#[test]
+fn escapes_with_current_directory_segments_skips_them() {
+    // Arrange
+    let dot = "[dependencies]\nx = { path = \"./../x\" }\n";
+    let empty = "[dependencies]\nx = { path = \".//../x\" }\n";
+
+    // Act & Assert
+    assert!(OutsidePaths.escapes("Cargo.toml", dot));
+    assert!(OutsidePaths.escapes("Cargo.toml", empty));
 }
 
 #[test]

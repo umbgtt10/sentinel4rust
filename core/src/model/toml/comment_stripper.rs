@@ -13,22 +13,23 @@ use alloc::string::String;
 pub struct CommentStripper;
 
 impl CommentStripper {
-    /// The line up to its comment; an error if a string is left open.
-    pub fn strip<'a>(&self, line: &'a str, line_no: usize) -> Result<&'a str, TomlError> {
+    /// The line up to its comment; `None` if a string is left open.
+    pub fn code<'a>(&self, line: &'a str) -> Option<&'a str> {
         let mut state = QuoteState::Code;
         for (i, c) in line.char_indices() {
             if state.is_code() && c == '#' {
-                return Ok(&line[..i]);
+                return Some(&line[..i]);
             }
             state = state.after(c);
         }
-        if state.is_code() {
-            Ok(line)
-        } else {
-            Err(TomlError {
-                line: line_no,
-                message: String::from("unterminated string"),
-            })
-        }
+        state.is_code().then_some(line)
+    }
+
+    /// The line up to its comment; an error naming `line_no` if a string is left open.
+    pub fn strip<'a>(&self, line: &'a str, line_no: usize) -> Result<&'a str, TomlError> {
+        self.code(line).ok_or_else(|| TomlError {
+            line: line_no,
+            message: String::from("unterminated string"),
+        })
     }
 }

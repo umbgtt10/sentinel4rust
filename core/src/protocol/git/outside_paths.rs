@@ -18,8 +18,7 @@ impl OutsidePaths {
     pub fn escapes(&self, manifest: &str, text: &str) -> bool {
         let depth = manifest.matches('/').count();
         text.lines()
-            .enumerate()
-            .map(|(index, raw)| CommentStripper.strip(raw, index + 1).unwrap_or(raw))
+            .map(|raw| CommentStripper.code(raw).unwrap_or(raw))
             .flat_map(Self::path_values)
             .any(|value| Self::leaves(depth, value))
     }

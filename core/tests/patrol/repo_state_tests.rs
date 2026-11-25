@@ -145,6 +145,18 @@ fn tool_failure_counts_on_one_commit_and_restarts_on_another() {
 }
 
 #[test]
+fn unreachable_backs_off_six_hours() {
+    // Arrange
+    let mut state = RepoState::default();
+
+    // Act
+    state.unreachable(t(0));
+
+    // Assert
+    assert_eq!(state.due_at(PAUSE), Some(t(6 * 3600)));
+}
+
+#[test]
 fn unreachable_backs_off_to_the_cap_and_is_news_once() {
     // Arrange
     let mut state = RepoState::default();

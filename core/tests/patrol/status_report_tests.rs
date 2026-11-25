@@ -109,6 +109,25 @@ fn check_of_a_current_record_says_current_and_needs_nothing() {
 }
 
 #[test]
+fn check_of_a_moved_main_exactly_at_the_limit_needs_nothing() {
+    // Arrange
+    let world = world(86_400);
+    world.queue_sync(Ok(snapshot(&hash('b'), record_for(&hash('a')))));
+
+    // Act
+    let lines = report(&world).check(&[repo("a")]);
+
+    // Assert
+    assert_eq!(
+        lines,
+        [line(
+            "repo=a state=behind main=bbbbbbb record=aaaaaaa waited_s=86400",
+            false
+        )]
+    );
+}
+
+#[test]
 fn check_of_a_moved_main_past_the_limit_needs_attention() {
     // Arrange
     let world = world(90_000);

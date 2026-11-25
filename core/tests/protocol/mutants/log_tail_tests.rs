@@ -9,6 +9,18 @@ const BYTES: usize = 16 * 1024;
 const LINES: usize = 200;
 
 #[test]
+fn of_a_cut_inside_a_character_starts_after_it() {
+    // Arrange
+    let log_tail = LogTail::new(LINES, 3);
+
+    // Act
+    let cut = log_tail.of("éé", "");
+
+    // Assert
+    assert_eq!(cut, "é");
+}
+
+#[test]
 fn of_long_output_keeps_the_last_lines_and_bytes() {
     // Arrange
     let log_tail = LogTail::new(LINES, BYTES);

@@ -46,6 +46,25 @@ fn parse_malformed_text_returns_none() {
 }
 
 #[test]
+fn parse_text_wrong_in_one_place_only_returns_none() {
+    // Arrange
+    let texts = [
+        "2026-11x25T10:00:00Z",
+        "2026-11-25T10:00x00Z",
+        "2026-11-25T10:00:00X",
+        "2026-11-25T10:00:60Z",
+    ];
+
+    // Act
+    let parsed: Vec<Option<Timestamp>> = texts.iter().map(|text| Timestamp::parse(text)).collect();
+
+    // Assert
+    for (text, t) in texts.iter().zip(parsed) {
+        assert_eq!(t, None, "{text}");
+    }
+}
+
+#[test]
 fn plus_and_since_saturate_and_clamp() {
     // Arrange
     let t = Timestamp::from_unix(100);
@@ -67,5 +86,18 @@ fn to_string_known_instants_reads_rfc3339() {
     assert_eq!(
         Timestamp::from_unix(951_782_400).to_string(),
         "2000-02-29T00:00:00Z"
+    );
+}
+
+#[test]
+fn to_string_march_first_of_a_century_without_leap_day_reads_it() {
+    // Arrange & Act & Assert
+    assert_eq!(
+        Timestamp::from_unix(-2_203_891_200).to_string(),
+        "1900-03-01T00:00:00Z"
+    );
+    assert_eq!(
+        Timestamp::from_unix(4_107_542_400).to_string(),
+        "2100-03-01T00:00:00Z"
     );
 }
