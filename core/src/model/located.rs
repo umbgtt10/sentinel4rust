@@ -26,25 +26,22 @@ pub struct Located {
 impl Located {
     /// Splits `file:line:col: description`; a line in any other form becomes its own description.
     pub fn parse(text: &str) -> Self {
-        let mut search = 0;
-        while let Some(offset) = text[search..].find(':') {
-            let colon = search + offset;
-            if let Some((position, description)) = Self::position(&text[colon + 1..]) {
-                return Self {
+        text.match_indices(':')
+            .find_map(|(colon, _)| {
+                let (position, description) = Self::position(&text[colon + 1..])?;
+                Some(Self {
                     file: text[..colon].to_string(),
                     line: position.line,
                     column: position.column,
                     description: description.to_string(),
-                };
-            }
-            search = colon + 1;
-        }
-        Self {
-            file: String::new(),
-            line: 0,
-            column: 0,
-            description: text.trim().to_string(),
-        }
+                })
+            })
+            .unwrap_or_else(|| Self {
+                file: String::new(),
+                line: 0,
+                column: 0,
+                description: text.trim().to_string(),
+            })
     }
 
     /// The mutant without its position: `file: description`.

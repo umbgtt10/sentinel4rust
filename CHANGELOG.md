@@ -44,6 +44,9 @@ same day.
 ### Fixed
 - `deploy/onboard.sh` reads deploy keys through GitHub's REST API: `gh repo deploy-key list` answered `readOnly =
   null` for a write key, so a re-run refused the results repository's key as lacking write access.
+- `OutsidePaths` no longer reads a key that ends in a second `path`, `pathpath = "../x"`, as a `path` key: its scan
+  judged the character before each `path` from where the one before had ended, so the second of two adjacent ones
+  looked like a whole key. Found while restating the scan, below.
 
 ### Changed
 - Results are published to the results repository the roster's new, required `results_url` names, on its `main`, one
@@ -73,6 +76,16 @@ same day.
   behaviour unchanged: `Base64` builds each three-byte group with `u32::from_be_bytes` instead of OR-ing disjoint
   bits (where `^` did the same as `|`), and `OutsidePaths::escapes` strips comments with `CommentStripper::code`
   instead of computing a line number for an error it discarded.
+- The loops that moved their position by hand are driven by the standard library, so no mutant can stall them: the
+  sentinel's run of its own core at 8301391 had 14 timeouts there, each a full test timeout on the server per run.
+  `Located::parse` walks `match_indices(':')`, `BasicString::read` is driven by `char_indices`, `OutsidePaths` finds
+  its keys with `match_indices("path")`, and `LogTail::of` cuts at `str::ceil_char_boundary`; behaviour unchanged but
+  for the `OutsidePaths` fix above. `Sentinel::run_forever` reads the clock itself each round and hands the time to
+  `Sentinel::step_at`, new, which `Sentinel::step` calls with the clock's time; the test fake `World` panics after
+  `clock_limit` clock reads, so a mutant that empties the step fails at once where it left a loop that touched
+  nothing a test could stop. `step_at` is public, not private, so that `sentinel.rs` stays under the file-risk ceiling.
+- `rust-version` is 1.91, for `str::ceil_char_boundary`. Durations are written in the largest whole unit,
+  `Duration::from_hours(6)` for `MAX_BACKOFF`, as clippy asks from that version on.
 
 ### Removed
 - `deploy/rulesets/` and both rulesets, `sentinel: only mutants` and `sentinel: no tags`: a write deploy key got

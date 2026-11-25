@@ -21,6 +21,7 @@ use crate::model::run_outcome::RunOutcome;
 use crate::model::skip_reason::SkipReason;
 use crate::model::snapshot::Snapshot;
 use crate::model::sync_error::SyncError;
+use crate::model::timestamp::Timestamp;
 use crate::patrol::baseline_retry::BaselineRetry;
 use crate::patrol::dependencies::Dependencies;
 use crate::patrol::discovery_refresh::DiscoveryRefresh;
@@ -65,7 +66,7 @@ impl Sentinel {
     /// Runs forever.
     pub fn run_forever(&mut self) -> ! {
         loop {
-            self.step();
+            self.step_at(self.deps.clock.now());
         }
     }
 
@@ -80,7 +81,12 @@ impl Sentinel {
 
     /// Visits the next due repository, or sleeps until one is due.
     pub fn step(&mut self) -> Option<RoundStep> {
-        self.refresh.refresh(self.deps.clock.now());
+        self.step_at(self.deps.clock.now())
+    }
+
+    /// `step`, with `started` deciding whether a discovery is due first; `run_forever` reads it each round.
+    pub fn step_at(&mut self, started: Timestamp) -> Option<RoundStep> {
+        self.refresh.refresh(started);
         let now = self.deps.clock.now();
         match self.schedule.next(self.refresh.repos(), now) {
             Next::Visit(index) => Some(self.visit_and_log(index)),

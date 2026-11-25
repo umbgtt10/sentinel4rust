@@ -71,7 +71,7 @@ fn parse_github_app_reads_its_keys_and_needs_no_repo() {
             key: String::from("/home/sentinel/.ssh/app.pem"),
         })
     );
-    assert_eq!(roster.discovery_interval, Duration::from_secs(1800));
+    assert_eq!(roster.discovery_interval, Duration::from_mins(30));
     assert_eq!(roster.repos.len(), 0);
 }
 
@@ -147,7 +147,7 @@ fn parse_minimal_roster_applies_the_defaults() {
     // Assert
     assert_eq!(roster.pause, Duration::from_secs(300));
     assert_eq!(roster.jobs, 1);
-    assert_eq!(roster.run_timeout, Duration::from_secs(12 * 3600));
+    assert_eq!(roster.run_timeout, Duration::from_hours(12));
     assert_eq!(roster.config_version, 1);
     assert_eq!(roster.github_app, None);
     assert_eq!(roster.discovery_interval, Duration::from_secs(3600));
@@ -174,8 +174,8 @@ fn parse_repo_run_timeout_overrides_the_global_cap() {
     let roster = TomlRoster.parse(text).unwrap();
 
     // Assert
-    assert_eq!(roster.repos[0].run_timeout, Duration::from_secs(2 * 3600));
-    assert_eq!(roster.repos[1].run_timeout, Duration::from_secs(30 * 3600));
+    assert_eq!(roster.repos[0].run_timeout, Duration::from_hours(2));
+    assert_eq!(roster.repos[1].run_timeout, Duration::from_hours(30));
     let zero = TomlRoster
         .parse("work_dir = \"/w\"\nresults_url = \"r\"\n[[repo]]\nname = \"a\"\nurl = \"u\"\nrun_timeout_hours = 0")
         .unwrap_err()
@@ -215,6 +215,6 @@ fn parse_stale_after_hours_defaults_to_a_day() {
     let chosen = TomlRoster.parse(set).unwrap();
 
     // Assert
-    assert_eq!(default.stale_after, Duration::from_secs(24 * 3600));
-    assert_eq!(chosen.stale_after, Duration::from_secs(6 * 3600));
+    assert_eq!(default.stale_after, Duration::from_hours(24));
+    assert_eq!(chosen.stale_after, Duration::from_hours(6));
 }

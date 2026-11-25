@@ -34,6 +34,7 @@ use std::panic::catch_unwind;
 use std::rc::Rc;
 use std::time::Duration;
 
+const CLOCK_READS_BEFORE_A_SPIN: usize = 1_000;
 const INSTALLED: &str = "cargo-mutants 27.1.0";
 const PAUSE: Duration = Duration::from_secs(300);
 
@@ -108,7 +109,7 @@ fn sentinel_built(
         jobs: 1,
         run_timeout: Duration::from_secs(3600),
         config_version: 1,
-        stale_after: Duration::from_secs(24 * 3600),
+        stale_after: Duration::from_hours(24),
         results_url: "r".to_string(),
         github_app: None,
         discovery_interval: discovery.unwrap_or(Duration::from_secs(3600)),
@@ -162,7 +163,8 @@ fn tool_failed() -> RunOutcome {
     }
 }
 
-// The pause panics after its second call, which is the only way out.
+// The pause panics after its second call, which is the only way out; the
+// clock panics after a thousand reads, should the loop never pause.
 #[test]
 fn run_forever_steps_until_something_stops_it() {
     // Arrange
@@ -172,6 +174,7 @@ fn run_forever_steps_until_something_stops_it() {
         w.queue_sync(Ok(snapshot(&head, Some(record_for(&head, 1)), &[])));
     }
     w.pause_limit.set(Some(2));
+    w.clock_limit.set(Some(CLOCK_READS_BEFORE_A_SPIN));
 
     // Act
     let stopped = catch_unwind(AssertUnwindSafe(|| s.run_forever()));
@@ -186,7 +189,7 @@ fn run_forever_steps_until_something_stops_it() {
 fn run_once_caps_the_run_at_the_repositorys_own_timeout() {
     // Arrange
     let mut large = repo("a");
-    large.run_timeout = Duration::from_secs(30 * 3600);
+    large.run_timeout = Duration::from_hours(30);
     let (mut s, w) = sentinel_for(vec![large], Some(INSTALLED));
     w.queue_sync(Ok(snapshot(&hash('a'), None, &[])));
     w.queue_run(completed(&[]));
@@ -197,7 +200,7 @@ fn run_once_caps_the_run_at_the_repositorys_own_timeout() {
     // Assert
     assert_eq!(
         w.run_calls.borrow().as_slice(),
-        [(String::from("/checkout"), 4, Duration::from_secs(30 * 3600))]
+        [(String::from("/checkout"), 4, Duration::from_hours(30))]
     );
 }
 
@@ -644,6 +647,34 @@ fn run_once_without_the_toolchain_skips_with_rustups_message() {
     );
     assert_eq!(w.run_calls.borrow().len(), 1);
     assert!(w.publishes.borrow().is_empty());
+}
+
+#[test]
+fn step_at_a_time_past_the_next_discovery_discovers_first() {
+    // Arrange
+    let (mut s, w) = sentinel_discovering(&["a"], Duration::from_hours(1));
+    w.queue_discovery(Ok(vec![]));
+    w.queue_discovery(Ok(vec![]));
+    let head = hash('a');
+    w.queue_sync(Ok(snapshot(&head, Some(record_for(&head, 1)), &[])));
+    s.step();
+    let an_hour_on = Timestamp::from_unix(w.now.get() + 3600);
+
+    // Act
+    let slept = s.step_at(an_hour_on);
+
+    // Assert
+    assert_eq!(slept, None);
+    assert!(w.discoveries.borrow().is_empty());
+    assert_eq!(
+        w.lines.borrow().as_slice(),
+        [
+            "discovery repos=1 added=- removed=-",
+            "repo=a step=unchanged hash=aaaaaaa duration_s=0",
+            "discovery repos=1 added=- removed=-"
+        ]
+    );
+    assert_eq!(w.pauses.borrow().as_slice(), [PAUSE]);
 }
 
 #[test]

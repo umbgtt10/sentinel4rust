@@ -7,7 +7,7 @@
 use std::time::Duration;
 
 /// Deadline for commands that talk to the remote, and for creating a checkout.
-pub const NETWORK_TIMEOUT: Duration = Duration::from_secs(5 * 60);
+pub const NETWORK_TIMEOUT: Duration = Duration::from_mins(5);
 /// Deadline for other git commands.
 pub const LOCAL_TIMEOUT: Duration = Duration::from_secs(60);
 /// Where the results repository's fetched branch is kept in its bare clone.

@@ -29,7 +29,7 @@ fn parse_of_a_rendered_command_round_trips_it() {
             r#"^(?:src/a\.rs:1:1: replace "x" with y)$"#,
         ],
         "/w/runs/r",
-        Duration::from_secs(43_200),
+        Duration::from_hours(12),
     )
     .with_env("TMPDIR", "/w/tmp/r")
     .with_env("NO_COLOR", "1")

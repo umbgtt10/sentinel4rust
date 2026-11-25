@@ -34,10 +34,7 @@ impl LogTail {
         if tail.len() <= self.bytes {
             return tail;
         }
-        let mut start = tail.len() - self.bytes;
-        while !tail.is_char_boundary(start) {
-            start += 1;
-        }
+        let start = tail.ceil_char_boundary(tail.len() - self.bytes);
         tail[start..].to_string()
     }
 }
