@@ -29,6 +29,24 @@ fn base_of_a_located_line_drops_line_and_column() {
 }
 
 #[test]
+fn base_of_a_signed_line_or_column_is_the_whole_line() {
+    // Arrange
+    let lines = [
+        "src/x.rs:+7:3: replace a with b",
+        "src/x.rs:7:+3: replace a with b",
+    ];
+
+    // Act
+    let bases: Vec<String> = lines
+        .iter()
+        .map(|line| Located::parse(line).base())
+        .collect();
+
+    // Assert
+    assert_eq!(bases, lines);
+}
+
+#[test]
 fn parse_orders_by_file_then_line_then_column() {
     // Arrange
     let mut parsed = vec![
