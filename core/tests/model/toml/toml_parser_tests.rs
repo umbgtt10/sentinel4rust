@@ -84,7 +84,7 @@ fn parse_root_keys_and_arrays_of_tables_reads_both() {
             url = 'git@x:a.git'
             [[repo]]
             name = "b"
-            "quoted key" = true
+            "quoted key" = 1
             "#;
 
     // Act
@@ -100,10 +100,22 @@ fn parse_root_keys_and_arrays_of_tables_reads_both() {
 }
 
 #[test]
-fn parse_true_and_false_reads_both() {
-    // Arrange & Act
-    let doc = TomlParser.parse("a = true\nb = false").unwrap();
+fn parse_true_and_false_fails_as_unsupported_values_at_their_lines() {
+    // Arrange
+    let cases = [
+        ("a = true", 1, "unsupported value `true`"),
+        ("a = 1\nb = false", 2, "unsupported value `false`"),
+    ];
+
+    // Act
+    let errors: Vec<_> = cases
+        .iter()
+        .map(|(text, _, _)| TomlParser.parse(text).unwrap_err())
+        .collect();
 
     // Assert
-    assert_eq!(doc.root.keys().collect::<Vec<_>>(), ["a", "b"]);
+    for ((text, line, message), err) in cases.iter().zip(&errors) {
+        assert_eq!(err.line, *line, "{text}");
+        assert_eq!(err.message, *message, "{text}");
+    }
 }

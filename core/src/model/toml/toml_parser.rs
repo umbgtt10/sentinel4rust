@@ -14,8 +14,8 @@ use alloc::format;
 use alloc::string::String;
 use alloc::string::ToString;
 
-/// Parses the TOML subset: comments, bare and quoted keys, basic and literal strings, integers, booleans and
-/// arrays of tables. Anything else is rejected with the line number.
+/// Parses the TOML subset: comments, bare and quoted keys, basic and literal strings, integers and arrays of
+/// tables. Anything else, booleans included, is rejected with the line number.
 #[derive(Debug, Clone, Copy, Default)]
 pub struct TomlParser;
 
@@ -116,11 +116,6 @@ impl TomlParser {
                 .ok_or_else(|| Self::error(line_no, "unterminated string"))?;
             Self::expect_end(&rest[end + 1..], line_no)?;
             return Ok(Value::String(rest[..end].to_string()));
-        }
-        match text {
-            "true" => return Ok(Value::Boolean(true)),
-            "false" => return Ok(Value::Boolean(false)),
-            _ => {}
         }
         let digits: String = text.chars().filter(|c| *c != '_').collect();
         digits

@@ -43,7 +43,7 @@ impl Table {
     pub fn integer(&self, key: &str) -> Result<Option<i64>, TomlError> {
         self.typed(key, "an integer", |value| match value {
             Value::Integer(integer) => Some(*integer),
-            _ => None,
+            Value::String(_) => None,
         })
     }
 
@@ -82,7 +82,7 @@ impl Table {
     pub fn string(&self, key: &str) -> Result<Option<String>, TomlError> {
         self.typed(key, "a string", |value| match value {
             Value::String(string) => Some(string.clone()),
-            _ => None,
+            Value::Integer(_) => None,
         })
     }
 

@@ -18,7 +18,7 @@ removes real code. The development-only `xtask` may use the family's crates.
 ## Forcing constraints / Evidence
 
 The tool needs little: process spawning, git and cargo-mutants through the command line, and a small TOML subset
-(comments, strings, integers, booleans, `[[repo]]`) for the roster and `summary.toml`, in `core/src/model/toml/`.
+(comments, strings, integers, `[[repo]]`) for the roster and `summary.toml`, in `core/src/model/toml/`.
 The build machine had no crates.io access when it was written, which forced the choice; the supply chain kept it.
 
 `serde_json` is the one exception, since 2026-11-14 (`ADR-GithubAppDiscovery`): the GitHub App's API answers in

@@ -90,6 +90,9 @@ same day.
 ### Removed
 - `deploy/rulesets/` and both rulesets, `sentinel: only mutants` and `sentinel: no tags`: a write deploy key got
   through them.
+- Booleans from the TOML subset, and `Value::Boolean` with them: nothing read one, so `jobs = true` in a roster
+  failed as "`jobs` must be an integer" on its table's first line. `true` and `false` are now refused as an
+  unsupported value, on their own line. The test that pinned `false` being read now pins its refusal.
 
 ## [0.1.0] — 2026-11-13
 

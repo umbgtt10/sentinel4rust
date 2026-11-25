@@ -26,6 +26,18 @@ const FULL: &str = r#"
 "#;
 
 #[test]
+fn parse_a_boolean_fails_at_its_own_line() {
+    // Arrange
+    let text = "work_dir = \"/w\"\nresults_url = \"r\"\njobs = true\n[[repo]]\nname = \"a\"\nurl = \"u\"\n";
+
+    // Act
+    let err = TomlRoster.parse(text).unwrap_err();
+
+    // Assert
+    assert_eq!(err.0, "line 3: unsupported value `true`");
+}
+
+#[test]
 fn parse_full_roster_reads_settings_and_repos_in_order() {
     // Arrange & Act
     let roster = TomlRoster.parse(FULL).unwrap();

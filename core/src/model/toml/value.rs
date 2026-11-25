@@ -13,6 +13,4 @@ pub enum Value {
     String(String),
     /// An integer.
     Integer(i64),
-    /// A boolean.
-    Boolean(bool),
 }
