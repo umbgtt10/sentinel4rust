@@ -36,7 +36,7 @@ RS256 for the App's JWT did not justify a crate: `openssl` signs it as an extern
 
 The TOML subset parses only what the tool writes and reads; a roster using anything else fails with the line it
 failed on. `rust-version` is 1.91, for `str::ceil_char_boundary`, where it was 1.89, for `File::try_lock`. `xtask`
-uses `serde`, `serde_json` and `syn`, and `tempfile` for its tests, from `[workspace.dependencies]`.
+uses `serge4rust`, from `[workspace.dependencies]`.
 
 ## Enforcement
 

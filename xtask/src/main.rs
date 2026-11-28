@@ -2,37 +2,32 @@
 // Licensed under the MIT License
 // SPDX-License-Identifier: MIT
 
+use serge4rust::crap::crap_report_parser::CrapReportParser;
+use serge4rust::gates::boundary::boundary_rule::BoundaryRule;
+use serge4rust::gates::boundary::crate_root_attributes::CrateRootAttributes;
+use serge4rust::gates::boundary::disk_source_files::DiskSourceFiles;
+use serge4rust::gates::boundary::package_dependencies::PackageDependencies;
+use serge4rust::gates::boundary_gate::BoundaryGate;
+use serge4rust::gates::cargo_update_gate::CargoUpdateGate;
+use serge4rust::gates::crap_gate::CrapGate;
+use serge4rust::gates::deny_gate::DenyGate;
+use serge4rust::gates::dry_gate::DryGate;
+use serge4rust::gates::gate::Gate;
+use serge4rust::gates::shear_gate::ShearGate;
+use serge4rust::gates::stage::Stage;
+use serge4rust::gates::stern_gate::SternGate;
+use serge4rust::gates::twin_gate::TwinGate;
+use serge4rust::process::system_command_runner::SystemCommandRunner;
+use serge4rust::scores::scoring_hook::ScoringHook;
 use std::env::args;
-use std::env::temp_dir;
-use std::fs::read_to_string;
-use std::fs::remove_dir_all;
-use std::fs::write;
 use std::path::Path;
 use std::path::PathBuf;
 use std::process::ExitCode;
-use std::process::id;
-use xtask::gates::boundary::boundary_rule::BoundaryRule;
-use xtask::gates::boundary::crate_root_attributes::CrateRootAttributes;
-use xtask::gates::boundary::disk_source_files::DiskSourceFiles;
-use xtask::gates::boundary::package_dependencies::PackageDependencies;
-use xtask::gates::boundary_gate::BoundaryGate;
-use xtask::gates::cargo_update_gate::CargoUpdateGate;
-use xtask::gates::crap_gate::CrapGate;
-use xtask::gates::deny_gate::DenyGate;
-use xtask::gates::dry_gate::DryGate;
 use xtask::gates::end_to_end_gate::EndToEndGate;
-use xtask::gates::gate::Gate;
 use xtask::gates::iceberg_gate::IcebergGate;
-use xtask::gates::shear_gate::ShearGate;
-use xtask::gates::stage2::Stage2;
-use xtask::gates::stern_gate::SternGate;
-use xtask::gates::twin_gate::TwinGate;
-use xtask::process::system_command_runner::SystemCommandRunner;
-use xtask::reports::crap_report_parser::CrapReportParser;
-use xtask::reports::scores::core_scorer::CoreScorer;
-use xtask::reports::scores::message_scoring::MessageScoring;
 
 const CLI_PACKAGE: &str = "sentinel4rust";
+const CORE_DIRECTORY: &str = "core";
 const CORE_PACKAGE: &str = "sentinel4rust-core";
 const XTASK_PACKAGE: &str = "xtask";
 const ALLOWED_CRATES: [&str; 0] = [];
@@ -67,6 +62,7 @@ const ICEBERG_THRESHOLD: &str = "7";
 const DRY_BASELINE: &str = "dry4rust-baseline.json";
 const DRY_MIN_NODES: &str = "25";
 const CARGO_MUTANTS_VERSION: &str = "27.1.0";
+const DENY_FETCH_ATTEMPTS: usize = 3;
 
 // Reading the real process argv and wiring the concrete runner are the two
 // things no test can reach, so they are all this binary does.
@@ -86,7 +82,7 @@ fn main() -> ExitCode {
 fn run_sync() -> ExitCode {
     let runner = SystemCommandRunner::new();
     let update = CargoUpdateGate::new(&runner, workspace_manifest_path());
-    match Stage2::new(vec![&update]).run() {
+    match Stage::new(vec![&update]).run() {
         Ok(()) => {
             println!("\nsentinel4rust sync done");
             ExitCode::SUCCESS
@@ -100,27 +96,11 @@ fn run_sync() -> ExitCode {
 
 // core's grip and braintax as the commit stages it, written into the commit
 // message whose file the commit-msg hook is handed -- or printed, given none.
-// One function: this file is held to the file-risk ceiling, and each private
-// function costs it.
+// core is the one crate scored, at the workspace's root, so its block holds
+// core's row alone.
 fn run_grip_braintax() -> ExitCode {
-    let scratch = temp_dir().join(format!("xtask-grip-braintax-{}", id()));
     let runner = SystemCommandRunner::new();
-    let scored = CoreScorer::new(&runner, scratch.to_string_lossy().into_owned()).score();
-    let _ = remove_dir_all(&scratch);
-    let written = scored
-        .map_err(|failure| failure.to_string())
-        .and_then(|sheet| {
-            let block = sheet.render();
-            let Some(path) = args().nth(2) else {
-                println!("{block}");
-                return Ok(());
-            };
-            let message =
-                read_to_string(&path).map_err(|error| format!("could not read {path}: {error}"))?;
-            write(&path, MessageScoring::new(block).applied_to(&message))
-                .map_err(|error| format!("could not write {path}: {error}"))
-        });
-    match written {
+    match ScoringHook::single_crate(&runner, String::from(CORE_DIRECTORY)).run(args().nth(2)) {
         Ok(()) => ExitCode::SUCCESS,
         Err(reason) => {
             eprintln!("\nFailed: {reason}");
@@ -180,14 +160,14 @@ fn run_stage2() -> ExitCode {
     // measure, and it costs a second.
     let shear = ShearGate::new(&runner, manifest_path.clone());
     // Last in stage 2: its advisories change without the code changing (see DenyGate).
-    let deny = DenyGate::new(&runner, manifest_path.clone());
+    let deny = DenyGate::new(&runner, manifest_path.clone(), DENY_FETCH_ATTEMPTS);
 
     // Fourth, for the same reason stern4rust runs early: removing a duplicate
     // moves code between files. One run over both crates' sources, so a copy
     // from one into the other is seen -- tests repeat their arrangement by
     // design, and xtask is not the service -- with zero ceilings against a
     // baseline of what was already duplicated when the gate arrived.
-    let dry = DryGate::new(
+    let dry = DryGate::excluding(
         &runner,
         root.to_string_lossy().into_owned(),
         DRY_EXCLUDES
@@ -233,7 +213,7 @@ fn run_stage2() -> ExitCode {
         &deny,
     ];
 
-    match Stage2::new(gates).run() {
+    match Stage::new(gates).run() {
         Ok(()) => {
             println!("\nsentinel4rust Stage 2 passed!");
             ExitCode::SUCCESS

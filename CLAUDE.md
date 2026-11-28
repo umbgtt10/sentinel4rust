@@ -69,6 +69,13 @@ Stage 2 is `cargo xtask stage2`, the gates in this order, all on, nothing baseli
 | end to end | do the `#[ignore]`d tests pass against the real cargo-mutants 27.1.0 |
 | `cargo deny` | do the dependencies carry an advisory, a refused licence or a foreign source |
 
+The gates come from serge4rust, the house's gates as a library, on crates.io (`serge4rust = "0.3.2"`): every gate,
+the stage, the runner, the failures, the crap report and the commit scoring. `xtask/src` keeps `main.rs`, which sets
+each gate with this repository's constants, and the gates that are this repository's own, on serge4rust's `Gate` and
+`CommandRunner`: the end-to-end gate, the tool's alone, and the iceberg gate, whose arguments -- the threshold after
+the packages -- and wording serge4rust's does not reproduce. A gate that needs a change is changed in serge4rust and
+released, never patched in place.
+
 `just stage1` starts with `just sync`: `cargo update`, every dependency to its
 newest compatible version, in the lock file only, while the tools are in
 development. It needs the network. A requirement in a manifest never moves, so a
@@ -79,8 +86,8 @@ The technology-free gate runs first, because its fix -- moving code into `cli` -
 measures, and it needs no installed tool: `sentinel4rust-core`'s manifest may name no crate in any section (read from
 `cargo metadata`), `core/src/lib.rs` must carry `#![no_std]` and `#![forbid(unsafe_code)]`, and no file under
 `core/src` or `core/tests` may reach `std::{env,fs,io,net,os,process,thread}`, a printing macro, a file-system method
-of `Path` or `extern crate std` (read with syn, so string literals are data). It is iceberg4rust's gate, in
-`xtask/src/gates/boundary/`. It cannot see a use inside a macro's arguments, and a method of the core's own named like
+of `Path` or `extern crate std` (read with syn, so string literals are data). It is serge4rust's boundary gate,
+given this rule in `xtask/src/main.rs`. It cannot see a use inside a macro's arguments, and a method of the core's own named like
 a file-system one would be reported.
 
 The stern gate runs the release on PATH, `cargo stern4rust` 0.20.1 or later, which holds all thirty-nine rules, as
@@ -150,8 +157,7 @@ where a clone asks it to: `just hooks`, once a clone, on each machine.
   repository. Tests assert the watched repository's refs are byte-identical after every publish.
 - The core has no dependencies: keep it that way unless a dependency removes real code. TOML goes through
   `core/src/model/toml/`. `cli` depends on the core and `serde_json`, for the GitHub API's answers
-  (`ADR-NoDependencies`). The dev-only `xtask` uses `serde`, `serde_json` and `syn`,
-  and `tempfile` for its tests, from `[workspace.dependencies]`.
+  (`ADR-NoDependencies`). The dev-only `xtask` uses `serge4rust`, from `[workspace.dependencies]`.
 - The core is technology-free: `#![no_std]`, and nothing under `core/` touches the file system, a process, a thread,
   the environment or stdout. Every external effect goes through a trait in `core/src/traits/`; `Sentinel` gets them
   all through `Dependencies`, and `EntryPoint::compose`, in `cli`, builds the real ones. A new effect is a trait in
