@@ -2,9 +2,9 @@
 // Licensed under the MIT License
 // SPDX-License-Identifier: MIT
 
-use crate::gates::gate::Gate;
-use crate::gates::gate_failure::GateFailure;
-use crate::process::command_runner::CommandRunner;
+use serge4rust::gates::gate::Gate;
+use serge4rust::gates::gate_failure::GateFailure;
+use serge4rust::process::command_runner::CommandRunner;
 
 const BINARY: &str = "cargo-mutants";
 
@@ -26,23 +26,31 @@ impl<'a> EndToEndGate<'a> {
         }
     }
 
+    // No serge4rust failure names a version, so the pinned install says itself
+    // in the gate's own words.
+    fn not_installed(&self) -> GateFailure {
+        GateFailure::Own {
+            reason: format!(
+                "{BINARY} {version} is not installed -- run: cargo install {BINARY} --version {version} --locked",
+                version = self.version
+            ),
+        }
+    }
+
     fn pinned(&self) -> Result<(), GateFailure> {
         let outcome = self.runner.run_capturing(
             "cargo",
             &[String::from("mutants"), String::from("--version")],
         )?;
-        let installed = outcome.stdout.trim();
-        if outcome.exit_code == Some(0)
+        let installed = outcome.stdout().trim();
+        if outcome.is_success()
             && installed
                 .split_whitespace()
                 .any(|word| word == self.version)
         {
             Ok(())
         } else {
-            Err(GateFailure::NotInstalledAt {
-                binary: String::from(BINARY),
-                version: self.version.clone(),
-            })
+            Err(self.not_installed())
         }
     }
 }
@@ -54,10 +62,7 @@ impl Gate for EndToEndGate<'_> {
 
     fn run(&self) -> Result<(), GateFailure> {
         if !self.runner.is_available(BINARY) {
-            return Err(GateFailure::NotInstalledAt {
-                binary: String::from(BINARY),
-                version: self.version.clone(),
-            });
+            return Err(self.not_installed());
         }
         self.pinned()?;
 
@@ -71,10 +76,12 @@ impl Gate for EndToEndGate<'_> {
         ];
         match self.runner.run_streaming("cargo", &args)? {
             Some(0) => Ok(()),
-            Some(_) => Err(GateFailure::Found(String::from(
-                "an end-to-end test against the real cargo-mutants failed",
-            ))),
-            None => Err(GateFailure::Exited(None)),
+            Some(_) => Err(GateFailure::Own {
+                reason: String::from("an end-to-end test against the real cargo-mutants failed"),
+            }),
+            None => Err(GateFailure::Own {
+                reason: String::from("exit code None"),
+            }),
         }
     }
 }

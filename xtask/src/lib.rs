@@ -3,6 +3,3 @@
 // SPDX-License-Identifier: MIT
 
 pub mod gates;
-pub mod process;
-pub mod reports;
-pub mod shear;

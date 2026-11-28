@@ -6,6 +6,24 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Added
+- `[workspace.metadata.ripe4rust]` names `just stage1` and `just stage2` as the gates an upgrade has to pass, for
+  ripe4rust, and `just ripe` runs `cargo ripe4rust plan`: which upgrades are ripe, none applied.
+
+### Changed
+- The xtask takes its gates from serge4rust 0.3.2, on crates.io: every gate, the stage, the runner, the failures, the
+  crap report and the commit scoring, set in `xtask/src/main.rs` with this repository's constants, as before. It keeps
+  two gates of its own on serge4rust's `Gate` and `CommandRunner`: the end-to-end gate, and the iceberg gate, whose
+  arguments serge4rust's orders differently. The 141 tests of what moved go with it, to serge4rust's own suite; the 13
+  of the two gates stay. Every gate's arguments, streamed output and verdict, and the scores a commit carries, are as
+  they were. What changes is serge4rust's wording of two failures: a tool exiting with a code it does not document says
+  `could not run, exit code Some(<n>)`, or `could not run, exit code None` for a signal, where it said `exit code
+  Some(<n>)` or `could not run, exit code <n>`, and `exit code None` or `could not run, terminated by signal`; and a
+  single crappy function is `1 crappy function detected`.
+- `xtask` depends on `serge4rust` alone. `serde`, `serde_json`, `syn` and `tempfile` leave it, and `serde`, `syn` and
+  `tempfile` leave `[workspace.dependencies]`; the lock file loses `syn` 2, and `tempfile` with the crates only it
+  needed. No version in it moves.
+
 ## [0.2.0] — 2026-11-25
 
 ### The second release

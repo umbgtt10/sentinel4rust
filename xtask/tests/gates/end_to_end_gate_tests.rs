@@ -3,8 +3,8 @@
 // SPDX-License-Identifier: MIT
 
 use crate::gates::support::fake_command_runner::FakeCommandRunner;
+use serge4rust::gates::gate::Gate;
 use xtask::gates::end_to_end_gate::EndToEndGate;
-use xtask::gates::gate::Gate;
 
 const INSTALL_HINT: &str = "cargo-mutants 27.1.0 is not installed -- run: cargo install cargo-mutants --version 27.1.0 --locked";
 

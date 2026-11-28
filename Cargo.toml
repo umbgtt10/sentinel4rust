@@ -12,10 +12,11 @@ repository = "https://github.com/umbgtt10/sentinel4rust"
 
 [workspace.dependencies]
 sentinel4rust-core = { path = "core", version = "0.2.0" }
-serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
-syn = { version = "2.0.117", features = ["full", "visit"] }
-tempfile = "3"
+serge4rust = "0.3.2"
+
+[workspace.metadata.ripe4rust]
+gates = ["just stage1", "just stage2"]
 
 [workspace.lints.rust]
 unsafe_code = "forbid"

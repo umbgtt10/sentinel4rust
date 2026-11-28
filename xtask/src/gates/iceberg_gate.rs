@@ -2,13 +2,16 @@
 // Licensed under the MIT License
 // SPDX-License-Identifier: MIT
 
-use crate::gates::gate::Gate;
-use crate::gates::gate_failure::GateFailure;
-use crate::process::command_runner::CommandRunner;
+use serge4rust::gates::gate::Gate;
+use serge4rust::gates::gate_failure::GateFailure;
+use serge4rust::process::command_runner::CommandRunner;
 
 const BINARY: &str = "cargo-iceberg4rust";
 const OFFENDERS_FOUND: i32 = 2;
 
+// This repository's own, not serge4rust's: serge4rust's passes the threshold
+// before the packages and says an unexpected exit in other words, and the
+// migration onto serge4rust changed no gate's arguments or output.
 pub struct IcebergGate<'a> {
     runner: &'a dyn CommandRunner,
     manifest_path: String,
@@ -39,7 +42,9 @@ impl Gate for IcebergGate<'_> {
 
     fn run(&self) -> Result<(), GateFailure> {
         if !self.runner.is_available(BINARY) {
-            return Err(GateFailure::NotInstalled(String::from(BINARY)));
+            return Err(GateFailure::NotInstalled {
+                binary: String::from(BINARY),
+            });
         }
 
         let mut args = vec![
@@ -60,11 +65,12 @@ impl Gate for IcebergGate<'_> {
         // failure to run at all.
         match self.runner.run_streaming("cargo", &args)? {
             Some(0) => Ok(()),
-            Some(OFFENDERS_FOUND) => Err(GateFailure::Found(format!(
-                "a file is at or above the ceiling of {}",
-                self.threshold
-            ))),
-            code => Err(GateFailure::Exited(code)),
+            Some(OFFENDERS_FOUND) => Err(GateFailure::AboveCeiling {
+                ceiling: self.threshold.clone(),
+            }),
+            code => Err(GateFailure::Own {
+                reason: format!("exit code {code:?}"),
+            }),
         }
     }
 }
