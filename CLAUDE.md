@@ -76,15 +76,11 @@ each gate with this repository's constants, and the gates that are this reposito
 the packages -- and wording serge4rust's does not reproduce. A gate that needs a change is changed in serge4rust and
 released, never patched in place.
 
-`just stage1` starts with `just sync`: `cargo update`, every dependency to its
-newest compatible version, in the lock file only, while the tools are in
-development. It needs the network. A requirement in a manifest never moves, so a
-published crate's users can still resolve what they could; what it moves is
-committed on its own. Breaking versions are a separate decision, not taken here.
-
 `[workspace.metadata.ripe4rust]` in the root `Cargo.toml` names the gates an upgrade has to pass, `just stage1` and
 `just stage2`, for ripe4rust. `just ripe` runs `cargo ripe4rust plan`: which upgrades, of the toolchain or a
-dependency, are ripe -- a plan, nothing applied (`cargo install cargo-ripe4rust`).
+dependency, are ripe -- a plan, nothing applied (`cargo install cargo-ripe4rust`). Stage 1 moves no lock file: the
+round applies each compatible move the plan names under both stages, where a `cargo update` would move more than the
+upgrade being checked.
 
 The technology-free gate runs first, because its fix -- moving code into `cli` -- changes what every gate behind it
 measures, and it needs no installed tool: `sentinel4rust-core`'s manifest may name no crate in any section (read from

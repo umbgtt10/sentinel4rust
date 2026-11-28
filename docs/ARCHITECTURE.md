@@ -225,7 +225,7 @@ mutant that loops -- and stage 2's end-to-end gate runs them.
 
 ## Gates
 
-`just stage1`: a lock sync, `cargo fmt`, clippy (pedantic, `-D warnings`, all targets), the tests. `just stage2` is `cargo xtask
+`just stage1`: `cargo fmt`, clippy (pedantic, `-D warnings`, all targets), the tests. `just stage2` is `cargo xtask
 stage2`: the technology-free core, stern4rust, cargo-shear, dry4rust, crap4rust, twin4rust, iceberg4rust,
 the end-to-end gate, and cargo-deny last. The gates come from serge4rust 0.3.2, which `xtask/src/main.rs` sets with
 this repository's constants; the `xtask` keeps two `Gate` implementations of its own against serge4rust's

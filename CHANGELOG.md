@@ -24,6 +24,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   `tempfile` leave `[workspace.dependencies]`; the lock file loses `syn` 2, and `tempfile` with the crates only it
   needed. No version in it moves.
 
+### Removed
+- `just sync` and `cargo xtask sync`: stage 1 no longer starts with `cargo update`. `just ripe` plans each compatible
+  move and the round applies it under both stages; a blind sync inside them moved more than the upgrade being checked.
+
 ## [0.2.0] — 2026-11-25
 
 ### The second release
