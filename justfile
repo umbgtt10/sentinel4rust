@@ -35,3 +35,7 @@ stage1: sync
 # The gates beyond cargo's own, run by the xtask.
 stage2:
     cargo xtask stage2
+
+# What ripe4rust finds ripe to upgrade, the toolchain or a dependency: a plan, nothing applied.
+ripe:
+    cargo ripe4rust plan

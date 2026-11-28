@@ -82,6 +82,10 @@ development. It needs the network. A requirement in a manifest never moves, so a
 published crate's users can still resolve what they could; what it moves is
 committed on its own. Breaking versions are a separate decision, not taken here.
 
+`[workspace.metadata.ripe4rust]` in the root `Cargo.toml` names the gates an upgrade has to pass, `just stage1` and
+`just stage2`, for ripe4rust. `just ripe` runs `cargo ripe4rust plan`: which upgrades, of the toolchain or a
+dependency, are ripe -- a plan, nothing applied (`cargo install cargo-ripe4rust`).
+
 The technology-free gate runs first, because its fix -- moving code into `cli` -- changes what every gate behind it
 measures, and it needs no installed tool: `sentinel4rust-core`'s manifest may name no crate in any section (read from
 `cargo metadata`), `core/src/lib.rs` must carry `#![no_std]` and `#![forbid(unsafe_code)]`, and no file under

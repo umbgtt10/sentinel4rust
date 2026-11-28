@@ -15,6 +15,9 @@ sentinel4rust-core = { path = "core", version = "0.2.0" }
 serde_json = "1.0"
 serge4rust = "0.3.2"
 
+[workspace.metadata.ripe4rust]
+gates = ["just stage1", "just stage2"]
+
 [workspace.lints.rust]
 unsafe_code = "forbid"
 

@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Added
+- `[workspace.metadata.ripe4rust]` names `just stage1` and `just stage2` as the gates an upgrade has to pass, for
+  ripe4rust, and `just ripe` runs `cargo ripe4rust plan`: which upgrades are ripe, none applied.
+
 ### Changed
 - The xtask takes its gates from serge4rust 0.3.2, on crates.io: every gate, the stage, the runner, the failures, the
   crap report and the commit scoring, set in `xtask/src/main.rs` with this repository's constants, as before. It keeps
